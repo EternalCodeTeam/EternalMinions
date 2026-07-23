@@ -31,7 +31,6 @@ import com.eternalcode.minions.render.MinionRenderService;
 import com.eternalcode.minions.render.MinionRenderer;
 import com.eternalcode.minions.render.MinionViewerListener;
 import com.eternalcode.minions.render.NpcMinionRenderer;
-import com.eternalcode.minions.render.RotatingHeadMinionRenderer;
 import com.eternalcode.minions.scheduler.MinionActionEngine;
 import com.eternalcode.multification.notice.Notice;
 import com.github.retrooper.packetevents.PacketEvents;
@@ -91,12 +90,6 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         EntityLibHologramRenderer holograms = new EntityLibHologramRenderer();
         this.renderer = switch (minionsConfig.minionRenderer) {
             case ARMOR_STAND -> new ArmorStandMinionRenderer(holograms, entityIndex);
-            case ROTATING_HEAD -> new RotatingHeadMinionRenderer(
-                holograms,
-                entityIndex,
-                this.getServer(),
-                minionsConfig.animationDistanceBlocks
-            );
             case NPC -> new NpcMinionRenderer(holograms, entityIndex);
         };
 
