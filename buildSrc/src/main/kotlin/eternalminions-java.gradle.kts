@@ -1,0 +1,16 @@
+plugins {
+    `java-library`
+}
+
+group = "com.eternalcode"
+version = "0.1.0-SNAPSHOT"
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
+}
+
+tasks.compileJava {
+    options.compilerArgs = listOf("-Xlint:deprecation", "-parameters")
+    options.encoding = "UTF-8"
+    options.release = 25
+}
