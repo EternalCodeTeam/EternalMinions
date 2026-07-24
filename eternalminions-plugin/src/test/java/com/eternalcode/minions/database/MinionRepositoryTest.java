@@ -2,8 +2,12 @@ package com.eternalcode.minions.database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.eternalcode.minions.minion.MiningMode;
+import com.eternalcode.minions.minion.MinionDirection;
+import com.eternalcode.minions.minion.MinionSettings;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,8 +30,12 @@ class MinionRepositoryTest {
             -8,
             true,
             3,
+            5_500L,
             new byte[0],
-            List.of()
+            List.of(),
+            Map.of("SPEED", 1, "CAPACITY", 2),
+            new MinionData.ChestPositionData("minecraft:world", 6, 70, -9),
+            new MinionSettings(MinionDirection.WEST, MiningMode.LINEAR)
         );
 
         try {

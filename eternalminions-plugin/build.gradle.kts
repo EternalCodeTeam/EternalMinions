@@ -25,6 +25,7 @@ dependencies {
     implementation("com.eternalcode:multification-okaeri:${Versions.MULTIFICATION}")
 
     implementation("dev.rollczi:litecommands-bukkit:${Versions.LITE_COMMANDS}")
+    implementation("dev.rollczi:litecommands-adventure:${Versions.LITE_COMMANDS}")
 
     compileOnly("com.github.retrooper:packetevents-spigot:${Versions.PACKET_EVENTS}")
     implementation("io.github.tofaa2:spigot:${Versions.ENTITY_LIB}")

@@ -12,13 +12,19 @@ import eu.okaeri.configs.yaml.snakeyaml.YamlSnakeYamlConfigurer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class ConfigService {
 
     private final List<ConfigRegistration<?>> configs = new ArrayList<>();
 
     public <T extends OkaeriConfig> T create(Class<T> configType, File file) {
+        return this.create(configType, file, ignored -> {});
+    }
+
+    public <T extends OkaeriConfig> T create(Class<T> configType, File file, Consumer<T> seedDefaults) {
         T config = this.configure(ConfigManager.create(configType));
+        seedDefaults.accept(config);
         config.withBindFile(file);
         config.withRemoveOrphans(true);
         config.saveDefaults();

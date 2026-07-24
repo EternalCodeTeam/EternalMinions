@@ -3,6 +3,7 @@ package com.eternalcode.minions.minion;
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.notice.NoticeService;
+import java.util.Optional;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,6 +18,7 @@ public final class MinionPlacementListener implements Listener {
     private final MinionItemFactory items;
     private final MinionIdSequence ids;
     private final MinionLifecycleService lifecycle;
+    private final MinionTypeService types;
     private final MessagesConfig messages;
     private final NoticeService notices;
 
@@ -24,12 +26,14 @@ public final class MinionPlacementListener implements Listener {
         MinionItemFactory items,
         MinionIdSequence ids,
         MinionLifecycleService lifecycle,
+        MinionTypeService types,
         MessagesConfig messages,
         NoticeService notices
     ) {
         this.items = items;
         this.ids = ids;
         this.lifecycle = lifecycle;
+        this.types = types;
         this.messages = messages;
         this.notices = notices;
     }
@@ -53,19 +57,45 @@ public final class MinionPlacementListener implements Listener {
             return;
         }
 
+        Optional<MinionItemFactory.StoredMinionState> state = this.items.readState(item);
+        String behaviorId = state.map(MinionItemFactory.StoredMinionState::behaviorId)
+            .orElseGet(() -> this.types.defaultType().id());
+        MinionType type = this.types.type(behaviorId).orElse(null);
+        if (type == null) {
+            this.notices.create().viewer(player).notice(this.messages.minionTypeUnknown).send();
+            return;
+        }
+
+        MinionUpgrades upgrades = state.map(MinionItemFactory.StoredMinionState::upgrades)
+            .orElseGet(MinionUpgrades::none);
+        MiningMode miningMode = state.map(MinionItemFactory.StoredMinionState::miningMode).orElse(MiningMode.SQUARE);
+        MinionDirection direction = MinionDirection.fromYaw(player.getLocation().getYaw());
         Minion minion = new Minion(
             this.ids.next(),
             player.getUniqueId(),
-            "miner",
+            behaviorId,
             new MinionPosition(target.getWorld().getKey().asString(), target.getX(), target.getY(), target.getZ()),
             true,
-            new MinionProgress(1),
-            MinionEquipment.empty(),
-            new MinionStorage(9)
+            state.map(stored -> new MinionProgress(stored.level(), stored.progress()))
+                .orElseGet(MinionProgress::start),
+            new MinionEquipment(state.map(MinionItemFactory.StoredMinionState::tool).orElse(null)),
+            this.createStorage(state.orElse(null), type, upgrades),
+            upgrades,
+            null,
+            new MinionSettings(direction, miningMode)
         );
         this.lifecycle.add(minion);
 
         item.subtract(1);
         this.notices.create().viewer(player).notice(this.messages.minionPlaced).send();
+    }
+
+    private MinionStorage createStorage(MinionItemFactory.StoredMinionState state, MinionType type, MinionUpgrades upgrades) {
+        int capacity = type.storageCapacity(upgrades);
+        if (state == null || state.storage().length == 0) {
+            return new MinionStorage(capacity);
+        }
+        MinionStorage storage = MinionStorage.of(state.storage());
+        return capacity > storage.capacity() ? storage.resized(capacity) : storage;
     }
 }

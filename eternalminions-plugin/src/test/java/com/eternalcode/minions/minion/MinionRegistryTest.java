@@ -76,9 +76,12 @@ class MinionRegistryTest {
             "miner",
             new MinionPosition("minecraft:world", 10, 64, 20),
             true,
-            new MinionProgress(1),
+            MinionProgress.start(),
             MinionEquipment.empty(),
-            new MinionStorage(9)
+            new MinionStorage(9),
+            MinionUpgrades.none(),
+            null,
+            MinionSettings.defaults()
         );
     }
 }

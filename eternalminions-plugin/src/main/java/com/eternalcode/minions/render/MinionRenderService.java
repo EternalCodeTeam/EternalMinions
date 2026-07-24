@@ -77,6 +77,14 @@ public final class MinionRenderService {
         }
     }
 
+    public void refreshEquipment(Minion minion) {
+        this.renderer.refreshEquipment(minion.id(), minion.equipment().tool());
+    }
+
+    public void refreshRotation(Minion minion) {
+        this.renderer.refreshRotation(minion);
+    }
+
     public void hideAll(Player player) {
         LongOpenHashSet playerVisible = this.visible.remove(player.getUniqueId());
         if (playerVisible == null) {

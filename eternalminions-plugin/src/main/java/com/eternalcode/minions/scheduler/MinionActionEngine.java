@@ -1,20 +1,16 @@
 package com.eternalcode.minions.scheduler;
 
 import com.eternalcode.minions.config.MinionsConfig;
-import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.minion.Minion;
+import com.eternalcode.minions.minion.MinionBehaviorType;
 import com.eternalcode.minions.minion.MinionRegistry;
-import com.eternalcode.minions.minion.MinionStorage;
-import com.eternalcode.minions.minion.MinionStorageUpdate;
-import com.eternalcode.minions.render.MinionRenderer;
+import com.eternalcode.minions.minion.MinionType;
+import com.eternalcode.minions.minion.MinionTypeService;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import java.util.Collection;
+import java.util.Map;
 import net.kyori.adventure.key.Key;
-import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.inventory.ItemStack;
 
 public final class MinionActionEngine implements Runnable {
 
@@ -23,9 +19,9 @@ public final class MinionActionEngine implements Runnable {
 
     private final Server server;
     private final MinionRegistry registry;
-    private final MinionRenderer renderer;
-    private final MinionPersistenceService persistence;
     private final MinionsConfig config;
+    private final MinionTypeService types;
+    private final Map<MinionBehaviorType, MinionBehavior> behaviors;
     private final MinionSchedule schedule = new MinionSchedule(128);
     private final Long2ObjectOpenHashMap<ScheduledMinion> scheduled = new Long2ObjectOpenHashMap<>();
     private long currentTick;
@@ -33,21 +29,21 @@ public final class MinionActionEngine implements Runnable {
     public MinionActionEngine(
         Server server,
         MinionRegistry registry,
-        MinionRenderer renderer,
-        MinionPersistenceService persistence,
-        MinionsConfig config
+        MinionsConfig config,
+        MinionTypeService types,
+        Map<MinionBehaviorType, MinionBehavior> behaviors
     ) {
         this.server = server;
         this.registry = registry;
-        this.renderer = renderer;
-        this.persistence = persistence;
         this.config = config;
+        this.types = types;
+        this.behaviors = Map.copyOf(behaviors);
     }
 
     public void add(Minion minion) {
         ScheduledMinion scheduledMinion = new ScheduledMinion(minion.id());
         this.scheduled.put(minion.id().value(), scheduledMinion);
-        this.schedule.schedule(scheduledMinion, this.currentTick + ACTIVE_INTERVAL_TICKS);
+        this.schedule.schedule(scheduledMinion, this.currentTick + this.workInterval(minion));
     }
 
     public void remove(Minion minion) {
@@ -73,7 +69,7 @@ public final class MinionActionEngine implements Runnable {
                 continue;
             }
 
-            long interval = this.execute(minion, scheduledMinion) ? ACTIVE_INTERVAL_TICKS : IDLE_INTERVAL_TICKS;
+            long interval = this.execute(minion, scheduledMinion) ? this.workInterval(minion) : this.idleInterval(minion);
             this.schedule.schedule(scheduledMinion, this.currentTick + interval);
             actions++;
         }
@@ -84,53 +80,31 @@ public final class MinionActionEngine implements Runnable {
             return false;
         }
 
+        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
+        if (type == null) {
+            return false;
+        }
+
+        MinionBehavior behavior = this.behaviors.get(type.behavior());
+        if (behavior == null) {
+            return false;
+        }
+
         World world = this.server.getWorld(Key.key(minion.position().worldKey()));
         if (world == null) {
             return false;
         }
 
-        for (int checkedTargets = 0; checkedTargets < MinionMiningTargets.count(); checkedTargets++) {
-            int targetIndex = scheduledMinion.miningTargetIndex();
-            scheduledMinion.advanceMiningTarget();
-            int targetX = minion.position().blockX() + MinionMiningTargets.offsetX(targetIndex);
-            int targetY = minion.position().blockY() + MinionMiningTargets.offsetY();
-            int targetZ = minion.position().blockZ() + MinionMiningTargets.offsetZ(targetIndex);
-            if (!world.isChunkLoaded(targetX >> 4, targetZ >> 4)) {
-                continue;
-            }
-
-            Block block = world.getBlockAt(targetX, targetY, targetZ);
-            if (!this.canMine(block)) {
-                continue;
-            }
-
-            this.mine(minion, world, block, MinionMiningTargets.yaw(targetIndex));
-            return true;
-        }
-        return false;
+        return behavior.execute(minion, type, scheduledMinion, world);
     }
 
-    private boolean canMine(Block block) {
-        return !block.isEmpty() && !block.isLiquid() && block.getType() != Material.BEDROCK;
+    private long workInterval(Minion minion) {
+        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
+        return type == null ? ACTIVE_INTERVAL_TICKS : type.workIntervalTicks(minion.upgrades());
     }
 
-    private void mine(Minion minion, World world, Block block, float targetYaw) {
-        ItemStack tool = minion.equipment().tool();
-        Collection<ItemStack> drops = tool == null ? block.getDrops() : block.getDrops(tool);
-        block.setType(Material.AIR, false);
-        MinionStorage storage = minion.storage();
-        for (ItemStack drop : drops) {
-            MinionStorageUpdate update = storage.add(drop);
-            storage = update.storage();
-            ItemStack remaining = update.remaining();
-            if (remaining != null) {
-                world.dropItemNaturally(block.getLocation(), remaining);
-            }
-        }
-
-        Minion updatedMinion = minion.withStorage(storage);
-        this.registry.replace(updatedMinion);
-        this.persistence.changed(updatedMinion);
-        this.renderer.animate(minion.id(), targetYaw);
+    private long idleInterval(Minion minion) {
+        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
+        return type == null ? IDLE_INTERVAL_TICKS : type.idleIntervalTicks();
     }
 }

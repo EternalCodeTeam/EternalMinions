@@ -49,10 +49,20 @@ class MinionScheduleTest {
         ScheduledMinion minion = new ScheduledMinion(new MinionId(1L));
 
         for (int targetIndex = 0; targetIndex < 9; targetIndex++) {
-            assertThat(minion.miningTargetIndex()).isEqualTo(targetIndex);
-            minion.advanceMiningTarget();
+            assertThat(minion.miningTargetIndex(9)).isEqualTo(targetIndex);
+            minion.advanceMiningTarget(9);
         }
 
-        assertThat(minion.miningTargetIndex()).isZero();
+        assertThat(minion.miningTargetIndex(9)).isZero();
+    }
+
+    @Test
+    void clampsMiningTargetWhenRadiusShrinks() {
+        ScheduledMinion minion = new ScheduledMinion(new MinionId(1L));
+        for (int advanced = 0; advanced < 20; advanced++) {
+            minion.advanceMiningTarget(25);
+        }
+
+        assertThat(minion.miningTargetIndex(9)).isLessThan(9);
     }
 }

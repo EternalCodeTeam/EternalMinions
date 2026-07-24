@@ -5,7 +5,7 @@ import eu.okaeri.configs.OkaeriConfig;
 
 public final class MessagesConfig extends OkaeriConfig {
 
-    public Notice noPermission = Notice.chat(prefix() + "<white>Nie masz uprawnień do wykonania tej komendy! <gray>({PERMISSION})");
+    public Notice noPermission = Notice.chat(prefix() + "<white>Nie masz uprawnień do wykonania tej komendy!");
     public Notice playerNotFound = Notice.chat(prefix() + "<white>Nie znaleziono takiego gracza.");
     public Notice playerOnly = Notice.chat(prefix() + "<white>Ta komenda jest dostępna tylko dla graczy.");
     public Notice correctUsage = Notice.chat(prefix() + "<white>Poprawne użycie: <green>{USAGE}");
@@ -21,8 +21,25 @@ public final class MessagesConfig extends OkaeriConfig {
     public Notice minionPlaced = Notice.chat(prefix() + "<white>Postawiono miniona.");
     public Notice minionPlacementBlocked = Notice.chat(prefix() + "<red>W tym miejscu nie można postawić miniona.");
     public Notice minionItemReceived = Notice.chat(prefix() + "<white>Otrzymano przedmiot miniona.");
+    public Notice minionTypeUnknown = Notice.chat(prefix() + "<red>Nieznany typ miniona.");
+    public Notice minionPaused = Notice.chat(prefix() + "<white>Minion został wstrzymany.");
+    public Notice minionResumed = Notice.chat(prefix() + "<white>Minion wznowił pracę.");
+
+    public Notice upgradePurchased = Notice.chat(prefix() + "<white>Ulepszenie zakupione!");
+    public Notice upgradeMaxed = Notice.chat(prefix() + "<red>To ulepszenie ma już maksymalny poziom.");
+    public Notice upgradeRequiresLevel = Notice.chat(prefix() + "<red>Minion ma za niski poziom na to ulepszenie.");
+    public Notice upgradeCannotAfford = Notice.chat(prefix() + "<red>Nie masz wystarczających przedmiotów na to ulepszenie.");
+
+    public Notice chestLinkStart = Notice.chat(prefix() + "<white>Kliknij PPM skrzynię, aby połączyć ją z minionem.");
+    public Notice chestLinked = Notice.chat(prefix() + "<white>Skrzynia została połączona z minionem.");
+    public Notice chestUnlinked = Notice.chat(prefix() + "<white>Połączenie ze skrzynią zostało usunięte.");
+    public Notice chestLinkTooFar = Notice.chat(prefix() + "<red>Ta skrzynia jest za daleko od miniona.");
+    public Notice chestLinkExpired = Notice.chat(prefix() + "<red>Czas na wybór skrzyni minął.");
+
+    public Notice minionRotated = Notice.chat(prefix() + "<white>Minion został obrócony.");
+    public Notice minionModeChanged = Notice.chat(prefix() + "<white>Tryb pracy miniona został zmieniony.");
 
     private static String prefix() {
-        return "<b><gradient:#00ffbb:#84ff7c>EternalMinions</gradient></b> <dark_gray>➤</dark_gray> ";
+        return "<b><gradient:#FACC15:#FFE15F:#FACC15>ᴍɪɴɪᴏɴꜱ</gradient></b> <dark_gray>➤</dark_gray> ";
     }
 }

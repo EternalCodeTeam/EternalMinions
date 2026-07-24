@@ -17,6 +17,19 @@ public final class MinionStorage {
         this.items = items;
     }
 
+    public static MinionStorage of(ItemStack[] items) {
+        return new MinionStorage(items.clone());
+    }
+
+    public MinionStorage resized(int capacity) {
+        if (capacity < this.items.length) {
+            throw new IllegalArgumentException("Storage cannot shrink below " + this.items.length + " slots");
+        }
+        ItemStack[] resizedItems = new ItemStack[capacity];
+        System.arraycopy(this.items, 0, resizedItems, 0, this.items.length);
+        return new MinionStorage(resizedItems);
+    }
+
     public MinionStorageUpdate add(ItemStack input) {
         ItemStack[] updatedItems = this.items.clone();
         ItemStack remaining = input.clone();
@@ -81,6 +94,15 @@ public final class MinionStorage {
 
     public int capacity() {
         return this.items.length;
+    }
+
+    public boolean hasFreeSlot() {
+        for (ItemStack item : this.items) {
+            if (item == null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void validateSlot(int slot) {

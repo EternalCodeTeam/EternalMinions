@@ -1,9 +1,8 @@
 package com.eternalcode.minions.render;
 
-import static io.github.retrooper.packetevents.util.SpigotConversionUtil.fromBukkitItemStack;
-
-import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.minion.Minion;
+import com.eternalcode.minions.minion.MinionType;
+import com.eternalcode.minions.minion.MinionTypeService;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.util.Vector3f;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
@@ -11,6 +10,7 @@ import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import me.tofaa.entitylib.meta.other.ArmorStandMeta;
 import me.tofaa.entitylib.wrapper.WrapperEntity;
+import me.tofaa.entitylib.wrapper.WrapperEntityEquipment;
 import me.tofaa.entitylib.wrapper.WrapperLivingEntity;
 
 public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRenderer {
@@ -21,15 +21,18 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
     private static final int SWING_FRAME_COUNT = 10;
     private static final Vector3f[] SWING_FRAMES = createSwingFrames();
 
+    private final MinionTypeService types;
     private final Long2LongOpenHashMap swingStartTicks = new Long2LongOpenHashMap();
 
     private long currentTick;
 
     public ArmorStandMinionRenderer(
             EntityLibHologramRenderer holograms,
-            MinionEntityIndex entityIndex
+            MinionEntityIndex entityIndex,
+            MinionTypeService types
     ) {
         super(holograms, entityIndex);
+        this.types = types;
     }
 
     private static Vector3f[] createSwingFrames() {
@@ -68,13 +71,15 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
 
         body.setHasNoGravity(true);
 
-        body.getEquipment().setHelmet(
-                fromBukkitItemStack(XMaterial.PLAYER_HEAD.parseItem())
-        );
-
-        body.getEquipment().setMainHand(
-                fromBukkitItemStack(XMaterial.DIAMOND_PICKAXE.parseItem())
-        );
+        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
+        WrapperEntityEquipment equipment = body.getEquipment();
+        if (type != null) {
+            equipment.setHelmet(equipmentItem(type.helmet()));
+            equipment.setChestplate(equipmentItem(type.chestplate()));
+            equipment.setLeggings(equipmentItem(type.leggings()));
+            equipment.setBoots(equipmentItem(type.boots()));
+        }
+        equipment.setMainHand(equipmentItem(minion.equipment().tool()));
 
         return body;
     }

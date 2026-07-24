@@ -1,14 +1,18 @@
 package com.eternalcode.minions.render;
 
-import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.Minion;
+import com.eternalcode.minions.minion.MinionId;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityHeadLook;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityRotation;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import me.tofaa.entitylib.meta.display.TextDisplayMeta;
 import me.tofaa.entitylib.wrapper.WrapperEntity;
+import me.tofaa.entitylib.wrapper.WrapperLivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 abstract class AbstractEntityLibMinionRenderer implements MinionRenderer {
 
@@ -19,6 +23,12 @@ abstract class AbstractEntityLibMinionRenderer implements MinionRenderer {
     AbstractEntityLibMinionRenderer(EntityLibHologramRenderer holograms, MinionEntityIndex entityIndex) {
         this.holograms = holograms;
         this.entityIndex = entityIndex;
+    }
+
+    static com.github.retrooper.packetevents.protocol.item.ItemStack equipmentItem(ItemStack tool) {
+        return tool == null
+                ? com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY
+                : SpigotConversionUtil.fromBukkitItemStack(tool);
     }
 
     @Override
@@ -74,6 +84,33 @@ abstract class AbstractEntityLibMinionRenderer implements MinionRenderer {
         }
     }
 
+    @Override
+    public final void refreshEquipment(MinionId minionId, ItemStack tool) {
+        RenderedMinion view = this.rendered.get(minionId.value());
+        if (view == null || !(view.body() instanceof WrapperLivingEntity body)) {
+            return;
+        }
+
+        body.getEquipment().setMainHand(equipmentItem(tool));
+        body.getEquipment().refresh();
+    }
+
+    @Override
+    public final void refreshHologram(Minion minion) {
+        RenderedMinion view = this.rendered.get(minion.id().value());
+        if (view != null) {
+            view.hologram().getEntityMeta(TextDisplayMeta.class).setText(this.holograms.text(minion));
+        }
+    }
+
+    @Override
+    public final void refreshRotation(Minion minion) {
+        RenderedMinion view = this.rendered.get(minion.id().value());
+        if (view != null) {
+            this.faceTarget(view, minion.settings().direction().yaw());
+        }
+    }
+
     final void faceTarget(RenderedMinion minion, float targetYaw) {
         if (Float.isNaN(targetYaw)) {
             return;
@@ -83,8 +120,8 @@ abstract class AbstractEntityLibMinionRenderer implements MinionRenderer {
         body.getLocation().setYaw(targetYaw);
         body.getLocation().setPitch(0.0F);
         body.sendPacketsToViewersIfSpawned(
-            new WrapperPlayServerEntityRotation(body.getEntityId(), targetYaw, 0.0F, true),
-            new WrapperPlayServerEntityHeadLook(body.getEntityId(), targetYaw)
+                new WrapperPlayServerEntityRotation(body.getEntityId(), targetYaw, 0.0F, true),
+                new WrapperPlayServerEntityHeadLook(body.getEntityId(), targetYaw)
         );
     }
 

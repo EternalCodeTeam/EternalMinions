@@ -15,12 +15,15 @@ public final class ScheduledMinion {
         return this.id;
     }
 
-    public int miningTargetIndex() {
-        return this.miningTargetIndex;
+    public int miningTargetIndex(int targetCount) {
+        // The radius can shrink between actions (config reload), so clamp the cursor into range.
+        return this.miningTargetIndex % targetCount;
     }
 
-    public void advanceMiningTarget() {
-        this.miningTargetIndex = MinionMiningTargets.nextIndex(this.miningTargetIndex);
+    public void advanceMiningTarget(int targetCount) {
+        this.miningTargetIndex = (this.miningTargetIndex % targetCount) + 1;
+        if (this.miningTargetIndex >= targetCount) {
+            this.miningTargetIndex = 0;
+        }
     }
-
 }
