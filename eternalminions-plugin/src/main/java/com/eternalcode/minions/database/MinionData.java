@@ -17,36 +17,70 @@ import java.util.UUID;
 import org.bukkit.inventory.ItemStack;
 
 public record MinionData(
-    long id,
-    UUID ownerId,
-    String behaviorId,
-    String worldKey,
-    int blockX,
-    int blockY,
-    int blockZ,
-    boolean active,
-    int level,
-    long progress,
-    byte[] serializedTool,
-    List<StoredItemData> storageItems,
-    Map<String, Integer> upgrades,
-    ChestPositionData chestPosition,
-    MinionSettings settings
+        long id,
+        UUID ownerId,
+        String behaviorId,
+        String worldKey,
+        int blockX,
+        int blockY,
+        int blockZ,
+        boolean active,
+        int level,
+        long progress,
+        byte[] serializedTool,
+        List<StoredItemData> storageItems,
+        Map<String, Integer> upgrades,
+        ChestPositionData chestPosition,
+        MinionSettings settings,
+        long createdAt
 ) {
 
     public MinionData {
+        if (ownerId == null || behaviorId == null || behaviorId.isBlank() || worldKey == null || worldKey.isBlank()) {
+            throw new IllegalArgumentException("Minion owner, behavior and world are required");
+        }
+        if (serializedTool == null || storageItems == null || upgrades == null) {
+            throw new IllegalArgumentException("Minion equipment, storage and upgrades are required");
+        }
+        if (id < 0L) {
+            throw new IllegalArgumentException("Minion id cannot be negative");
+        }
+        if (level < 0) {
+            throw new IllegalArgumentException("Minion level cannot be negative");
+        }
+        if (progress < 0L) {
+            throw new IllegalArgumentException("Minion progress cannot be negative");
+        }
+        if (createdAt < 0L) {
+            throw new IllegalArgumentException("Minion creation time cannot be negative");
+        }
         serializedTool = serializedTool.clone();
         storageItems = List.copyOf(storageItems);
         upgrades = Map.copyOf(upgrades);
         settings = settings == null ? MinionSettings.defaults() : settings;
     }
 
-    @Override
-    public byte[] serializedTool() {
-        return this.serializedTool.clone();
-    }
-
-    public record ChestPositionData(String worldKey, int blockX, int blockY, int blockZ) {
+    public MinionData(
+            long id,
+            UUID ownerId,
+            String behaviorId,
+            String worldKey,
+            int blockX,
+            int blockY,
+            int blockZ,
+            boolean active,
+            int level,
+            long progress,
+            byte[] serializedTool,
+            List<StoredItemData> storageItems,
+            Map<String, Integer> upgrades,
+            ChestPositionData chestPosition,
+            MinionSettings settings
+    ) {
+        this(
+                id, ownerId, behaviorId, worldKey, blockX, blockY, blockZ, active, level, progress,
+                serializedTool, storageItems, upgrades, chestPosition, settings, System.currentTimeMillis()
+        );
     }
 
     public static MinionData capture(Minion minion) {
@@ -69,15 +103,20 @@ public record MinionData(
 
         MinionPosition chest = minion.chestPosition();
         ChestPositionData chestPosition = chest == null
-            ? null
-            : new ChestPositionData(chest.worldKey(), chest.blockX(), chest.blockY(), chest.blockZ());
+                ? null
+                : new ChestPositionData(chest.worldKey(), chest.blockX(), chest.blockY(), chest.blockZ());
 
         return new MinionData(
-            minion.id().value(), minion.ownerId(), minion.behaviorId(), position.worldKey(),
-            position.blockX(), position.blockY(), position.blockZ(), minion.active(), minion.progress().level(),
-            minion.progress().progress(), ItemDataCodec.encode(minion.equipment().tool()), storageItems,
-            upgrades, chestPosition, minion.settings()
+                minion.id().value(), minion.ownerId(), minion.behaviorId(), position.worldKey(),
+                position.blockX(), position.blockY(), position.blockZ(), minion.active(), minion.progress().level(),
+                minion.progress().progress(), ItemDataCodec.encode(minion.equipment().tool()), storageItems,
+                upgrades, chestPosition, minion.settings(), System.currentTimeMillis()
         );
+    }
+
+    @Override
+    public byte[] serializedTool() {
+        return this.serializedTool.clone();
     }
 
     public Minion restore() {
@@ -101,17 +140,20 @@ public record MinionData(
         }
 
         return new Minion(
-            new MinionId(this.id), this.ownerId, this.behaviorId,
-            new MinionPosition(this.worldKey, this.blockX, this.blockY, this.blockZ), this.active,
-            new MinionProgress(this.level, this.progress),
-            new MinionEquipment(ItemDataCodec.decode(this.serializedTool)), storage, minionUpgrades,
-            this.chestPosition == null ? null : new MinionPosition(
-                this.chestPosition.worldKey(),
-                this.chestPosition.blockX(),
-                this.chestPosition.blockY(),
-                this.chestPosition.blockZ()
-            ),
-            this.settings
+                new MinionId(this.id), this.ownerId, this.behaviorId,
+                new MinionPosition(this.worldKey, this.blockX, this.blockY, this.blockZ), this.active,
+                new MinionProgress(this.level, this.progress),
+                new MinionEquipment(ItemDataCodec.decode(this.serializedTool)), storage, minionUpgrades,
+                this.chestPosition == null ? null : new MinionPosition(
+                        this.chestPosition.worldKey(),
+                        this.chestPosition.blockX(),
+                        this.chestPosition.blockY(),
+                        this.chestPosition.blockZ()
+                ),
+                this.settings
         );
+    }
+
+    public record ChestPositionData(String worldKey, int blockX, int blockY, int blockZ) {
     }
 }

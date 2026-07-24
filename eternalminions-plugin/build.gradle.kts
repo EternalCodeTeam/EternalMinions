@@ -23,6 +23,10 @@ dependencies {
 
     implementation("com.eternalcode:multification-paper:${Versions.MULTIFICATION}")
     implementation("com.eternalcode:multification-okaeri:${Versions.MULTIFICATION}")
+    implementation("com.eternalcode:eternalcode-commons-bukkit:${Versions.ETERNALCODE_COMMONS}")
+
+    compileOnly("org.projectlombok:lombok:${Versions.LOMBOK}")
+    annotationProcessor("org.projectlombok:lombok:${Versions.LOMBOK}")
 
     implementation("dev.rollczi:litecommands-bukkit:${Versions.LITE_COMMANDS}")
     implementation("dev.rollczi:litecommands-adventure:${Versions.LITE_COMMANDS}")
@@ -80,6 +84,7 @@ tasks.shadowJar {
         "eu.okaeri",
         "org.yaml.snakeyaml",
         "com.eternalcode.multification",
+        "com.eternalcode.commons",
         "dev.rollczi.litecommands",
         "io.github.tofaa2",
         "com.cryptomorin.xseries",

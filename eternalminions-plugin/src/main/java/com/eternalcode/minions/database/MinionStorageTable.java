@@ -9,9 +9,8 @@ final class MinionStorageTable {
 
     static final String MINION_ID_COLUMN = "minion_id";
 
-    @DatabaseField(columnName = "id", generatedId = true) private long id;
-    @DatabaseField(columnName = MINION_ID_COLUMN, uniqueCombo = true, index = true) private long minionId;
-    @DatabaseField(columnName = "slot", uniqueCombo = true) private int slot;
+    @DatabaseField(columnName = MINION_ID_COLUMN) private long minionId;
+    @DatabaseField(columnName = "slot") private int slot;
     @DatabaseField(columnName = "serialized_item", canBeNull = false, dataType = DataType.BYTE_ARRAY)
     private byte[] serializedItem;
 
@@ -24,7 +23,9 @@ final class MinionStorageTable {
         this.serializedItem = serializedItem.clone();
     }
 
-    long minionId() { return this.minionId; }
-    int slot() { return this.slot; }
-    byte[] serializedItem() { return this.serializedItem.clone(); }
+    long minionId() {return this.minionId;}
+
+    int slot() {return this.slot;}
+
+    byte[] serializedItem() {return this.serializedItem.clone();}
 }

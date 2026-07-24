@@ -1,12 +1,9 @@
 package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.database.MinionPersistenceService;
-import com.eternalcode.minions.database.MinionRepository;
 import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.render.MinionRenderService;
-import com.eternalcode.minions.scheduler.MinionActionEngine;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -16,7 +13,6 @@ public final class MinionLifecycleService {
     private final MinionActionEngine actions;
     private final MinionRenderService renders;
     private final MinionPersistenceService persistence;
-    private final MinionRepository repository;
     private final MinionItemFactory items;
 
     public MinionLifecycleService(
@@ -24,14 +20,12 @@ public final class MinionLifecycleService {
         MinionActionEngine actions,
         MinionRenderService renders,
         MinionPersistenceService persistence,
-        MinionRepository repository,
         MinionItemFactory items
     ) {
         this.minions = minions;
         this.actions = actions;
         this.renders = renders;
         this.persistence = persistence;
-        this.repository = repository;
         this.items = items;
     }
 
@@ -39,22 +33,48 @@ public final class MinionLifecycleService {
         this.minions.register(minion);
         this.actions.add(minion);
         this.renders.showToNearby(minion);
-        this.persistence.saveNow(minion);
+        this.persistence.create(minion);
     }
 
-    public void update(Minion minion) {
+    public void updateState(Minion minion) {
         this.minions.replace(minion);
-        this.persistence.changed(minion);
+        this.persistence.saveState(minion);
+    }
+
+    public void updateEquipment(Minion minion) {
+        this.minions.replace(minion);
+        this.persistence.saveEquipment(minion);
         this.renders.refreshEquipment(minion);
+    }
+
+    public void updateStorage(Minion minion) {
+        Minion previous = this.minions.findMinion(minion.id()).orElse(null);
+        if (previous == null) {
+            return;
+        }
+        this.minions.replace(minion);
+        this.persistence.saveStorage(previous, minion);
+    }
+
+    public void updateSettings(Minion minion) {
+        this.minions.replace(minion);
+        this.persistence.saveSettings(minion);
         this.renders.refreshRotation(minion);
     }
 
-    // Purchases and chest links must survive a crash, so they skip the dirty-flush delay.
-    public void updateNow(Minion minion) {
+    public void updateUpgrade(Minion minion, MinionUpgradeKind upgrade) {
+        Minion previous = this.minions.findMinion(minion.id()).orElse(null);
+        if (previous == null) {
+            return;
+        }
         this.minions.replace(minion);
-        this.renders.refreshEquipment(minion);
-        this.renders.refreshRotation(minion);
-        this.persistence.saveNow(minion);
+        this.persistence.saveUpgrade(minion, upgrade);
+        this.persistence.saveStorage(previous, minion);
+    }
+
+    public void updateChestLink(Minion minion) {
+        this.minions.replace(minion);
+        this.persistence.saveChestLink(minion);
     }
 
     public void pickup(Player player, Minion minion) {
@@ -66,7 +86,6 @@ public final class MinionLifecycleService {
         Minion current = removed.get();
         this.actions.remove(current);
         this.renders.remove(current);
-        this.persistence.forget(current.id());
 
         MinionStorage storage = current.storage();
         for (int slot = 0; slot < storage.capacity(); slot++) {
@@ -81,10 +100,7 @@ public final class MinionLifecycleService {
         Minion emptied = current.withStorage(new MinionStorage(storage.capacity()));
         this.giveOrDrop(player, this.items.create(emptied));
 
-        this.repository.delete(current.id().value()).exceptionally(error -> {
-            player.getServer().getLogger().log(Level.SEVERE, "Unable to delete minion " + current.id().value(), error);
-            return null;
-        });
+        this.persistence.delete(current.id());
     }
 
     private void giveOrDrop(Player player, ItemStack item) {

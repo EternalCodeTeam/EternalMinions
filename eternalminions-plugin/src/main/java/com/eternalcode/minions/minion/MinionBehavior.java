@@ -1,7 +1,5 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion;
 
-import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionType;
 import org.bukkit.World;
 
 public interface MinionBehavior {

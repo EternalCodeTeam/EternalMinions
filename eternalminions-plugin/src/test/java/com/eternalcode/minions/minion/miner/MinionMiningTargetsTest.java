@@ -1,4 +1,4 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion.miner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

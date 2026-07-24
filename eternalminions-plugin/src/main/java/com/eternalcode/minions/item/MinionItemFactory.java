@@ -1,12 +1,12 @@
 package com.eternalcode.minions.item;
 
-import com.eternalcode.minions.minion.MiningMode;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionStorage;
 import com.eternalcode.minions.minion.MinionType;
 import com.eternalcode.minions.minion.MinionTypeService;
 import com.eternalcode.minions.minion.MinionUpgradeKind;
 import com.eternalcode.minions.minion.MinionUpgrades;
+import com.eternalcode.minions.minion.miner.MiningMode;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;

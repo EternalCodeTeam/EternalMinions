@@ -19,7 +19,9 @@ final class MinionSettingsTable {
         this.miningMode = miningMode;
     }
 
-    long minionId() { return this.minionId; }
-    String direction() { return this.direction; }
-    String miningMode() { return this.miningMode; }
+    long minionId() {return this.minionId;}
+
+    String direction() {return this.direction;}
+
+    String miningMode() {return this.miningMode;}
 }

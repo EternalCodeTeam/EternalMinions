@@ -1,11 +1,13 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion.seller;
 
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.integration.VaultEconomyHook;
+import com.eternalcode.minions.minion.AbstractMinionBehavior;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.minion.MinionStorage;
 import com.eternalcode.minions.minion.MinionType;
+import com.eternalcode.minions.minion.ScheduledMinion;
 import com.eternalcode.minions.render.MinionRenderer;
 import java.util.Set;
 import org.bukkit.Material;

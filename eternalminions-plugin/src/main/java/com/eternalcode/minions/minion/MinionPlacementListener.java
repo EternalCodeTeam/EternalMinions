@@ -2,6 +2,7 @@ package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.item.MinionItemFactory;
+import com.eternalcode.minions.minion.miner.MiningMode;
 import com.eternalcode.minions.notice.NoticeService;
 import java.util.Optional;
 import org.bukkit.block.Block;

@@ -1,11 +1,6 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.config.MinionsConfig;
-import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionBehaviorType;
-import com.eternalcode.minions.minion.MinionRegistry;
-import com.eternalcode.minions.minion.MinionType;
-import com.eternalcode.minions.minion.MinionTypeService;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.Map;
 import net.kyori.adventure.key.Key;

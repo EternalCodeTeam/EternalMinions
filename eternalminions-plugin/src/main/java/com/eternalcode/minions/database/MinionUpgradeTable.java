@@ -8,21 +8,22 @@ final class MinionUpgradeTable {
 
     static final String MINION_ID_COLUMN = "minion_id";
 
-    @DatabaseField(columnName = "id", generatedId = true) private long id;
-    @DatabaseField(columnName = MINION_ID_COLUMN, uniqueCombo = true, index = true) private long minionId;
-    @DatabaseField(columnName = "kind", uniqueCombo = true, canBeNull = false) private String kind;
+    @DatabaseField(columnName = MINION_ID_COLUMN) private long minionId;
+    @DatabaseField(columnName = "upgrade_type", canBeNull = false) private String upgradeType;
     @DatabaseField(columnName = "tier") private int tier;
 
     MinionUpgradeTable() {
     }
 
-    MinionUpgradeTable(long minionId, String kind, int tier) {
+    MinionUpgradeTable(long minionId, String upgradeType, int tier) {
         this.minionId = minionId;
-        this.kind = kind;
+        this.upgradeType = upgradeType;
         this.tier = tier;
     }
 
-    long minionId() { return this.minionId; }
-    String kind() { return this.kind; }
-    int tier() { return this.tier; }
+    long minionId() {return this.minionId;}
+
+    String upgradeType() {return this.upgradeType;}
+
+    int tier() {return this.tier;}
 }

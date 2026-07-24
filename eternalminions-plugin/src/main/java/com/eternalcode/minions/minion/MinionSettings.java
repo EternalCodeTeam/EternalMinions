@@ -1,5 +1,7 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.minion.miner.MiningMode;
+
 public record MinionSettings(MinionDirection direction, MiningMode miningMode) {
 
     public MinionSettings {

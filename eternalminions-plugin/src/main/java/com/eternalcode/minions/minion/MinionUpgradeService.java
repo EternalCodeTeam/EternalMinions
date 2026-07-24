@@ -4,20 +4,20 @@ import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.multification.notice.Notice;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 public final class MinionUpgradeService {
 
     private final MinionTypeService types;
-    private final Consumer<Minion> update;
+    private final BiConsumer<Minion, MinionUpgradeKind> update;
     private final MessagesConfig messages;
     private final NoticeService notices;
 
     public MinionUpgradeService(
         MinionTypeService types,
-        Consumer<Minion> update,
+        BiConsumer<Minion, MinionUpgradeKind> update,
         MessagesConfig messages,
         NoticeService notices
     ) {
@@ -57,7 +57,7 @@ public final class MinionUpgradeService {
         if (kind == MinionUpgradeKind.CAPACITY) {
             updated = updated.withStorage(updated.storage().resized(type.storageCapacity(updated.upgrades())));
         }
-        this.update.accept(updated);
+        this.update.accept(updated, kind);
         this.send(player, this.messages.upgradePurchased);
         return Optional.of(updated);
     }

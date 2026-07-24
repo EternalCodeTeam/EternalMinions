@@ -1,12 +1,13 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion.miner;
 
 import com.eternalcode.minions.database.MinionPersistenceService;
-import com.eternalcode.minions.minion.MiningMode;
+import com.eternalcode.minions.minion.AbstractMinionBehavior;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionPosition;
 import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.minion.MinionType;
+import com.eternalcode.minions.minion.ScheduledMinion;
 import com.eternalcode.minions.render.MinionRenderer;
 import java.util.Collection;
 import org.bukkit.Material;

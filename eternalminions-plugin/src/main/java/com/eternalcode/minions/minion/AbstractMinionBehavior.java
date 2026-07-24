@@ -1,13 +1,6 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.database.MinionPersistenceService;
-import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionPosition;
-import com.eternalcode.minions.minion.MinionProgress;
-import com.eternalcode.minions.minion.MinionRegistry;
-import com.eternalcode.minions.minion.MinionStorage;
-import com.eternalcode.minions.minion.MinionStorageUpdate;
-import com.eternalcode.minions.minion.MinionType;
 import com.eternalcode.minions.render.MinionRenderer;
 import java.util.Collection;
 import java.util.Map;
@@ -18,13 +11,13 @@ import org.bukkit.block.Container;
 import org.bukkit.inventory.ItemStack;
 
 // Shared plumbing for behaviors that deposit items and advance progress (mining, generators, collecting).
-abstract class AbstractMinionBehavior implements MinionBehavior {
+public abstract class AbstractMinionBehavior implements MinionBehavior {
 
     protected final MinionRegistry registry;
     protected final MinionPersistenceService persistence;
     protected final MinionRenderer renderer;
 
-    AbstractMinionBehavior(MinionRegistry registry, MinionPersistenceService persistence, MinionRenderer renderer) {
+    protected AbstractMinionBehavior(MinionRegistry registry, MinionPersistenceService persistence, MinionRenderer renderer) {
         this.registry = registry;
         this.persistence = persistence;
         this.renderer = renderer;
@@ -83,7 +76,8 @@ abstract class AbstractMinionBehavior implements MinionBehavior {
         MinionProgress progress = minion.progress().advanced(type);
         Minion updated = minion.withStorage(storage).withProgress(progress);
         this.registry.replace(updated);
-        this.persistence.changed(updated);
+        this.persistence.saveState(updated);
+        this.persistence.saveStorage(minion, updated);
         this.renderer.animate(minion.id(), yaw);
         if (progress.level() != minion.progress().level()) {
             this.renderer.refreshHologram(updated);

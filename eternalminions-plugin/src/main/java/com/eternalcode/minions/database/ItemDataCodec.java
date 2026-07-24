@@ -13,7 +13,7 @@ final class ItemDataCodec {
 
     static ItemStack decode(byte[] serializedItem) {
         return serializedItem == null || serializedItem.length == 0
-            ? null
-            : ItemStack.deserializeBytes(serializedItem);
+                ? null
+                : ItemStack.deserializeBytes(serializedItem);
     }
 }

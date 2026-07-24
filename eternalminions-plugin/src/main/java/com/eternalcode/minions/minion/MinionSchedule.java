@@ -1,6 +1,5 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion;
 
-import com.eternalcode.minions.minion.MinionId;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import java.util.Arrays;
 

@@ -2,94 +2,162 @@ package com.eternalcode.minions.database;
 
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;
-import com.eternalcode.minions.minion.MinionRegistry;
+import com.eternalcode.minions.minion.MinionPosition;
+import com.eternalcode.minions.minion.MinionUpgradeKind;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
-import org.bukkit.plugin.Plugin;
+import java.util.logging.Logger;
+import org.bukkit.inventory.ItemStack;
 
 public final class MinionPersistenceService {
 
-    private final Plugin plugin;
-    private final MinionRegistry registry;
-    private final MinionRepository repository;
-    private final DirtyMinionTracker dirtyMinions = new DirtyMinionTracker();
-    private final AtomicBoolean flushRunning = new AtomicBoolean();
+    private final Logger logger;
+    private final MinionRepository minions;
+    private final MinionStateRepository states;
+    private final MinionSettingsRepository settings;
+    private final MinionEquipmentRepository equipment;
+    private final MinionStorageRepository storage;
+    private final MinionUpgradeRepository upgrades;
+    private final MinionChestLinkRepository chests;
 
-    public MinionPersistenceService(Plugin plugin, MinionRegistry registry, MinionRepository repository) {
-        this.plugin = plugin;
-        this.registry = registry;
-        this.repository = repository;
+    public MinionPersistenceService(
+            Logger logger,
+            MinionRepository minions,
+            MinionStateRepository states,
+            MinionSettingsRepository settings,
+            MinionEquipmentRepository equipment,
+            MinionStorageRepository storage,
+            MinionUpgradeRepository upgrades,
+            MinionChestLinkRepository chests
+    ) {
+        this.logger = logger;
+        this.minions = minions;
+        this.states = states;
+        this.settings = settings;
+        this.equipment = equipment;
+        this.storage = storage;
+        this.upgrades = upgrades;
+        this.chests = chests;
     }
 
-    public void flushDirty() {
-        if (!this.repository.ready()) {
+    private static byte[] serializeStorageSlot(Minion minion, int slot) {
+        if (slot >= minion.storage().capacity()) {
+            return new byte[0];
+        }
+        ItemStack item = minion.storage().item(slot);
+        return ItemDataCodec.encode(item);
+    }
+
+    public void create(Minion minion) {
+        if (!this.minions.ready()) {
             return;
         }
-        if (!this.flushRunning.compareAndSet(false, true)) {
+        this.report(this.minions.create(MinionData.capture(minion)), "create minion " + minion.id().value());
+    }
+
+    public void saveState(Minion minion) {
+        if (!this.minions.ready()) {
+            return;
+        }
+        this.report(
+                this.states.saveState(
+                        minion.id(),
+                        minion.active(),
+                        minion.progress().level(),
+                        minion.progress().progress(),
+                        System.currentTimeMillis()
+                ),
+                "save state for minion " + minion.id().value()
+        );
+    }
+
+    public void saveSettings(Minion minion) {
+        if (!this.minions.ready()) {
+            return;
+        }
+        this.report(
+                this.settings.saveSettings(minion.id(), minion.settings()),
+                "save settings for minion " + minion.id().value()
+        );
+    }
+
+    public void saveEquipment(Minion minion) {
+        if (!this.minions.ready()) {
             return;
         }
 
-        List<PendingSave> pending = new ArrayList<>();
-        List<MinionData> data = new ArrayList<>();
-        for (Minion minion : this.registry.minions()) {
-            if (!this.dirtyMinions.isDirty(minion.id())) {
+        byte[] serializedTool = ItemDataCodec.encode(minion.equipment().tool());
+        CompletableFuture<Void> operation = serializedTool.length == 0
+                ? this.equipment.deleteSlot(minion.id(), MinionEquipmentSlot.TOOL)
+                : this.equipment.saveSlot(minion.id(), MinionEquipmentSlot.TOOL, serializedTool);
+        this.report(operation, "save equipment for minion " + minion.id().value());
+    }
+
+    public void saveStorage(Minion previous, Minion updated) {
+        if (!this.minions.ready()) {
+            return;
+        }
+
+        List<CompletableFuture<Void>> operations = new ArrayList<>();
+        int capacity = Math.max(previous.storage().capacity(), updated.storage().capacity());
+        for (int slot = 0; slot < capacity; slot++) {
+            byte[] previousItem = serializeStorageSlot(previous, slot);
+            byte[] updatedItem = serializeStorageSlot(updated, slot);
+            if (Arrays.equals(previousItem, updatedItem)) {
                 continue;
             }
-            long version = this.dirtyMinions.version(minion.id());
-            pending.add(new PendingSave(minion.id(), version));
-            data.add(MinionData.capture(minion));
+            CompletableFuture<Void> operation = updatedItem.length == 0
+                    ? this.storage.deleteSlot(updated.id(), slot)
+                    : this.storage.saveSlot(updated.id(), slot, updatedItem);
+            operations.add(operation);
         }
+        if (operations.isEmpty()) {
+            return;
+        }
+        this.report(
+                CompletableFuture.allOf(operations.toArray(CompletableFuture[]::new)),
+                "save storage for minion " + updated.id().value()
+        );
+    }
 
-        if (data.isEmpty()) {
-            this.flushRunning.set(false);
+    public void saveUpgrade(Minion minion, MinionUpgradeKind upgrade) {
+        if (!this.minions.ready()) {
             return;
         }
 
-        this.repository.save(data).whenComplete((ignored, error) -> {
-            if (!this.plugin.isEnabled()) {
-                this.flushRunning.set(false);
-                return;
-            }
-            this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
-            this.flushRunning.set(false);
-            if (error != null) {
-                this.plugin.getLogger().log(Level.SEVERE, "Unable to flush dirty minions", error);
-                return;
-            }
-            for (PendingSave save : pending) {
-                this.dirtyMinions.markSaved(save.minionId(), save.version());
-            }
-            });
-        });
+        int tier = minion.upgrades().tier(upgrade);
+        CompletableFuture<Void> operation = tier == 0
+                ? this.upgrades.deleteUpgrade(minion.id(), upgrade)
+                : this.upgrades.saveUpgrade(minion.id(), upgrade, tier);
+        this.report(operation, "save upgrade for minion " + minion.id().value());
     }
 
-    public void changed(Minion minion) {
-        this.dirtyMinions.changed(minion.id());
-    }
-
-    public void forget(MinionId minionId) {
-        this.dirtyMinions.remove(minionId);
-    }
-
-    public void saveNow(Minion minion) {
-        if (!this.repository.ready()) {
+    public void saveChestLink(Minion minion) {
+        if (!this.minions.ready()) {
             return;
         }
-        long version = this.dirtyMinions.changed(minion.id());
-        this.repository.save(List.of(MinionData.capture(minion))).whenComplete((ignored, error) -> {
-            if (error != null) {
-                this.plugin.getLogger().log(Level.SEVERE, "Unable to save minion " + minion.id().value(), error);
-                return;
-            }
-            if (this.plugin.isEnabled()) {
-                this.plugin.getServer().getScheduler().runTask(this.plugin,
-                    () -> this.dirtyMinions.markSaved(minion.id(), version));
-            }
-        });
+
+        MinionPosition chest = minion.chestPosition();
+        CompletableFuture<Void> operation = chest == null
+                ? this.chests.deleteLink(minion.id())
+                : this.chests.saveLink(minion.id(), chest);
+        this.report(operation, "save chest link for minion " + minion.id().value());
     }
 
-    private record PendingSave(MinionId minionId, long version) {
+    public void delete(MinionId minionId) {
+        if (!this.minions.ready()) {
+            return;
+        }
+        this.report(this.minions.deleteMinion(minionId), "delete minion " + minionId.value());
+    }
+
+    private void report(CompletableFuture<Void> operation, String action) {
+        operation.exceptionally(error -> {
+            this.logger.log(Level.SEVERE, "Unable to " + action, error);
+            return null;
+        });
     }
 }

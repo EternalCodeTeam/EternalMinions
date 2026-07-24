@@ -1,4 +1,4 @@
-package com.eternalcode.minions.minion;
+package com.eternalcode.minions.minion.miner;
 
 public enum MiningMode {
     SQUARE,

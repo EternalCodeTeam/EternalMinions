@@ -9,16 +9,26 @@ import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.config.MinionPanelConfig;
 import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.database.DatabaseConfig;
+import com.eternalcode.minions.database.DatabaseManager;
+import com.eternalcode.minions.database.DatabaseScheduler;
+import com.eternalcode.minions.database.MinionChestLinkRepository;
 import com.eternalcode.minions.database.MinionData;
-import com.eternalcode.minions.database.MinionDatabase;
+import com.eternalcode.minions.database.MinionEquipmentRepository;
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.database.MinionRepository;
+import com.eternalcode.minions.database.MinionSettingsRepository;
+import com.eternalcode.minions.database.MinionStateRepository;
+import com.eternalcode.minions.database.MinionStorageRepository;
+import com.eternalcode.minions.database.MinionUpgradeRepository;
 import com.eternalcode.minions.gui.MinionPanel;
 import com.eternalcode.minions.gui.MinionUpgradePanel;
 import com.eternalcode.minions.integration.VaultEconomyHook;
 import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.minion.ChestLinkService;
+import com.eternalcode.minions.minion.GeneratorBehavior;
 import com.eternalcode.minions.minion.Minion;
+import com.eternalcode.minions.minion.MinionActionEngine;
+import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBehaviorType;
 import com.eternalcode.minions.minion.MinionIdSequence;
 import com.eternalcode.minions.minion.MinionLifecycleService;
@@ -28,6 +38,9 @@ import com.eternalcode.minions.minion.MinionService;
 import com.eternalcode.minions.minion.MinionType;
 import com.eternalcode.minions.minion.MinionTypeService;
 import com.eternalcode.minions.minion.MinionUpgradeService;
+import com.eternalcode.minions.minion.collector.CollectorBehavior;
+import com.eternalcode.minions.minion.miner.MiningBehavior;
+import com.eternalcode.minions.minion.seller.SellerBehavior;
 import com.eternalcode.minions.notice.NoticeResultHandler;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.minions.render.ArmorStandMinionRenderer;
@@ -38,12 +51,6 @@ import com.eternalcode.minions.render.MinionRenderService;
 import com.eternalcode.minions.render.MinionRenderer;
 import com.eternalcode.minions.render.MinionViewerListener;
 import com.eternalcode.minions.render.NpcMinionRenderer;
-import com.eternalcode.minions.scheduler.CollectorBehavior;
-import com.eternalcode.minions.scheduler.GeneratorBehavior;
-import com.eternalcode.minions.scheduler.MiningBehavior;
-import com.eternalcode.minions.scheduler.MinionActionEngine;
-import com.eternalcode.minions.scheduler.MinionBehavior;
-import com.eternalcode.minions.scheduler.SellerBehavior;
 import com.eternalcode.multification.notice.Notice;
 import com.github.retrooper.packetevents.PacketEvents;
 import dev.rollczi.litecommands.LiteCommands;
@@ -51,13 +58,8 @@ import dev.rollczi.litecommands.adventure.LiteAdventureExtension;
 import dev.rollczi.litecommands.bukkit.LiteBukkitFactory;
 import dev.rollczi.litecommands.bukkit.LiteBukkitMessages;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import me.tofaa.entitylib.APIConfig;
@@ -74,13 +76,11 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
     private MinionRegistry minionRegistry;
     private MinionRenderer renderer;
     private MinionRepository minionRepository;
-    private MinionDatabase database;
+    private DatabaseManager database;
     private MinionInteractionListener interactionListener;
-    private ExecutorService databaseExecutor;
+    private DatabaseScheduler databaseScheduler;
     private LiteCommands<CommandSender> liteCommands;
     private BukkitTask runtimeTask;
-    private BukkitTask persistenceTask;
-    private boolean databaseReady;
     private boolean apiInitialized;
 
     @Override
@@ -116,15 +116,19 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         MinionRenderService renders =
                 new MinionRenderService(this.getServer(), this.minionRegistry, this.renderer, minionsConfig);
 
-        this.databaseExecutor = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "EternalMinions-Database");
-            thread.setDaemon(true);
-            return thread;
-        });
-        this.database = new MinionDatabase(databaseConfig, dataFolder);
-        this.minionRepository = new MinionRepository(this.database, this.databaseExecutor);
-        MinionPersistenceService persistence =
-                new MinionPersistenceService(this, this.minionRegistry, this.minionRepository);
+        this.databaseScheduler = new DatabaseScheduler("EternalMinions-Database");
+        this.database = new DatabaseManager(this.getLogger(), dataFolder, databaseConfig);
+        this.minionRepository = new MinionRepository(this.database, this.databaseScheduler);
+        MinionPersistenceService persistence = new MinionPersistenceService(
+                this.getLogger(),
+                this.minionRepository,
+                new MinionStateRepository(this.database, this.databaseScheduler),
+                new MinionSettingsRepository(this.database, this.databaseScheduler),
+                new MinionEquipmentRepository(this.database, this.databaseScheduler),
+                new MinionStorageRepository(this.database, this.databaseScheduler),
+                new MinionUpgradeRepository(this.database, this.databaseScheduler),
+                new MinionChestLinkRepository(this.database, this.databaseScheduler)
+        );
         VaultEconomyHook economy = new VaultEconomyHook(this.getServer());
         MinionBehavior generatorBehavior = new GeneratorBehavior(this.minionRegistry, persistence, this.renderer);
         Map<MinionBehaviorType, MinionBehavior> behaviors = new EnumMap<>(MinionBehaviorType.class);
@@ -155,7 +159,6 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 actions,
                 renders,
                 persistence,
-                this.minionRepository,
                 minionItems
         );
         BiConsumer<Player, Minion> pickupHandler = (player, minion) -> {
@@ -164,11 +167,11 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
             player.closeInventory();
         };
         MinionUpgradeService upgradeService =
-                new MinionUpgradeService(minionTypes, lifecycle::updateNow, messages, notices);
+                new MinionUpgradeService(minionTypes, lifecycle::updateUpgrade, messages, notices);
         MinionUpgradePanel upgradePanel =
                 new MinionUpgradePanel(this, panelConfig, miniMessage, minionTypes, upgradeService);
         ChestLinkService chestLinks =
-                new ChestLinkService(this.minionRegistry, minionsConfig, lifecycle::updateNow, messages, notices);
+                new ChestLinkService(this.minionRegistry, minionsConfig, lifecycle::updateChestLink, messages, notices);
         MinionPanel panel = new MinionPanel(
                 this,
                 panelConfig,
@@ -176,7 +179,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 notices,
                 miniMessage,
                 minionTypes,
-                lifecycle::update,
+                lifecycle,
                 pickupHandler,
                 upgradePanel::open,
                 chestLinks::toggle
@@ -220,13 +223,6 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                     actions.run();
                     this.renderer.tick(this.getServer().getCurrentTick());
                 }, 1L, 1L);
-        this.persistenceTask = this.getServer().getScheduler().runTaskTimer(
-                this,
-                persistence::flushDirty,
-                databaseConfig.dirtyMinionFlushTicks,
-                databaseConfig.dirtyMinionFlushTicks
-        );
-
         this.minionRepository.initialize()
                 .thenCompose(ignored -> this.minionRepository.loadAll())
                 .whenComplete((loaded, error) -> {
@@ -243,7 +239,6 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                     }
                     this.getServer().getScheduler().runTask(
                             this, () -> {
-                                this.databaseReady = true;
                                 for (MinionData data : loaded) {
                                     Minion minion = data.restore();
                                     // Storage rows do not record capacity, so restore the upgraded size from the type.
@@ -271,9 +266,6 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         if (this.runtimeTask != null) {
             this.runtimeTask.cancel();
         }
-        if (this.persistenceTask != null) {
-            this.persistenceTask.cancel();
-        }
         if (this.liteCommands != null) {
             this.liteCommands.unregister();
         }
@@ -296,26 +288,18 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
     }
 
     private void flushAndCloseDatabase() {
-        if (this.databaseExecutor == null) {
+        if (this.databaseScheduler == null) {
             return;
         }
 
         try {
-            if (this.databaseReady) {
-                List<MinionData> minions = new ArrayList<>();
-                for (Minion minion : this.minionRegistry.minions()) {
-                    minions.add(MinionData.capture(minion));
-                }
-                this.minionRepository.save(minions).get(5L, TimeUnit.SECONDS);
-            }
+            this.databaseScheduler.close();
             if (this.database != null) {
                 this.database.close();
             }
         }
         catch (Exception exception) {
             this.getLogger().log(Level.SEVERE, "Unable to close minion database cleanly", exception);
-        } finally {
-            this.databaseExecutor.shutdownNow();
         }
     }
 

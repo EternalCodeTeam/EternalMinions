@@ -1,6 +1,4 @@
-package com.eternalcode.minions.scheduler;
-
-import com.eternalcode.minions.minion.MinionId;
+package com.eternalcode.minions.minion;
 
 public final class ScheduledMinion {
 

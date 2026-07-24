@@ -1,8 +1,7 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.eternalcode.minions.minion.MinionId;
 import org.junit.jupiter.api.Test;
 
 class MinionScheduleTest {

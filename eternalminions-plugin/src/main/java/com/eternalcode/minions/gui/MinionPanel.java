@@ -5,12 +5,13 @@ import com.eternalcode.minions.config.MinionPanelAction;
 import com.eternalcode.minions.config.MinionPanelConfig;
 import com.eternalcode.minions.config.MinionPanelElementConfig;
 import com.eternalcode.minions.config.MinionPanelLayout;
-import com.eternalcode.minions.minion.MiningMode;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionEquipment;
+import com.eternalcode.minions.minion.MinionLifecycleService;
 import com.eternalcode.minions.minion.MinionStorage;
 import com.eternalcode.minions.minion.MinionType;
 import com.eternalcode.minions.minion.MinionTypeService;
+import com.eternalcode.minions.minion.miner.MiningMode;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.multification.notice.Notice;
 import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder;
@@ -38,7 +39,7 @@ public final class MinionPanel {
     private final MiniMessage miniMessage;
     private final MinionTypeService types;
     private final PanelItemFactory items;
-    private final Consumer<Minion> update;
+    private final MinionLifecycleService lifecycle;
     private final BiConsumer<Player, Minion> pickup;
     private final BiConsumer<Player, Minion> openUpgrades;
     private final BiConsumer<Player, Minion> linkChest;
@@ -50,7 +51,7 @@ public final class MinionPanel {
         NoticeService notices,
         MiniMessage miniMessage,
         MinionTypeService types,
-        Consumer<Minion> update,
+        MinionLifecycleService lifecycle,
         BiConsumer<Player, Minion> pickup,
         BiConsumer<Player, Minion> openUpgrades,
         BiConsumer<Player, Minion> linkChest
@@ -62,7 +63,7 @@ public final class MinionPanel {
         this.miniMessage = miniMessage;
         this.types = types;
         this.items = new PanelItemFactory(miniMessage);
-        this.update = update;
+        this.lifecycle = lifecycle;
         this.pickup = pickup;
         this.openUpgrades = openUpgrades;
         this.linkChest = linkChest;
@@ -141,7 +142,7 @@ public final class MinionPanel {
         return new GuiItem(icon, event -> {
             ItemStack cursor = event.getCursor();
             Minion updated = minion.withEquipment(new MinionEquipment(cursor.getType().isAir() ? null : cursor));
-            this.update.accept(updated);
+            this.lifecycle.updateEquipment(updated);
             player.setItemOnCursor(tool);
             this.send(player, this.messages.minionToolUpdated);
             this.refresh(player, updated);
@@ -159,14 +160,14 @@ public final class MinionPanel {
 
     private void toggleActive(Player player, Minion minion) {
         Minion updated = minion.withActive(!minion.active());
-        this.update.accept(updated);
+        this.lifecycle.updateState(updated);
         this.send(player, updated.active() ? this.messages.minionResumed : this.messages.minionPaused);
         this.refresh(player, updated);
     }
 
     private void rotate(Player player, Minion minion) {
         Minion updated = minion.withSettings(minion.settings().withDirection(minion.settings().direction().rotated()));
-        this.update.accept(updated);
+        this.lifecycle.updateSettings(updated);
         this.send(player, this.messages.minionRotated);
         this.refresh(player, updated);
     }
@@ -174,7 +175,7 @@ public final class MinionPanel {
     private void toggleMode(Player player, Minion minion) {
         MiningMode mode = minion.settings().miningMode() == MiningMode.SQUARE ? MiningMode.LINEAR : MiningMode.SQUARE;
         Minion updated = minion.withSettings(minion.settings().withMiningMode(mode));
-        this.update.accept(updated);
+        this.lifecycle.updateSettings(updated);
         this.send(player, this.messages.minionModeChanged);
         this.refresh(player, updated);
     }
@@ -190,7 +191,7 @@ public final class MinionPanel {
             storage = storage.withItem(slot, remaining);
         }
         Minion updated = minion.withStorage(storage);
-        this.update.accept(updated);
+        this.lifecycle.updateStorage(updated);
         this.send(player, this.messages.minionStorageCollected);
         this.refresh(player, updated);
     }

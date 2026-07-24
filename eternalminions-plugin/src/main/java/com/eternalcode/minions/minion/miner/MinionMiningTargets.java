@@ -1,4 +1,4 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion.miner;
 
 final class MinionMiningTargets {
 

@@ -1,10 +1,6 @@
-package com.eternalcode.minions.scheduler;
+package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.database.MinionPersistenceService;
-import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionDrop;
-import com.eternalcode.minions.minion.MinionRegistry;
-import com.eternalcode.minions.minion.MinionType;
 import com.eternalcode.minions.render.MinionRenderer;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
 // Hypixel-style resource generator: each action rolls the type's drop table into storage.
+// Shared by LUMBERJACK, FARMER, FISHERMAN, KILLER and CRAFTER — none of them need profession-specific logic.
 public final class GeneratorBehavior extends AbstractMinionBehavior {
 
     // Reused across actions on the single scheduler thread to avoid per-action allocation.
