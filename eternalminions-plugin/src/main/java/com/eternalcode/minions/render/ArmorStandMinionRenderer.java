@@ -15,14 +15,36 @@ import me.tofaa.entitylib.wrapper.WrapperLivingEntity;
 
 public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRenderer {
 
-    private static final Vector3f RESTING_ARM_ROTATION = new Vector3f(-15.0F, 0.0F, 10.0F);
-    private static final Vector3f MINING_ARM_ROTATION = new Vector3f(-100.0F, 0.0F, 10.0F);
+    private static final Vector3f RESTING_ARM_ROTATION = new Vector3f(
+            -15.0F, 0.0F, 10.0F
+    );
 
-    private static final int SWING_FRAME_COUNT = 10;
+    private static final Vector3f WIND_UP_ARM_ROTATION = new Vector3f(
+            5.0F, -3.0F, 16.0F
+    );
+
+    private static final Vector3f IMPACT_ARM_ROTATION = new Vector3f(
+            -105.0F, 3.0F, -4.0F
+    );
+
+    private static final int WIND_UP_FRAME_COUNT = 2;
+    private static final int STRIKE_FRAME_COUNT = 4;
+    private static final int RECOVERY_FRAME_COUNT = 6;
+
+    private static final int SWING_FRAME_COUNT = WIND_UP_FRAME_COUNT
+                    + STRIKE_FRAME_COUNT
+                    + RECOVERY_FRAME_COUNT;
+
+    private static final int SWING_DURATION_TICKS = SWING_FRAME_COUNT;
+
+    private static final int FRAME_BITS = 4;
+    private static final long FRAME_MASK = (1L << FRAME_BITS) - 1L;
+    private static final int NO_FRAME = -1;
+
     private static final Vector3f[] SWING_FRAMES = createSwingFrames();
 
     private final MinionTypeService types;
-    private final Long2LongOpenHashMap swingStartTicks = new Long2LongOpenHashMap();
+    private final Long2LongOpenHashMap swingStates = new Long2LongOpenHashMap();
 
     private long currentTick;
 
@@ -38,24 +60,75 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
     private static Vector3f[] createSwingFrames() {
         Vector3f[] frames = new Vector3f[SWING_FRAME_COUNT];
 
-        for (int index = 0; index < SWING_FRAME_COUNT; index++) {
-            double progress = (double) index / (SWING_FRAME_COUNT - 1);
-            double swingProgress = Math.sin(Math.PI * progress);
+        int frameIndex = 0;
 
-            float pitch = (float) (
-                    RESTING_ARM_ROTATION.x
-                            + (MINING_ARM_ROTATION.x - RESTING_ARM_ROTATION.x)
-                            * swingProgress
+        for (int index = 0; index < WIND_UP_FRAME_COUNT; index++) {
+            double progress = (index + 1.0D) / WIND_UP_FRAME_COUNT;
+
+            frames[frameIndex++] = interpolateRotation(
+                    RESTING_ARM_ROTATION,
+                    WIND_UP_ARM_ROTATION,
+                    smoothStep(progress)
             );
+        }
 
-            frames[index] = new Vector3f(
-                    pitch,
-                    RESTING_ARM_ROTATION.y,
-                    RESTING_ARM_ROTATION.z
+        for (int index = 0; index < STRIKE_FRAME_COUNT; index++) {
+            double progress = (index + 1.0D) / STRIKE_FRAME_COUNT;
+
+            frames[frameIndex++] = interpolateRotation(
+                    WIND_UP_ARM_ROTATION,
+                    IMPACT_ARM_ROTATION,
+                    smoothStep(progress)
+            );
+        }
+
+        for (int index = 0; index < RECOVERY_FRAME_COUNT; index++) {
+            double progress = (index + 1.0D) / (RECOVERY_FRAME_COUNT + 1.0D);
+
+            frames[frameIndex++] = interpolateRotation(
+                    IMPACT_ARM_ROTATION,
+                    RESTING_ARM_ROTATION,
+                    smoothStep(progress)
             );
         }
 
         return frames;
+    }
+
+    private static Vector3f interpolateRotation(
+            Vector3f from,
+            Vector3f to,
+            double progress
+    ) {
+        return new Vector3f(
+                interpolate(from.x, to.x, progress),
+                interpolate(from.y, to.y, progress),
+                interpolate(from.z, to.z, progress)
+        );
+    }
+
+    private static float interpolate(float from, float to, double progress) {
+        return (float) (from + (to - from) * progress);
+    }
+
+    private static double smoothStep(double progress) {
+        return progress * progress * (3.0D - 2.0D * progress);
+    }
+
+    private static ArmorStandMeta armorStandMeta(RenderedMinion minion) {
+        return minion.body().getEntityMeta(ArmorStandMeta.class);
+    }
+
+    private static long packState(long startTick, int lastFrame) {
+        return (startTick << FRAME_BITS) | (lastFrame + 1L);
+    }
+
+    private static long unpackStartTick(long state) {
+        return state >>> FRAME_BITS;
+    }
+
+    private static int unpackLastFrame(long state) {
+        return (int) (state & FRAME_MASK) - 1;
     }
 
     @Override
@@ -66,19 +139,20 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
         meta.setSmall(true);
         meta.setHasArms(true);
         meta.setHasNoBasePlate(true);
-        meta.setMarker(false);
         meta.setRightArmRotation(RESTING_ARM_ROTATION);
 
         body.setHasNoGravity(true);
 
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
         WrapperEntityEquipment equipment = body.getEquipment();
+        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
+
         if (type != null) {
             equipment.setHelmet(equipmentItem(type.helmet()));
             equipment.setChestplate(equipmentItem(type.chestplate()));
             equipment.setLeggings(equipmentItem(type.leggings()));
             equipment.setBoots(equipmentItem(type.boots()));
         }
+
         equipment.setMainHand(equipmentItem(minion.equipment().tool()));
 
         return body;
@@ -88,41 +162,60 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
     void animate(long minionId, RenderedMinion minion, float targetYaw) {
         this.faceTarget(minion, targetYaw);
 
-        if (!this.swingStartTicks.containsKey(minionId)) {
-            this.swingStartTicks.put(minionId, this.currentTick);
-        }
+        this.swingStates.putIfAbsent(
+                minionId,
+                packState(this.currentTick, NO_FRAME)
+        );
     }
 
     @Override
     public void tick(long currentTick) {
         this.currentTick = currentTick;
 
-        ObjectIterator<Long2LongMap.Entry> swings =
-                this.swingStartTicks.long2LongEntrySet().fastIterator();
+        ObjectIterator<Long2LongMap.Entry> iterator =
+                this.swingStates.long2LongEntrySet().fastIterator();
 
-        while (swings.hasNext()) {
-            Long2LongMap.Entry swing = swings.next();
+        while (iterator.hasNext()) {
+            Long2LongMap.Entry entry = iterator.next();
 
-            long minionId = swing.getLongKey();
-            long elapsedTicks = currentTick - swing.getLongValue();
+            long minionId = entry.getLongKey();
+            long state = entry.getLongValue();
+
+            long startTick = unpackStartTick(state);
+            long elapsedTicks = currentTick - startTick;
+
+            if (elapsedTicks < 0) {
+                entry.setValue(packState(currentTick, NO_FRAME));
+                continue;
+            }
 
             RenderedMinion minion = this.renderedMinion(minionId);
 
             if (minion == null) {
-                swings.remove();
+                iterator.remove();
                 continue;
             }
 
-            ArmorStandMeta meta =
-                    minion.body().getEntityMeta(ArmorStandMeta.class);
-
-            if (elapsedTicks >= SWING_FRAME_COUNT) {
-                meta.setRightArmRotation(RESTING_ARM_ROTATION);
-                swings.remove();
+            if (elapsedTicks >= SWING_DURATION_TICKS) {
+                armorStandMeta(minion).setRightArmRotation(RESTING_ARM_ROTATION);
+                iterator.remove();
                 continue;
             }
 
-            meta.setRightArmRotation(SWING_FRAMES[(int) elapsedTicks]);
+            int frameIndex = (int) (
+                    elapsedTicks
+                            * SWING_FRAME_COUNT
+                            / SWING_DURATION_TICKS
+            );
+
+            int previousFrame = unpackLastFrame(state);
+
+            if (frameIndex == previousFrame) {
+                continue;
+            }
+
+            armorStandMeta(minion).setRightArmRotation(SWING_FRAMES[frameIndex]);
+            entry.setValue(packState(startTick, frameIndex));
         }
     }
 }
