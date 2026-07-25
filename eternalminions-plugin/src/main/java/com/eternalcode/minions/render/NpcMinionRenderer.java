@@ -38,8 +38,9 @@ public final class NpcMinionRenderer extends AbstractEntityLibMinionRenderer {
         body.getAttributes().setAttribute(Attributes.SCALE, type == null ? DEFAULT_SCALE : type.npcScale());
         WrapperEntityEquipment equipment = body.getEquipment();
         if (type != null) {
-            if (!type.headTexture().isEmpty()) {
-                meta.setProfile(createSkinProfile(type.headTexture()));
+            String skin = type.npcSkin().isEmpty() ? type.headTexture() : type.npcSkin();
+            if (!skin.isEmpty()) {
+                meta.setProfile(createSkinProfile(skin));
             }
             this.equipArmor(equipment, type);
         }

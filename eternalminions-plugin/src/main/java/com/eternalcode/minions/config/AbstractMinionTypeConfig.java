@@ -1,7 +1,6 @@
 package com.eternalcode.minions.config;
 
 import com.cryptomorin.xseries.XMaterial;
-import com.eternalcode.minions.minion.MinionBehaviorType;
 import com.eternalcode.minions.minion.MinionUpgradeKind;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
@@ -9,17 +8,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class MinionTypeConfig extends OkaeriConfig {
+// Common settings every minion profession config shares. Each profession's config class (e.g.
+// FarmerConfig, MinerConfig) extends this and adds only the fields specific to it.
+public abstract class AbstractMinionTypeConfig extends OkaeriConfig {
 
     @Comment("Display name used on the minion item and hologram. Supports MiniMessage.")
-    public String displayName = "<green>Górnik";
-
-    @Comment({
-        "Profession executed by this minion type.",
-        "MINER breaks real blocks around itself; LUMBERJACK/FARMER/FISHERMAN/KILLER/CRAFTER generate",
-        "their drop table on a timer (Hypixel-style); COLLECTOR picks up ground items; SELLER sells storage for coins."
-    })
-    public MinionBehaviorType behavior = MinionBehaviorType.MINER;
+    public String displayName = "<green>Minion";
 
     @Comment("Ticks between work cycles while the minion keeps finding work.")
     public int workIntervalTicks = 40;
@@ -34,19 +28,13 @@ public final class MinionTypeConfig extends OkaeriConfig {
     public double npcScale = 0.55;
 
     @Comment({
-        "Base64 head texture used for the minion item, the armor stand head and the NPC skin.",
-        "Paste the 'Value' field of a head from minecraft-heads.com. Empty = default head/skin."
+        "Base64 skin texture used for the NPC renderer's body (only relevant when config.yml sets",
+        "minionRenderer: NPC). Independent from the helmet's own texture below. Empty = default skin."
     })
-    public String headTexture = "";
+    public String npcSkin = "";
 
-    @Comment("Armor worn by the minion. Use AIR to skip a piece. PLAYER_HEAD helmet uses head-texture.")
-    public XMaterial helmet = XMaterial.PLAYER_HEAD;
-    public XMaterial chestplate = XMaterial.LEATHER_CHESTPLATE;
-    public XMaterial leggings = XMaterial.LEATHER_LEGGINGS;
-    public XMaterial boots = XMaterial.LEATHER_BOOTS;
-
-    @Comment("Dye color applied to leather armor pieces, #RRGGBB format.")
-    public String armorColor = "#D63A3A";
+    @Comment("Armor worn by the minion, one entry per slot. Use type: AIR to skip a piece.")
+    public MinionItemsConfig items = new MinionItemsConfig();
 
     @Comment({
         "Cumulative progress (finished actions) required to reach each next level.",
@@ -67,33 +55,22 @@ public final class MinionTypeConfig extends OkaeriConfig {
         XMaterial.SHULKER_BOX
     );
 
-    @Comment("If not empty, the minion mines ONLY these materials (whitelist).")
+    @Comment("If not empty, the minion only interacts with these materials (whitelist).")
     public List<XMaterial> allowedMaterials = List.of();
 
     @Comment({
-        "Drop table for generator professions (LUMBERJACK/FARMER/FISHERMAN/KILLER/CRAFTER).",
-        "Each finished action rolls the whole table; chance is 0-1. Ignored by MINER/COLLECTOR/SELLER."
+        "When true, the equipped tool's Efficiency level shortens the minion's action interval",
+        "(each level cuts it by ~25%, floor 10% of the base interval). When false, Efficiency has",
+        "no effect on speed. Fortune/Silk Touch/Unbreaking are always respected regardless."
     })
-    public List<MinionDropConfig> drops = List.of();
+    public boolean respectSpeedEnchants = true;
 
-    @Comment("FISHERMAN only: require a water block within one block of the minion to work.")
-    public boolean requiresWater = false;
-
-    @Comment("COLLECTOR only: radius in blocks scanned for dropped items.")
-    public int collectorRadiusBlocks = 4;
-
-    @Comment({
-        "SELLER only: sell price per item. The seller sells matching items from its storage",
-        "(and linked chest) and pays the owner through Vault. Requires a Vault economy plugin."
-    })
-    public Map<XMaterial, Double> sellPrices = Map.of();
-
-    @Comment("SELLER only: maximum number of items sold in a single action.")
-    public int sellBatch = 64;
+    @Comment("Tool this minion type requires before it can perform profession work.")
+    public MinionToolConfig tool = new MinionToolConfig();
 
     @Comment({
         "Purchasable upgrades. Each tier: requiredLevel (minion level), value, costMaterial, costAmount.",
-        "Value meaning: SPEED = work interval in ticks, RANGE = mining radius (1-3), CAPACITY = storage slots (max 54)."
+        "Value meaning: SPEED = work interval in ticks, RANGE = radius (1-3), CAPACITY = storage slots (max 54)."
     })
     public Map<MinionUpgradeKind, List<MinionUpgradeTierConfig>> upgrades = defaultUpgrades();
 

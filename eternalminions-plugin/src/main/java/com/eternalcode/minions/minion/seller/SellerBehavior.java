@@ -1,45 +1,40 @@
 package com.eternalcode.minions.minion.seller;
 
 import com.eternalcode.minions.database.MinionPersistenceService;
-import com.eternalcode.minions.integration.VaultEconomyHook;
 import com.eternalcode.minions.minion.AbstractMinionBehavior;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.minion.MinionStorage;
 import com.eternalcode.minions.minion.MinionType;
 import com.eternalcode.minions.minion.ScheduledMinion;
+import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.eternalcode.minions.render.MinionRenderer;
-import java.util.Set;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.Container;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-// Sells configured items from the linked chest and internal storage, paying the owner through Vault.
+// Sells configured items from the linked chest and internal storage through a shop integration.
 public final class SellerBehavior extends AbstractMinionBehavior {
 
-    private final Server server;
-    private final VaultEconomyHook economy;
+    private final ShopIntegration shop;
 
     public SellerBehavior(
         MinionRegistry registry,
         MinionPersistenceService persistence,
         MinionRenderer renderer,
-        Server server,
-        VaultEconomyHook economy
+        MinionStatusTracker statuses,
+        ShopIntegration shop
     ) {
-        super(registry, persistence, renderer);
-        this.server = server;
-        this.economy = economy;
+        super(registry, persistence, renderer, statuses);
+        this.shop = shop;
     }
 
     @Override
     public boolean execute(Minion minion, MinionType type, ScheduledMinion scheduledMinion, World world) {
-        Set<Material> sellable = type.work().sellableMaterials();
-        if (sellable.isEmpty() || !this.economy.available()) {
+        if (!this.shop.available()) {
+            this.refreshStatusIfChanged(minion, SellerStatuses.SHOP_NOT_LINKED);
             return false;
         }
 
@@ -50,12 +45,13 @@ public final class SellerBehavior extends AbstractMinionBehavior {
         }
         MinionStorage storage = this.sellFromStorage(type, minion.storage(), sale);
         if (sale.soldCount == 0) {
+            this.refreshStatusIfChanged(minion, sale.sawItem ? SellerStatuses.ITEM_HAS_NO_PRICE : SellerStatuses.STORAGE_EMPTY);
             return false;
         }
 
-        OfflinePlayer owner = this.server.getOfflinePlayer(minion.ownerId());
-        this.economy.deposit(owner, sale.earned);
+        this.shop.payout(minion.ownerId(), sale.earned);
         this.commit(minion, type, storage, Float.NaN);
+        this.refreshStatusIfChanged(minion, SellerStatuses.SELLING);
         return true;
     }
 
@@ -66,7 +62,8 @@ public final class SellerBehavior extends AbstractMinionBehavior {
             if (item == null) {
                 continue;
             }
-            double price = type.work().sellPrice(item.getType());
+            sale.sawItem = true;
+            double price = this.shop.priceOf(item.getType());
             if (price <= 0.0D) {
                 continue;
             }
@@ -88,7 +85,8 @@ public final class SellerBehavior extends AbstractMinionBehavior {
             if (item == null) {
                 continue;
             }
-            double price = type.work().sellPrice(item.getType());
+            sale.sawItem = true;
+            double price = this.shop.priceOf(item.getType());
             if (price <= 0.0D) {
                 continue;
             }
@@ -112,6 +110,7 @@ public final class SellerBehavior extends AbstractMinionBehavior {
         private final int batch;
         private int soldCount;
         private double earned;
+        private boolean sawItem;
 
         private Sale(int batch) {
             this.batch = batch;

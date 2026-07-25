@@ -1,6 +1,7 @@
 package com.eternalcode.minions.config;
 
 public enum MinionPanelAction {
+
     NONE,
     TOOL_SLOT,
     STORAGE_SLOT,
@@ -12,4 +13,5 @@ public enum MinionPanelAction {
     LINK_CHEST,
     ROTATE,
     TOGGLE_MODE
+
 }

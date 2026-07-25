@@ -1,5 +1,6 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.minion.status.MinionStatus;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
@@ -17,6 +18,7 @@ public final class MinionType {
     private final int storageCapacity;
     private final double npcScale;
     private final String headTexture;
+    private final String npcSkin;
     private final ItemStack headItem;
     private final ItemStack helmet;
     private final ItemStack chestplate;
@@ -26,6 +28,8 @@ public final class MinionType {
     private final Map<MinionUpgradeKind, MinionUpgradeTier[]> upgrades;
     private final Set<Material> blockedMaterials;
     private final Set<Material> allowedMaterials;
+    private final boolean respectSpeedEnchants;
+    private final Map<MinionStatus, String> statusTexts;
     private final MinionWork work;
 
     public MinionType(
@@ -37,6 +41,7 @@ public final class MinionType {
         int storageCapacity,
         double npcScale,
         String headTexture,
+        String npcSkin,
         ItemStack headItem,
         ItemStack helmet,
         ItemStack chestplate,
@@ -46,12 +51,14 @@ public final class MinionType {
         Map<MinionUpgradeKind, MinionUpgradeTier[]> upgrades,
         Set<Material> blockedMaterials,
         Set<Material> allowedMaterials,
+        boolean respectSpeedEnchants,
+        Map<MinionStatus, String> statusTexts,
         MinionWork work
     ) {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Minion type id must not be blank");
         }
-        if (displayName == null || headTexture == null || headItem == null) {
+        if (displayName == null || headTexture == null || npcSkin == null || headItem == null) {
             throw new IllegalArgumentException("Minion type " + id + " requires display name, texture and head item");
         }
         if (behavior == null) {
@@ -85,6 +92,7 @@ public final class MinionType {
         this.storageCapacity = storageCapacity;
         this.npcScale = npcScale;
         this.headTexture = headTexture;
+        this.npcSkin = npcSkin;
         this.headItem = headItem.clone();
         this.helmet = helmet == null ? null : helmet.clone();
         this.chestplate = chestplate == null ? null : chestplate.clone();
@@ -101,6 +109,11 @@ public final class MinionType {
         this.allowedMaterials = allowedMaterials == null || allowedMaterials.isEmpty()
             ? null
             : EnumSet.copyOf(allowedMaterials);
+        this.respectSpeedEnchants = respectSpeedEnchants;
+        if (statusTexts == null) {
+            throw new IllegalArgumentException("Minion type " + id + " requires status texts");
+        }
+        this.statusTexts = Map.copyOf(statusTexts);
         if (work == null) {
             throw new IllegalArgumentException("Minion type " + id + " requires work settings");
         }
@@ -109,6 +122,17 @@ public final class MinionType {
 
     public MinionWork work() {
         return this.work;
+    }
+
+    public boolean respectSpeedEnchants() {
+        return this.respectSpeedEnchants;
+    }
+
+    // Falls back to the raw status key when neither the profession's nor the common config
+    // defines text for it, so a missing entry never breaks the hologram.
+    public String statusText(MinionStatus status) {
+        String text = this.statusTexts.get(status);
+        return text == null ? status.key() : text;
     }
 
     public boolean canMine(Material material) {
@@ -212,6 +236,10 @@ public final class MinionType {
 
     public String headTexture() {
         return this.headTexture;
+    }
+
+    public String npcSkin() {
+        return this.npcSkin;
     }
 
     public ItemStack headItem() {

@@ -1,15 +1,34 @@
 package com.eternalcode.minions.config;
 
+import com.eternalcode.minions.minion.status.CoreMinionStatuses;
+import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.render.MinionRendererType;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import me.tofaa.entitylib.meta.display.AbstractDisplayMeta;
 
 public final class MinionsConfig extends OkaeriConfig {
 
     @Comment("Renderer used by every minion. Changing it requires a server restart.")
     public MinionRendererType minionRenderer = MinionRendererType.ARMOR_STAND;
+
+    @Comment({
+        "Status text shared by every minion profession. Supports MiniMessage.",
+        "Profession-specific statuses (e.g. farmer's HARVESTING) live in that profession's own config."
+    })
+    public Map<MinionStatus, String> statuses = defaultStatuses();
+
+    private static Map<MinionStatus, String> defaultStatuses() {
+        Map<MinionStatus, String> statuses = new LinkedHashMap<>();
+        statuses.put(CoreMinionStatuses.IDLE, "<gray>Bezczynny");
+        statuses.put(CoreMinionStatuses.WORKING, "<green>Pracuje");
+        statuses.put(CoreMinionStatuses.NO_TOOL, "<red>Brak narzędzia");
+        statuses.put(CoreMinionStatuses.STORAGE_FULL, "<red>Magazyn pełny");
+        return statuses;
+    }
 
     @Comment("Maximum distance at which a client-side minion representation is spawned.")
     public int renderDistanceBlocks = 64;
@@ -43,12 +62,14 @@ public final class MinionsConfig extends OkaeriConfig {
                 "Available placeholders:",
                 "{TYPE}  - minion type display name",
                 "{OWNER} - minion owner name",
-                "{LEVEL} - current minion level"
+                "{LEVEL} - current minion level",
+                "{STATUS} - current runtime work status"
         })
         public List<String> hologramLines = List.of(
                 "<b><gradient:#FACC15:#FFE15F:#FACC15>{TYPE}</gradient></b>",
                 "<#FFE15F>Właściciel: <white>{OWNER}",
-                "<#FFE15F>Poziom: <white>{LEVEL}"
+                "<#FFE15F>Poziom: <white>{LEVEL}",
+                "<#FFE15F>Status: <white>{STATUS}"
         );
 
         @Comment({

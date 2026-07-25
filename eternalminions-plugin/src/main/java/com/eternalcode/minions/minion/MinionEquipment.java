@@ -17,4 +17,8 @@ public final class MinionEquipment {
     public ItemStack tool() {
         return this.tool == null ? null : this.tool.clone();
     }
+
+    public MinionEquipment withTool(ItemStack tool) {
+        return new MinionEquipment(tool);
+    }
 }

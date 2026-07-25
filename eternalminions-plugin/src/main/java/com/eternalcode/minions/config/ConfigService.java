@@ -74,6 +74,7 @@ public final class ConfigService {
         @Override
         public void register(SerdesRegistry registry) {
             registry.register(new XMaterialTransformer());
+            registry.register(new MinionStatusTransformer());
         }
     }
 

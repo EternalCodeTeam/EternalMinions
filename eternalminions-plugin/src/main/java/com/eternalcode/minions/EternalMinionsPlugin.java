@@ -22,10 +22,8 @@ import com.eternalcode.minions.database.MinionStorageRepository;
 import com.eternalcode.minions.database.MinionUpgradeRepository;
 import com.eternalcode.minions.gui.MinionPanel;
 import com.eternalcode.minions.gui.MinionUpgradePanel;
-import com.eternalcode.minions.integration.VaultEconomyHook;
 import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.minion.ChestLinkService;
-import com.eternalcode.minions.minion.GeneratorBehavior;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionActionEngine;
 import com.eternalcode.minions.minion.MinionBehavior;
@@ -41,6 +39,11 @@ import com.eternalcode.minions.minion.MinionUpgradeService;
 import com.eternalcode.minions.minion.collector.CollectorBehavior;
 import com.eternalcode.minions.minion.miner.MiningBehavior;
 import com.eternalcode.minions.minion.seller.SellerBehavior;
+import com.eternalcode.minions.minion.seller.NoopShopIntegration;
+import com.eternalcode.minions.minion.status.CoreMinionStatuses;
+import com.eternalcode.minions.minion.status.MinionStatusTracker;
+import com.eternalcode.minions.minion.tool.ToolDurabilityService;
+import com.eternalcode.minions.minion.tool.ToolValidationService;
 import com.eternalcode.minions.notice.NoticeResultHandler;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.minions.render.ArmorStandMinionRenderer;
@@ -97,7 +100,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         MiniMessage miniMessage = MiniMessage.miniMessage();
         NoticeService notices = new NoticeService(messages, miniMessage);
         MinionTypeService minionTypes =
-                new MinionTypeService(configs, this.getServer(), new File(dataFolder, "minions"));
+                new MinionTypeService(configs, minionsConfig, this.getServer(), new File(dataFolder, "minions"));
 
         EntityLib.init(
                 new SpigotEntityLibPlatform(this),
@@ -106,8 +109,14 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
 
         this.minionRegistry = new MinionRegistry();
         MinionEntityIndex entityIndex = new MinionEntityIndex();
+        MinionStatusTracker statusTracker = new MinionStatusTracker(CoreMinionStatuses.IDLE);
         EntityLibHologramRenderer holograms =
-                new EntityLibHologramRenderer(this.getServer(), miniMessage, minionTypes, minionsConfig);
+                new EntityLibHologramRenderer(
+                        this.getServer(),
+                        miniMessage,
+                        minionTypes,
+                        minionsConfig,
+                        statusTracker);
         this.renderer = switch (minionsConfig.minionRenderer) {
             case ARMOR_STAND -> new ArmorStandMinionRenderer(holograms, entityIndex, minionTypes);
             case NPC -> new NpcMinionRenderer(holograms, entityIndex, minionTypes);
@@ -129,21 +138,89 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 new MinionUpgradeRepository(this.database, this.databaseScheduler),
                 new MinionChestLinkRepository(this.database, this.databaseScheduler)
         );
-        VaultEconomyHook economy = new VaultEconomyHook(this.getServer());
-        MinionBehavior generatorBehavior = new GeneratorBehavior(this.minionRegistry, persistence, this.renderer);
+        ToolValidationService toolValidation = new ToolValidationService();
+        ToolDurabilityService toolDurability = new ToolDurabilityService();
+        com.eternalcode.minions.minion.tool.ToolInventoryLocator toolLocator =
+                new com.eternalcode.minions.minion.tool.ToolInventoryLocator();
         Map<MinionBehaviorType, MinionBehavior> behaviors = new EnumMap<>(MinionBehaviorType.class);
-        behaviors.put(MinionBehaviorType.MINER, new MiningBehavior(this.minionRegistry, persistence, this.renderer));
-        behaviors.put(MinionBehaviorType.LUMBERJACK, generatorBehavior);
-        behaviors.put(MinionBehaviorType.FARMER, generatorBehavior);
-        behaviors.put(MinionBehaviorType.FISHERMAN, generatorBehavior);
-        behaviors.put(MinionBehaviorType.KILLER, generatorBehavior);
-        behaviors.put(MinionBehaviorType.CRAFTER, generatorBehavior);
+        behaviors.put(
+                MinionBehaviorType.MINER,
+                new MiningBehavior(
+                        this.minionRegistry,
+                        persistence,
+                        this.renderer,
+                        statusTracker,
+                        toolValidation,
+                        toolDurability,
+                        toolLocator));
+        behaviors.put(
+                MinionBehaviorType.LUMBERJACK,
+                new com.eternalcode.minions.minion.lumberjack.LumberjackBehavior(
+                        this.minionRegistry,
+                        persistence,
+                        this.renderer,
+                        statusTracker,
+                        toolValidation,
+                        toolDurability,
+                        toolLocator));
+        behaviors.put(
+                MinionBehaviorType.FARMER,
+                new com.eternalcode.minions.minion.farmer.FarmerBehavior(
+                        this.minionRegistry,
+                        persistence,
+                        this.renderer,
+                        statusTracker,
+                        toolValidation,
+                        toolDurability,
+                        toolLocator));
+        behaviors.put(
+                MinionBehaviorType.FISHERMAN,
+                new com.eternalcode.minions.minion.fisherman.FishermanBehavior(
+                        this.minionRegistry,
+                        persistence,
+                        this.renderer,
+                        statusTracker,
+                        toolValidation,
+                        toolDurability,
+                        toolLocator));
+        com.eternalcode.minions.minion.killer.KillerLootingListener killerLooting =
+                new com.eternalcode.minions.minion.killer.KillerLootingListener();
+        this.getServer().getPluginManager().registerEvents(killerLooting, this);
+        behaviors.put(
+                MinionBehaviorType.KILLER,
+                new com.eternalcode.minions.minion.killer.KillerBehavior(
+                        this.minionRegistry,
+                        persistence,
+                        this.renderer,
+                        statusTracker,
+                        toolValidation,
+                        toolDurability,
+                        toolLocator,
+                        killerLooting));
+        behaviors.put(
+                MinionBehaviorType.CRAFTER,
+                new com.eternalcode.minions.minion.crafter.CrafterBehavior(
+                        this.minionRegistry,
+                        persistence,
+                        this.renderer,
+                        statusTracker));
         behaviors.put(
                 MinionBehaviorType.COLLECTOR,
-                new CollectorBehavior(this.minionRegistry, persistence, this.renderer));
+                new CollectorBehavior(
+                        this.minionRegistry,
+                        persistence,
+                        this.renderer,
+                        statusTracker,
+                        toolValidation,
+                        toolLocator));
         behaviors.put(
                 MinionBehaviorType.SELLER,
-                new SellerBehavior(this.minionRegistry, persistence, this.renderer, this.getServer(), economy)
+                new SellerBehavior(
+                        this.minionRegistry,
+                        persistence,
+                        this.renderer,
+                        statusTracker,
+                        new NoopShopIntegration())
         );
         MinionActionEngine actions = new MinionActionEngine(
                 this.getServer(),

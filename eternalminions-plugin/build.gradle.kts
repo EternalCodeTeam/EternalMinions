@@ -68,6 +68,12 @@ paper {
 
 tasks.runServer {
     minecraftVersion("26.2")
+    downloadPlugins {
+        modrinth("FastAsyncWorldEdit", "2.15.3")
+        modrinth("EternalCore", "2.0.1-SNAPSHOT+92")
+        modrinth("EternalEconomy", "1.0.2-SNAPSHOT+7")
+        modrinth("VaultUnlocked", "2.20.2")
+    }
 }
 
 tasks.shadowJar {

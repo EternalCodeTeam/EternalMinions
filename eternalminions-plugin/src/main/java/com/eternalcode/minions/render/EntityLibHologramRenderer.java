@@ -4,6 +4,8 @@ import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionType;
 import com.eternalcode.minions.minion.MinionTypeService;
+import com.eternalcode.minions.minion.status.MinionStatus;
+import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.protocol.world.Location;
 import com.github.retrooper.packetevents.util.Vector3f;
@@ -21,17 +23,20 @@ public final class EntityLibHologramRenderer {
     private final MiniMessage miniMessage;
     private final MinionTypeService types;
     private final MinionsConfig config;
+    private final MinionStatusTracker statusTracker;
 
     public EntityLibHologramRenderer(
             Server server,
             MiniMessage miniMessage,
             MinionTypeService types,
-            MinionsConfig config
+            MinionsConfig config,
+            MinionStatusTracker statusTracker
     ) {
         this.server = server;
         this.miniMessage = miniMessage;
         this.types = types;
         this.config = config;
+        this.statusTracker = statusTracker;
     }
 
     private static int parseBackgroundColor(String color) {
@@ -150,15 +155,16 @@ public final class EntityLibHologramRenderer {
     }
 
     public Component text(Minion minion) {
-        String typeName = this.types.type(minion.behaviorId())
-                .map(MinionType::displayName)
-                .orElse("Minion #" + minion.id().value());
+        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
+        String typeName = type == null ? "Minion #" + minion.id().value() : type.displayName();
 
         String ownerName = this.server
                 .getOfflinePlayer(minion.ownerId())
                 .getName();
 
         String level = Integer.toString(minion.progress().level());
+        MinionStatus currentStatus = this.statusTracker.status(minion.id());
+        String status = type == null ? currentStatus.key() : type.statusText(currentStatus);
 
         List<String> lines = this.config.hologram.hologramLines;
         Component text = Component.empty();
@@ -167,7 +173,8 @@ public final class EntityLibHologramRenderer {
             String line = lines.get(index)
                     .replace("{TYPE}", typeName)
                     .replace("{OWNER}", ownerName == null ? "?" : ownerName)
-                    .replace("{LEVEL}", level);
+                    .replace("{LEVEL}", level)
+                    .replace("{STATUS}", status);
 
             if (index > 0) {
                 text = text.append(Component.newline());

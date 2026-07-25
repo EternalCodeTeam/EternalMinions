@@ -64,7 +64,10 @@ public final class MinionActionEngine implements Runnable {
                 continue;
             }
 
-            long interval = this.execute(minion, scheduledMinion) ? this.workInterval(minion) : this.idleInterval(minion);
+            boolean worked = this.execute(minion, scheduledMinion);
+            long forcedDelay = scheduledMinion.forcedNextDelayTicks();
+            scheduledMinion.clearForcedNextDelay();
+            long interval = forcedDelay >= 0L ? forcedDelay : (worked ? this.workInterval(minion) : this.idleInterval(minion));
             this.schedule.schedule(scheduledMinion, this.currentTick + interval);
             actions++;
         }

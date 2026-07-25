@@ -19,8 +19,8 @@ public final class MessagesConfig extends OkaeriConfig {
     public Notice minionOwnerRequired = Notice.chat(prefix() + "<red>Tylko właściciel może zarządzać tym minionem.");
     public Notice minionNotFound = Notice.chat(prefix() + "<red>Ten minion już nie istnieje.");
     public Notice minionPlaced = Notice.chat(prefix() + "<white>Postawiono miniona.");
-    public Notice minionPlacementBlocked = Notice.chat(prefix() + "<red>W tym miejscu nie można postawić miniona.");
     public Notice minionItemReceived = Notice.chat(prefix() + "<white>Otrzymano przedmiot miniona.");
+    public Notice minionPlacementBlocked = Notice.chat(prefix() + "<red>W tym miejscu nie można postawić miniona.");
     public Notice minionTypeUnknown = Notice.chat(prefix() + "<red>Nieznany typ miniona.");
     public Notice minionPaused = Notice.chat(prefix() + "<white>Minion został wstrzymany.");
     public Notice minionResumed = Notice.chat(prefix() + "<white>Minion wznowił pracę.");
