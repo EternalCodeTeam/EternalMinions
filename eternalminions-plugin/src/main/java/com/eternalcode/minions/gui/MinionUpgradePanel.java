@@ -19,6 +19,7 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
 import java.util.HashMap;
 import java.util.Map;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -72,7 +73,8 @@ public final class MinionUpgradePanel {
 
         ChestGui gui = new ChestGui(
             3,
-            ComponentHolder.of(this.miniMessage.deserialize(this.config.upgradesTitle)),
+            ComponentHolder.of(this.miniMessage.deserialize(this.config.upgradesTitle)
+                .decoration(TextDecoration.ITALIC, false)),
             this.plugin
         );
         gui.setOnGlobalClick(event -> event.setCancelled(true));
@@ -111,10 +113,10 @@ public final class MinionUpgradePanel {
         placeholders.put("{UPGRADE_TIER}", Integer.toString(tier));
         placeholders.put("{UPGRADE_MAX_TIER}", Integer.toString(maxTier));
         placeholders.put("{UPGRADE_VALUE}", Long.toString(this.effectiveValue(behavior, minionUpgrades, kind)));
-        placeholders.put("{UPGRADE_NEXT_VALUE}", nextTier == null ? "MAX" : Integer.toString(nextTier.value()));
-        placeholders.put("{UPGRADE_REQUIRED_LEVEL}", nextTier == null ? "-" : Integer.toString(nextTier.requiredLevel()));
-        placeholders.put("{UPGRADE_COST_AMOUNT}", nextTier == null ? "-" : Integer.toString(nextTier.costAmount()));
-        placeholders.put("{UPGRADE_COST_MATERIAL}", nextTier == null ? "-" : nextTier.costMaterial().name());
+        placeholders.put("{UPGRADE_NEXT_VALUE}", nextTier == null ? this.config.maximumValue : Integer.toString(nextTier.value()));
+        placeholders.put("{UPGRADE_REQUIRED_LEVEL}", nextTier == null ? this.config.unavailableValue : Integer.toString(nextTier.requiredLevel()));
+        placeholders.put("{UPGRADE_COST_AMOUNT}", nextTier == null ? this.config.unavailableValue : Integer.toString(nextTier.costAmount()));
+        placeholders.put("{UPGRADE_COST_MATERIAL}", nextTier == null ? this.config.unavailableValue : nextTier.costMaterial().name());
         return placeholders;
     }
 

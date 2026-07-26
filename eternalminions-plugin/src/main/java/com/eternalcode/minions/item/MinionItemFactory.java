@@ -1,5 +1,6 @@
 package com.eternalcode.minions.item;
 
+import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBehaviorRegistry;
@@ -12,11 +13,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -63,6 +66,14 @@ public final class MinionItemFactory {
         ItemMeta meta = item.getItemMeta();
         meta.displayName(this.miniMessage.deserialize(behavior.config().displayName));
         meta.lore(List.of(Component.text("Kliknij blok PPM, aby postawić.", NamedTextColor.DARK_GRAY)));
+        this.applyPresentation(
+            meta,
+            behavior.config(),
+            1,
+            0L,
+            0,
+            behavior.config().storageCapacity(MinionUpgrades.none())
+        );
         PersistentDataContainer data = meta.getPersistentDataContainer();
         data.set(this.minionKey, PersistentDataType.BYTE, (byte) 1);
         data.set(this.behaviorKey, PersistentDataType.STRING, behavior.id());
@@ -83,8 +94,93 @@ public final class MinionItemFactory {
         data.set(this.storageKey, PersistentDataType.BYTE_ARRAY, encodeStorage(minion.storage()));
         data.set(this.upgradesKey, PersistentDataType.STRING, encodeUpgrades(minion.upgrades()));
         data.set(this.miningModeKey, PersistentDataType.STRING, minion.settings().miningMode().name());
+        this.applyPresentation(
+            meta,
+            behavior.config(),
+            minion.progress().level(),
+            minion.progress().progress(),
+            this.countStoredItems(minion.storage()),
+            behavior.storageCapacity(minion)
+        );
         item.setItemMeta(meta);
         return item;
+    }
+
+    private void applyPresentation(
+        ItemMeta meta,
+        AbstractMinionConfig config,
+        int level,
+        long progress,
+        int storedItems,
+        int storageCapacity
+    ) {
+        meta.displayName(this.render(config.displayName));
+        meta.lore(this.createLore(config, level, progress, storedItems, storageCapacity));
+    }
+
+    private List<Component> createLore(
+        AbstractMinionConfig config,
+        int level,
+        long progress,
+        int storedItems,
+        int storageCapacity
+    ) {
+        List<Component> lore = new ArrayList<>(config.itemLore.size());
+        int maxLevel = config.maxLevel();
+        long requiredProgress = level >= maxLevel ? 0L : config.progressToReach(level + 1);
+
+        for (String line : config.itemLore) {
+            lore.add(this.render(this.formatItemLore(
+                line,
+                level,
+                maxLevel,
+                progress,
+                requiredProgress,
+                storedItems,
+                storageCapacity,
+                config.maximumProgressText
+            )));
+        }
+
+        return lore;
+    }
+
+    private String formatItemLore(
+        String input,
+        int level,
+        int maxLevel,
+        long progress,
+        long requiredProgress,
+        int storedItems,
+        int storageCapacity,
+        String maximumProgressText
+    ) {
+        String progressRequired = level >= maxLevel ? maximumProgressText : Long.toString(requiredProgress);
+
+        return input
+            .replace("{MINION_LEVEL}", Integer.toString(level))
+            .replace("{MINION_MAX_LEVEL}", Integer.toString(maxLevel))
+            .replace("{MINION_PROGRESS}", Long.toString(progress))
+            .replace("{MINION_PROGRESS_REQUIRED}", progressRequired)
+            .replace("{STORAGE_USED}", Integer.toString(storedItems))
+            .replace("{STORAGE_CAPACITY}", Integer.toString(storageCapacity));
+    }
+
+    private Component render(String input) {
+        return this.miniMessage.deserialize(input)
+            .decoration(TextDecoration.ITALIC, false);
+    }
+
+    private int countStoredItems(MinionStorage storage) {
+        int storedItems = 0;
+
+        for (ItemStack item : storage.snapshot()) {
+            if (item != null) {
+                storedItems += item.getAmount();
+            }
+        }
+
+        return storedItems;
     }
 
     public boolean isMinion(ItemStack item) {

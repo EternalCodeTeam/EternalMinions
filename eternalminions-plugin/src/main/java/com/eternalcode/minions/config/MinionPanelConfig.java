@@ -11,6 +11,12 @@ import java.util.Map;
 
 public final class MinionPanelConfig extends OkaeriConfig {
 
+    @Comment("Text displayed instead of a value when a minion reached its maximum level.")
+    public String maximumValue = "MAX";
+
+    @Comment("Text displayed when an upgrade has no next level.")
+    public String unavailableValue = "-";
+
     @Comment("Title supports MiniMessage and minion placeholders.")
     public String title = "<dark_gray>Minion <green>#{MINION_ID}";
 

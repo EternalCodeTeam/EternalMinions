@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -91,7 +92,8 @@ public final class MinionPanel {
         Map<String, String> placeholders = this.createPlaceholders(minion);
         ChestGui gui = new ChestGui(
             layout.rows(),
-            ComponentHolder.of(this.miniMessage.deserialize(this.format(this.config.title, placeholders))),
+            ComponentHolder.of(this.miniMessage.deserialize(this.format(this.config.title, placeholders))
+                .decoration(TextDecoration.ITALIC, false)),
             this.plugin
         );
         gui.setOnGlobalClick(event -> {
@@ -299,7 +301,7 @@ public final class MinionPanel {
         placeholders.put(
             "{MINION_PROGRESS_REQUIRED}",
             behavior == null || level >= behavior.config().maxLevel()
-                ? "MAX"
+                ? this.config.maximumValue
                 : Long.toString(behavior.config().progressToReach(level + 1))
         );
         placeholders.put("{MINION_STATUS}", minion.active() ? this.config.statusWorking : this.config.statusPaused);

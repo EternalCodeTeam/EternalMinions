@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -25,7 +26,7 @@ final class PanelItemFactory {
 
         item.setAmount(config.amount);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(this.miniMessage.deserialize(this.format(config.displayName, placeholders)));
+        meta.displayName(this.render(config.displayName, placeholders));
         meta.lore(this.createLore(config.lore, placeholders));
         meta.setEnchantmentGlintOverride(config.glowing);
         meta.setHideTooltip(config.hideTooltip);
@@ -45,7 +46,7 @@ final class PanelItemFactory {
 
         List<Component> lore = new ArrayList<>(lines.size());
         for (String line : lines) {
-            lore.add(this.miniMessage.deserialize(this.format(line, placeholders)));
+            lore.add(this.render(line, placeholders));
         }
         return lore;
     }
@@ -56,5 +57,10 @@ final class PanelItemFactory {
             formatted = formatted.replace(placeholder.getKey(), placeholder.getValue());
         }
         return formatted;
+    }
+
+    private Component render(String input, Map<String, String> placeholders) {
+        return this.miniMessage.deserialize(this.format(input, placeholders))
+            .decoration(TextDecoration.ITALIC, false);
     }
 }

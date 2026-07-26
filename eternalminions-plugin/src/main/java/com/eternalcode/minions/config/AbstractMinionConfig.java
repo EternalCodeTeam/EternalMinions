@@ -46,6 +46,16 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
     public MinionItemsConfig items = new MinionItemsConfig();
 
     @Comment({
+        "Lore displayed on the physical minion item. Supports MiniMessage.",
+        "Placeholders: {MINION_LEVEL}, {MINION_MAX_LEVEL}, {MINION_PROGRESS},",
+        "{MINION_PROGRESS_REQUIRED}, {STORAGE_USED}, {STORAGE_CAPACITY}."
+    })
+    public List<String> itemLore = defaultItemLore();
+
+    @Comment("Text used for {MINION_PROGRESS_REQUIRED} at the maximum level.")
+    public String maximumProgressText = "MAX";
+
+    @Comment({
         "Cumulative progress (finished actions) required to reach each next level.",
         "First entry unlocks level 2, second level 3, and so on. Empty list = level stays at 1."
     })
@@ -88,6 +98,16 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
 
     @Comment("Instruction item displayed in the minion panel.")
     public MinionPanelElementConfig usageInstructions = defaultUsageInstructions();
+
+    private static List<String> defaultItemLore() {
+        return List.of(
+            "<gray>Poziom: <white>{MINION_LEVEL}<gray>/<white>{MINION_MAX_LEVEL}",
+            "<gray>Postęp: <white>{MINION_PROGRESS}<gray>/<white>{MINION_PROGRESS_REQUIRED}",
+            "<gray>Magazyn: <white>{STORAGE_USED}<gray>/<white>{STORAGE_CAPACITY}",
+            "",
+            "<dark_gray>Kliknij PPM blok, aby postawić miniona."
+        );
+    }
 
     private static MinionPanelElementConfig defaultUsageInstructions() {
         MinionPanelElementConfig instructions = new MinionPanelElementConfig();
