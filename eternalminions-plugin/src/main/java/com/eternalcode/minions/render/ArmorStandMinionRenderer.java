@@ -1,8 +1,9 @@
 package com.eternalcode.minions.render;
 
+import com.eternalcode.minions.item.MinionAppearanceItems;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionType;
-import com.eternalcode.minions.minion.MinionTypeService;
+import com.eternalcode.minions.minion.MinionBehavior;
+import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.util.Vector3f;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
@@ -32,8 +33,8 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
     private static final int RECOVERY_FRAME_COUNT = 6;
 
     private static final int SWING_FRAME_COUNT = WIND_UP_FRAME_COUNT
-                    + STRIKE_FRAME_COUNT
-                    + RECOVERY_FRAME_COUNT;
+            + STRIKE_FRAME_COUNT
+            + RECOVERY_FRAME_COUNT;
 
     private static final int SWING_DURATION_TICKS = SWING_FRAME_COUNT;
 
@@ -43,7 +44,8 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
 
     private static final Vector3f[] SWING_FRAMES = createSwingFrames();
 
-    private final MinionTypeService types;
+    private final MinionBehaviorRegistry behaviors;
+    private final MinionAppearanceItems appearance;
     private final Long2LongOpenHashMap swingStates = new Long2LongOpenHashMap();
 
     private long currentTick;
@@ -51,10 +53,12 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
     public ArmorStandMinionRenderer(
             EntityLibHologramRenderer holograms,
             MinionEntityIndex entityIndex,
-            MinionTypeService types
+            MinionBehaviorRegistry behaviors,
+            MinionAppearanceItems appearance
     ) {
         super(holograms, entityIndex);
-        this.types = types;
+        this.behaviors = behaviors;
+        this.appearance = appearance;
     }
 
     private static Vector3f[] createSwingFrames() {
@@ -144,13 +148,13 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
         body.setHasNoGravity(true);
 
         WrapperEntityEquipment equipment = body.getEquipment();
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
 
-        if (type != null) {
-            equipment.setHelmet(equipmentItem(type.helmet()));
-            equipment.setChestplate(equipmentItem(type.chestplate()));
-            equipment.setLeggings(equipmentItem(type.leggings()));
-            equipment.setBoots(equipmentItem(type.boots()));
+        if (behavior != null) {
+            equipment.setHelmet(equipmentItem(this.appearance.helmet(behavior.config())));
+            equipment.setChestplate(equipmentItem(this.appearance.chestplate(behavior.config())));
+            equipment.setLeggings(equipmentItem(this.appearance.leggings(behavior.config())));
+            equipment.setBoots(equipmentItem(this.appearance.boots(behavior.config())));
         }
 
         equipment.setMainHand(equipmentItem(minion.equipment().tool()));

@@ -2,6 +2,8 @@ package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.item.MinionItemFactory;
+import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.eternalcode.minions.render.MinionRenderService;
 import java.util.Optional;
 import org.bukkit.entity.Player;
@@ -62,7 +64,7 @@ public final class MinionLifecycleService {
         this.renders.refreshRotation(minion);
     }
 
-    public void updateUpgrade(Minion minion, MinionUpgradeKind upgrade) {
+    public void updateUpgrade(Minion minion, UpgradeKind upgrade) {
         Minion previous = this.minions.findMinion(minion.id()).orElse(null);
         if (previous == null) {
             return;

@@ -2,6 +2,9 @@ package com.eternalcode.minions.minion;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.eternalcode.minions.minion.storage.MinionSettings;
+import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 

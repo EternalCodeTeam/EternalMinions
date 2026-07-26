@@ -6,12 +6,12 @@ import com.eternalcode.minions.config.MinionPanelConfig;
 import com.eternalcode.minions.config.MinionPanelElementConfig;
 import com.eternalcode.minions.config.MinionPanelLayout;
 import com.eternalcode.minions.minion.Minion;
+import com.eternalcode.minions.minion.MinionBehavior;
+import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.MinionEquipment;
 import com.eternalcode.minions.minion.MinionLifecycleService;
-import com.eternalcode.minions.minion.MinionStorage;
-import com.eternalcode.minions.minion.MinionType;
-import com.eternalcode.minions.minion.MinionTypeService;
-import com.eternalcode.minions.minion.miner.MiningMode;
+import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.MiningMode;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.multification.notice.Notice;
 import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder;
@@ -37,7 +37,7 @@ public final class MinionPanel {
     private final MessagesConfig messages;
     private final NoticeService notices;
     private final MiniMessage miniMessage;
-    private final MinionTypeService types;
+    private final MinionBehaviorRegistry behaviors;
     private final PanelItemFactory items;
     private final MinionLifecycleService lifecycle;
     private final BiConsumer<Player, Minion> pickup;
@@ -50,7 +50,7 @@ public final class MinionPanel {
         MessagesConfig messages,
         NoticeService notices,
         MiniMessage miniMessage,
-        MinionTypeService types,
+        MinionBehaviorRegistry behaviors,
         MinionLifecycleService lifecycle,
         BiConsumer<Player, Minion> pickup,
         BiConsumer<Player, Minion> openUpgrades,
@@ -61,7 +61,7 @@ public final class MinionPanel {
         this.messages = messages;
         this.notices = notices;
         this.miniMessage = miniMessage;
-        this.types = types;
+        this.behaviors = behaviors;
         this.items = new PanelItemFactory(miniMessage);
         this.lifecycle = lifecycle;
         this.pickup = pickup;
@@ -197,18 +197,26 @@ public final class MinionPanel {
     }
 
     private Map<String, String> createPlaceholders(Minion minion) {
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
         int level = minion.progress().level();
 
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{MINION_ID}", Long.toString(minion.id().value()));
-        placeholders.put("{MINION_BEHAVIOR}", type == null ? minion.behaviorId() : type.displayName());
+        placeholders.put(
+            "{MINION_BEHAVIOR}",
+            behavior == null ? minion.behaviorId() : behavior.config().displayName
+        );
         placeholders.put("{MINION_LEVEL}", Integer.toString(level));
-        placeholders.put("{MINION_MAX_LEVEL}", type == null ? "?" : Integer.toString(type.maxLevel()));
+        placeholders.put(
+            "{MINION_MAX_LEVEL}",
+            behavior == null ? "?" : Integer.toString(behavior.config().maxLevel())
+        );
         placeholders.put("{MINION_PROGRESS}", Long.toString(minion.progress().progress()));
         placeholders.put(
             "{MINION_PROGRESS_REQUIRED}",
-            type == null || level >= type.maxLevel() ? "MAX" : Long.toString(type.progressToReach(level + 1))
+            behavior == null || level >= behavior.config().maxLevel()
+                ? "MAX"
+                : Long.toString(behavior.config().progressToReach(level + 1))
         );
         placeholders.put("{MINION_STATUS}", minion.active() ? this.config.statusWorking : this.config.statusPaused);
         placeholders.put(

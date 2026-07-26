@@ -2,6 +2,7 @@ package com.eternalcode.minions.minion.killer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.eternalcode.minions.minion.impl.killer.NearestMobFinder;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

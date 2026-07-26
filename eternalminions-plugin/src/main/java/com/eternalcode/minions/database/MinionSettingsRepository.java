@@ -2,7 +2,7 @@ package com.eternalcode.minions.database;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
-import com.eternalcode.minions.minion.MinionSettings;
+import com.eternalcode.minions.minion.storage.MinionSettings;
 import java.util.concurrent.CompletableFuture;
 
 public final class MinionSettingsRepository extends AbstractRepositoryOrmLite {

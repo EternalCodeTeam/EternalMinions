@@ -5,10 +5,10 @@ import com.eternalcode.minions.minion.MinionEquipment;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionPosition;
 import com.eternalcode.minions.minion.MinionProgress;
-import com.eternalcode.minions.minion.MinionSettings;
-import com.eternalcode.minions.minion.MinionStorage;
-import com.eternalcode.minions.minion.MinionUpgradeKind;
-import com.eternalcode.minions.minion.MinionUpgrades;
+import com.eternalcode.minions.minion.storage.MinionSettings;
+import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -94,11 +94,8 @@ public record MinionData(
         }
 
         Map<String, Integer> upgrades = new LinkedHashMap<>();
-        for (MinionUpgradeKind kind : MinionUpgradeKind.values()) {
-            int tier = minion.upgrades().tier(kind);
-            if (tier > 0) {
-                upgrades.put(kind.name(), tier);
-            }
+        for (Map.Entry<UpgradeKind, Integer> entry : minion.upgrades().entries().entrySet()) {
+            upgrades.put(entry.getKey().key(), entry.getValue());
         }
 
         MinionPosition chest = minion.chestPosition();
@@ -132,7 +129,7 @@ public record MinionData(
         MinionUpgrades minionUpgrades = MinionUpgrades.none();
         for (Map.Entry<String, Integer> entry : this.upgrades.entrySet()) {
             try {
-                minionUpgrades = minionUpgrades.withTier(MinionUpgradeKind.valueOf(entry.getKey()), entry.getValue());
+                minionUpgrades = minionUpgrades.withTier(new UpgradeKind(entry.getKey()), entry.getValue());
             }
             catch (IllegalArgumentException ignored) {
                 // An upgrade kind removed from the plugin should not prevent the minion from loading.

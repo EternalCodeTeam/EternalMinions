@@ -3,9 +3,9 @@ package com.eternalcode.minions.database;
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionId;
-import com.eternalcode.minions.minion.MinionSettings;
-import com.eternalcode.minions.minion.MinionUpgradeKind;
-import com.eternalcode.minions.minion.miner.MiningMode;
+import com.eternalcode.minions.minion.storage.MinionSettings;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
+import com.eternalcode.minions.minion.MiningMode;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.stmt.QueryBuilder;
 import java.sql.SQLException;
@@ -79,7 +79,7 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
                 continue;
             }
             try {
-                MinionUpgradeKind.valueOf(row.upgradeType());
+                new UpgradeKind(row.upgradeType());
             }
             catch (IllegalArgumentException ignored) {
                 continue;

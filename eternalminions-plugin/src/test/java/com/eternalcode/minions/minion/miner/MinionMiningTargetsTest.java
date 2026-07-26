@@ -2,6 +2,7 @@ package com.eternalcode.minions.minion.miner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.eternalcode.minions.minion.impl.miner.MinionMiningTargets;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;

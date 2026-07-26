@@ -1,8 +1,9 @@
 package com.eternalcode.minions.render;
 
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionType;
-import com.eternalcode.minions.minion.MinionTypeService;
+import com.eternalcode.minions.item.MinionAppearanceItems;
+import com.eternalcode.minions.minion.MinionBehavior;
+import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.github.retrooper.packetevents.protocol.attribute.Attributes;
 import com.github.retrooper.packetevents.protocol.component.builtin.item.ItemProfile;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
@@ -20,11 +21,18 @@ public final class NpcMinionRenderer extends AbstractEntityLibMinionRenderer {
 
     private static final double DEFAULT_SCALE = 0.55D;
 
-    private final MinionTypeService types;
+    private final MinionBehaviorRegistry behaviors;
+    private final MinionAppearanceItems appearance;
 
-    public NpcMinionRenderer(EntityLibHologramRenderer holograms, MinionEntityIndex entityIndex, MinionTypeService types) {
+    public NpcMinionRenderer(
+        EntityLibHologramRenderer holograms,
+        MinionEntityIndex entityIndex,
+        MinionBehaviorRegistry behaviors,
+        MinionAppearanceItems appearance
+    ) {
         super(holograms, entityIndex);
-        this.types = types;
+        this.behaviors = behaviors;
+        this.appearance = appearance;
     }
 
     @Override
@@ -34,15 +42,19 @@ public final class NpcMinionRenderer extends AbstractEntityLibMinionRenderer {
         meta.setImmovable(true);
         body.setHasNoGravity(true);
 
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
-        body.getAttributes().setAttribute(Attributes.SCALE, type == null ? DEFAULT_SCALE : type.npcScale());
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
+        body.getAttributes().setAttribute(
+            Attributes.SCALE,
+            behavior == null ? DEFAULT_SCALE : behavior.config().npcScale
+        );
         WrapperEntityEquipment equipment = body.getEquipment();
-        if (type != null) {
-            String skin = type.npcSkin().isEmpty() ? type.headTexture() : type.npcSkin();
+        if (behavior != null) {
+            String headTexture = behavior.config().items.helmet.texture;
+            String skin = behavior.config().npcSkin.isEmpty() ? headTexture : behavior.config().npcSkin;
             if (!skin.isEmpty()) {
                 meta.setProfile(createSkinProfile(skin));
             }
-            this.equipArmor(equipment, type);
+            this.equipArmor(equipment, behavior);
         }
         equipment.setMainHand(equipmentItem(minion.equipment().tool()));
         return body;
@@ -54,15 +66,14 @@ public final class NpcMinionRenderer extends AbstractEntityLibMinionRenderer {
         ((WrapperLivingEntity) minion.body()).swingMainHand();
     }
 
-    private void equipArmor(WrapperEntityEquipment equipment, MinionType type) {
-        // A PLAYER_HEAD helmet would cover the NPC skin with a block model, so the skin stays the head.
-        ItemStack helmet = type.helmet();
+    private void equipArmor(WrapperEntityEquipment equipment, MinionBehavior behavior) {
+        ItemStack helmet = this.appearance.helmet(behavior.config());
         if (helmet == null || helmet.getType() != Material.PLAYER_HEAD) {
             equipment.setHelmet(equipmentItem(helmet));
         }
-        equipment.setChestplate(equipmentItem(type.chestplate()));
-        equipment.setLeggings(equipmentItem(type.leggings()));
-        equipment.setBoots(equipmentItem(type.boots()));
+        equipment.setChestplate(equipmentItem(this.appearance.chestplate(behavior.config())));
+        equipment.setLeggings(equipmentItem(this.appearance.leggings(behavior.config())));
+        equipment.setBoots(equipmentItem(this.appearance.boots(behavior.config())));
     }
 
     private static ItemProfile createSkinProfile(String headTexture) {

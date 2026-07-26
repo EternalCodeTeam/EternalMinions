@@ -1,5 +1,8 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.minion.storage.MinionSettings;
+import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import java.util.UUID;
 
 public final class Minion {

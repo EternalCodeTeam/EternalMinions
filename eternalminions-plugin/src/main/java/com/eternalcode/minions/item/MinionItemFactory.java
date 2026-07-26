@@ -1,18 +1,19 @@
 package com.eternalcode.minions.item;
 
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionStorage;
-import com.eternalcode.minions.minion.MinionType;
-import com.eternalcode.minions.minion.MinionTypeService;
-import com.eternalcode.minions.minion.MinionUpgradeKind;
-import com.eternalcode.minions.minion.MinionUpgrades;
-import com.eternalcode.minions.minion.miner.MiningMode;
+import com.eternalcode.minions.minion.MinionBehavior;
+import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
+import com.eternalcode.minions.minion.MiningMode;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -26,7 +27,8 @@ import org.bukkit.plugin.Plugin;
 
 public final class MinionItemFactory {
 
-    private final MinionTypeService types;
+    private final MinionBehaviorRegistry behaviors;
+    private final MinionAppearanceItems appearance;
     private final MiniMessage miniMessage;
     private final NamespacedKey minionKey;
     private final NamespacedKey behaviorKey;
@@ -37,8 +39,14 @@ public final class MinionItemFactory {
     private final NamespacedKey upgradesKey;
     private final NamespacedKey miningModeKey;
 
-    public MinionItemFactory(Plugin plugin, MinionTypeService types, MiniMessage miniMessage) {
-        this.types = types;
+    public MinionItemFactory(
+        Plugin plugin,
+        MinionBehaviorRegistry behaviors,
+        MinionAppearanceItems appearance,
+        MiniMessage miniMessage
+    ) {
+        this.behaviors = behaviors;
+        this.appearance = appearance;
         this.miniMessage = miniMessage;
         this.minionKey = new NamespacedKey(plugin, "minion");
         this.behaviorKey = new NamespacedKey(plugin, "minion_behavior");
@@ -50,21 +58,22 @@ public final class MinionItemFactory {
         this.miningModeKey = new NamespacedKey(plugin, "minion_mining_mode");
     }
 
-    public ItemStack create(MinionType type) {
-        ItemStack item = type.headItem();
+    public ItemStack create(MinionBehavior behavior) {
+        ItemStack item = this.appearance.head(behavior.config());
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(this.miniMessage.deserialize(type.displayName()));
+        meta.displayName(this.miniMessage.deserialize(behavior.config().displayName));
         meta.lore(List.of(Component.text("Kliknij blok PPM, aby postawić.", NamedTextColor.DARK_GRAY)));
         PersistentDataContainer data = meta.getPersistentDataContainer();
         data.set(this.minionKey, PersistentDataType.BYTE, (byte) 1);
-        data.set(this.behaviorKey, PersistentDataType.STRING, type.id());
+        data.set(this.behaviorKey, PersistentDataType.STRING, behavior.id());
         item.setItemMeta(meta);
         return item;
     }
 
     public ItemStack create(Minion minion) {
-        MinionType type = this.types.type(minion.behaviorId()).orElseGet(this.types::defaultType);
-        ItemStack item = this.create(type);
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId())
+            .orElseGet(this.behaviors::defaultBehavior);
+        ItemStack item = this.create(behavior);
         ItemMeta meta = item.getItemMeta();
         PersistentDataContainer data = meta.getPersistentDataContainer();
         data.set(this.behaviorKey, PersistentDataType.STRING, minion.behaviorId());
@@ -133,15 +142,11 @@ public final class MinionItemFactory {
 
     private static String encodeUpgrades(MinionUpgrades upgrades) {
         StringBuilder encoded = new StringBuilder();
-        for (MinionUpgradeKind kind : MinionUpgradeKind.values()) {
-            int tier = upgrades.tier(kind);
-            if (tier == 0) {
-                continue;
-            }
+        for (Map.Entry<UpgradeKind, Integer> entry : upgrades.entries().entrySet()) {
             if (!encoded.isEmpty()) {
                 encoded.append(',');
             }
-            encoded.append(kind.name()).append(':').append(tier);
+            encoded.append(entry.getKey().key()).append(':').append(entry.getValue());
         }
         return encoded.toString();
     }
@@ -157,7 +162,7 @@ public final class MinionItemFactory {
                 continue;
             }
             try {
-                MinionUpgradeKind kind = MinionUpgradeKind.valueOf(entry.substring(0, separator));
+                UpgradeKind kind = new UpgradeKind(entry.substring(0, separator));
                 upgrades = upgrades.withTier(kind, Integer.parseInt(entry.substring(separator + 1)));
             }
             catch (IllegalArgumentException ignored) {

@@ -6,9 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionPosition;
-import com.eternalcode.minions.minion.MinionSettings;
-import com.eternalcode.minions.minion.MinionUpgradeKind;
-import com.eternalcode.minions.minion.miner.MiningMode;
+import com.eternalcode.minions.minion.storage.MinionSettings;
+import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.MiningMode;
 import com.j256.ormlite.support.DatabaseConnection;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -112,7 +112,7 @@ class MinionRepositoryTest {
 
         try {
             context.minions.create(minion).join();
-            context.upgrades.saveUpgrade(new MinionId(minion.id()), MinionUpgradeKind.SPEED, 4).join();
+            context.upgrades.saveUpgrade(new MinionId(minion.id()), CoreUpgradeKinds.SPEED, 4).join();
 
             assertThat(context.minions.findById(new MinionId(minion.id())).join().orElseThrow().upgrades())
                 .containsEntry("SPEED", 4)
@@ -220,7 +220,7 @@ class MinionRepositoryTest {
     }
 
     @Test
-    void fallsBackFromUnknownSettingsAndSkipsUnknownUpgrade(@TempDir Path temporaryDirectory) throws Exception {
+    void fallsBackFromUnknownSettingsAndLoadsAnyWellFormedUpgradeKind(@TempDir Path temporaryDirectory) throws Exception {
         RepositoryContext context = context(temporaryDirectory);
         MinionData minion = minion(23L, UUID.randomUUID(), "minecraft:world", 1, 1);
 
@@ -231,6 +231,9 @@ class MinionRepositoryTest {
                 SET direction = 'REMOVED_DIRECTION', mining_mode = 'REMOVED_MODE'
                 WHERE minion_id = 23
                 """);
+            // Upgrade kinds are an open value type now (not a closed enum), so a kind no longer
+            // declared by any profession still loads verbatim - only the profession's own
+            // The registered behavior decides whether it means anything, not the persistence layer.
             execute(context.database, """
                 INSERT INTO eternal_minion_upgrades (minion_id, upgrade_type, tier)
                 VALUES (23, 'REMOVED_UPGRADE', 5)
@@ -238,7 +241,7 @@ class MinionRepositoryTest {
 
             MinionData loaded = context.minions.findById(new MinionId(minion.id())).join().orElseThrow();
             assertThat(loaded.settings()).isEqualTo(MinionSettings.defaults());
-            assertThat(loaded.upgrades()).doesNotContainKey("REMOVED_UPGRADE");
+            assertThat(loaded.upgrades()).containsEntry("REMOVED_UPGRADE", 5);
             assertThat(loaded.upgrades()).containsEntry("SPEED", 1);
         }
         finally {
@@ -261,7 +264,7 @@ class MinionRepositoryTest {
             assertThatThrownBy(() -> context.states.saveState(new MinionId(24L), true, -1, 0L, 1L))
                 .isInstanceOf(IllegalArgumentException.class);
             assertThatThrownBy(() ->
-                context.upgrades.saveUpgrade(new MinionId(24L), MinionUpgradeKind.SPEED, -1))
+                context.upgrades.saveUpgrade(new MinionId(24L), CoreUpgradeKinds.SPEED, -1))
                 .isInstanceOf(IllegalArgumentException.class);
 
             MinionData loaded = context.minions.findById(new MinionId(24L)).join().orElseThrow();

@@ -2,6 +2,8 @@ package com.eternalcode.minions.minion.seller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.eternalcode.minions.minion.impl.seller.NoopShopIntegration;
+import com.eternalcode.minions.minion.impl.seller.ShopIntegration;
 import java.util.UUID;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;

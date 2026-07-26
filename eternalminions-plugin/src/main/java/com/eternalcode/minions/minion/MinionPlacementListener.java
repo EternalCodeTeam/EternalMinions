@@ -2,7 +2,9 @@ package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.item.MinionItemFactory;
-import com.eternalcode.minions.minion.miner.MiningMode;
+import com.eternalcode.minions.minion.storage.MinionSettings;
+import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import com.eternalcode.minions.notice.NoticeService;
 import java.util.Optional;
 import org.bukkit.block.Block;
@@ -19,7 +21,7 @@ public final class MinionPlacementListener implements Listener {
     private final MinionItemFactory items;
     private final MinionIdSequence ids;
     private final MinionLifecycleService lifecycle;
-    private final MinionTypeService types;
+    private final MinionBehaviorRegistry behaviors;
     private final MessagesConfig messages;
     private final NoticeService notices;
 
@@ -27,14 +29,14 @@ public final class MinionPlacementListener implements Listener {
         MinionItemFactory items,
         MinionIdSequence ids,
         MinionLifecycleService lifecycle,
-        MinionTypeService types,
+        MinionBehaviorRegistry behaviors,
         MessagesConfig messages,
         NoticeService notices
     ) {
         this.items = items;
         this.ids = ids;
         this.lifecycle = lifecycle;
-        this.types = types;
+        this.behaviors = behaviors;
         this.messages = messages;
         this.notices = notices;
     }
@@ -60,9 +62,9 @@ public final class MinionPlacementListener implements Listener {
 
         Optional<MinionItemFactory.StoredMinionState> state = this.items.readState(item);
         String behaviorId = state.map(MinionItemFactory.StoredMinionState::behaviorId)
-            .orElseGet(() -> this.types.defaultType().id());
-        MinionType type = this.types.type(behaviorId).orElse(null);
-        if (type == null) {
+            .orElseGet(() -> this.behaviors.defaultBehavior().id());
+        MinionBehavior behavior = this.behaviors.find(behaviorId).orElse(null);
+        if (behavior == null) {
             this.notices.create().viewer(player).notice(this.messages.minionTypeUnknown).send();
             return;
         }
@@ -80,7 +82,7 @@ public final class MinionPlacementListener implements Listener {
             state.map(stored -> new MinionProgress(stored.level(), stored.progress()))
                 .orElseGet(MinionProgress::start),
             new MinionEquipment(state.map(MinionItemFactory.StoredMinionState::tool).orElse(null)),
-            this.createStorage(state.orElse(null), type, upgrades),
+            this.createStorage(state.orElse(null), behavior, upgrades),
             upgrades,
             null,
             new MinionSettings(direction, miningMode)
@@ -91,8 +93,12 @@ public final class MinionPlacementListener implements Listener {
         this.notices.create().viewer(player).notice(this.messages.minionPlaced).send();
     }
 
-    private MinionStorage createStorage(MinionItemFactory.StoredMinionState state, MinionType type, MinionUpgrades upgrades) {
-        int capacity = type.storageCapacity(upgrades);
+    private MinionStorage createStorage(
+        MinionItemFactory.StoredMinionState state,
+        MinionBehavior behavior,
+        MinionUpgrades upgrades
+    ) {
+        int capacity = behavior.config().storageCapacity(upgrades);
         if (state == null || state.storage().length == 0) {
             return new MinionStorage(capacity);
         }

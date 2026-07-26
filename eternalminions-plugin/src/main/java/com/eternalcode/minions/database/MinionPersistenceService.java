@@ -3,7 +3,7 @@ package com.eternalcode.minions.database;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionPosition;
-import com.eternalcode.minions.minion.MinionUpgradeKind;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -123,7 +123,7 @@ public final class MinionPersistenceService {
         );
     }
 
-    public void saveUpgrade(Minion minion, MinionUpgradeKind upgrade) {
+    public void saveUpgrade(Minion minion, UpgradeKind upgrade) {
         if (!this.minions.ready()) {
             return;
         }

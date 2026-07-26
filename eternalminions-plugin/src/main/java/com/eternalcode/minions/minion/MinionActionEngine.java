@@ -1,8 +1,10 @@
 package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.config.MinionsConfig;
+import com.eternalcode.minions.database.MinionPersistenceService;
+import com.eternalcode.minions.minion.status.MinionStatusTracker;
+import com.eternalcode.minions.render.MinionRenderer;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import java.util.Map;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Server;
 import org.bukkit.World;
@@ -13,26 +15,32 @@ public final class MinionActionEngine implements Runnable {
     private static final long IDLE_INTERVAL_TICKS = 100L;
 
     private final Server server;
-    private final MinionRegistry registry;
+    private final MinionRegistry minions;
     private final MinionsConfig config;
-    private final MinionTypeService types;
-    private final Map<MinionBehaviorType, MinionBehavior> behaviors;
+    private final MinionBehaviorRegistry behaviors;
+    private final MinionPersistenceService persistence;
+    private final MinionStatusTracker statuses;
+    private final MinionRenderer renderer;
     private final MinionSchedule schedule = new MinionSchedule(128);
     private final Long2ObjectOpenHashMap<ScheduledMinion> scheduled = new Long2ObjectOpenHashMap<>();
     private long currentTick;
 
     public MinionActionEngine(
         Server server,
-        MinionRegistry registry,
+        MinionRegistry minions,
         MinionsConfig config,
-        MinionTypeService types,
-        Map<MinionBehaviorType, MinionBehavior> behaviors
+        MinionBehaviorRegistry behaviors,
+        MinionPersistenceService persistence,
+        MinionStatusTracker statuses,
+        MinionRenderer renderer
     ) {
         this.server = server;
-        this.registry = registry;
+        this.minions = minions;
         this.config = config;
-        this.types = types;
-        this.behaviors = Map.copyOf(behaviors);
+        this.behaviors = behaviors;
+        this.persistence = persistence;
+        this.statuses = statuses;
+        this.renderer = renderer;
     }
 
     public void add(Minion minion) {
@@ -58,51 +66,80 @@ public final class MinionActionEngine implements Runnable {
                 return;
             }
 
-            Minion minion = this.registry.findMinion(scheduledMinion.id()).orElse(null);
+            Minion minion = this.minions.findMinion(scheduledMinion.id()).orElse(null);
             if (minion == null) {
                 this.scheduled.remove(scheduledMinion.id().value());
                 continue;
             }
 
-            boolean worked = this.execute(minion, scheduledMinion);
-            long forcedDelay = scheduledMinion.forcedNextDelayTicks();
-            scheduledMinion.clearForcedNextDelay();
-            long interval = forcedDelay >= 0L ? forcedDelay : (worked ? this.workInterval(minion) : this.idleInterval(minion));
-            this.schedule.schedule(scheduledMinion, this.currentTick + interval);
+            long delayTicks = this.execute(minion, scheduledMinion);
+            this.schedule.schedule(scheduledMinion, this.currentTick + delayTicks);
             actions++;
         }
     }
 
-    private boolean execute(Minion minion, ScheduledMinion scheduledMinion) {
+    private long execute(Minion minion, ScheduledMinion scheduledMinion) {
         if (!minion.active()) {
-            return false;
+            return this.idleInterval(minion);
         }
 
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
-        if (type == null) {
-            return false;
-        }
-
-        MinionBehavior behavior = this.behaviors.get(type.behavior());
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
         if (behavior == null) {
-            return false;
+            return IDLE_INTERVAL_TICKS;
         }
 
         World world = this.server.getWorld(Key.key(minion.position().worldKey()));
         if (world == null) {
-            return false;
+            return behavior.idleInterval();
         }
 
-        return behavior.execute(minion, type, scheduledMinion, world);
+        MinionResult result = behavior.execute(new MinionContext(minion, world, scheduledMinion));
+        this.apply(minion, result, scheduledMinion);
+        if (result.delayTicks() != null) {
+            return result.delayTicks();
+        }
+        return result.worked() ? behavior.workInterval(result.minion()) : behavior.idleInterval();
+    }
+
+    private void apply(Minion previous, MinionResult result, ScheduledMinion scheduledMinion) {
+        Minion updated = result.minion();
+        boolean equipmentChanged = previous.equipment() != updated.equipment();
+        boolean storageChanged = previous.storage() != updated.storage();
+        boolean progressChanged = previous.progress() != updated.progress();
+
+        if (previous != updated) {
+            this.minions.replace(updated);
+        }
+        if (equipmentChanged) {
+            this.persistence.saveEquipment(updated);
+            this.renderer.refreshEquipment(updated.id(), updated.equipment().tool());
+        }
+        if (storageChanged) {
+            this.persistence.saveStorage(previous, updated);
+        }
+        if (progressChanged) {
+            this.persistence.saveState(updated);
+        }
+
+        boolean statusChanged = this.statuses.setStatus(updated.id(), result.status());
+        boolean levelChanged = previous.progress().level() != updated.progress().level();
+        if (statusChanged || levelChanged) {
+            this.renderer.refreshHologram(updated);
+        }
+
+        float animationYaw = scheduledMinion.consumeAnimationYaw();
+        if (result.worked() && !Float.isNaN(animationYaw)) {
+            this.renderer.animate(updated.id(), animationYaw);
+        }
     }
 
     private long workInterval(Minion minion) {
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
-        return type == null ? ACTIVE_INTERVAL_TICKS : type.workIntervalTicks(minion.upgrades());
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
+        return behavior == null ? ACTIVE_INTERVAL_TICKS : behavior.workInterval(minion);
     }
 
     private long idleInterval(Minion minion) {
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
-        return type == null ? IDLE_INTERVAL_TICKS : type.idleIntervalTicks();
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
+        return behavior == null ? IDLE_INTERVAL_TICKS : behavior.idleInterval();
     }
 }

@@ -3,12 +3,13 @@ package com.eternalcode.minions.gui;
 import com.eternalcode.minions.config.MinionPanelConfig;
 import com.eternalcode.minions.config.MinionPanelElementConfig;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionType;
-import com.eternalcode.minions.minion.MinionTypeService;
-import com.eternalcode.minions.minion.MinionUpgradeKind;
-import com.eternalcode.minions.minion.MinionUpgradeService;
-import com.eternalcode.minions.minion.MinionUpgradeTier;
-import com.eternalcode.minions.minion.MinionUpgrades;
+import com.eternalcode.minions.minion.MinionBehavior;
+import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.upgrade.MinionUpgradeService;
+import com.eternalcode.minions.minion.upgrade.MinionUpgradeTier;
+import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
+import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder;
 import com.github.stefvanschie.inventoryframework.gui.GuiItem;
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
@@ -22,16 +23,16 @@ import org.bukkit.plugin.Plugin;
 
 public final class MinionUpgradePanel {
 
-    private static final Map<MinionUpgradeKind, Integer> COLUMNS = Map.of(
-        MinionUpgradeKind.SPEED, 2,
-        MinionUpgradeKind.RANGE, 4,
-        MinionUpgradeKind.CAPACITY, 6
+    private static final Map<UpgradeKind, Integer> COLUMNS = Map.of(
+        CoreUpgradeKinds.SPEED, 2,
+        CoreUpgradeKinds.RANGE, 4,
+        CoreUpgradeKinds.CAPACITY, 6
     );
 
     private final Plugin plugin;
     private final MinionPanelConfig config;
     private final MiniMessage miniMessage;
-    private final MinionTypeService types;
+    private final MinionBehaviorRegistry behaviors;
     private final MinionUpgradeService upgrades;
     private final PanelItemFactory items;
 
@@ -39,20 +40,20 @@ public final class MinionUpgradePanel {
         Plugin plugin,
         MinionPanelConfig config,
         MiniMessage miniMessage,
-        MinionTypeService types,
+        MinionBehaviorRegistry behaviors,
         MinionUpgradeService upgrades
     ) {
         this.plugin = plugin;
         this.config = config;
         this.miniMessage = miniMessage;
-        this.types = types;
+        this.behaviors = behaviors;
         this.upgrades = upgrades;
         this.items = new PanelItemFactory(miniMessage);
     }
 
     public void open(Player player, Minion minion) {
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
-        if (type == null) {
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
+        if (behavior == null) {
             return;
         }
 
@@ -65,14 +66,14 @@ public final class MinionUpgradePanel {
         gui.setOnGlobalDrag(event -> event.setCancelled(true));
 
         StaticPane pane = new StaticPane(9, 3);
-        for (Map.Entry<MinionUpgradeKind, MinionPanelElementConfig> entry : this.config.upgradeElements.entrySet()) {
-            MinionUpgradeKind kind = entry.getKey();
+        for (Map.Entry<UpgradeKind, MinionPanelElementConfig> entry : this.config.upgradeElements.entrySet()) {
+            UpgradeKind kind = entry.getKey();
             Integer column = COLUMNS.get(kind);
             if (column == null) {
                 continue;
             }
 
-            Map<String, String> placeholders = this.createPlaceholders(type, minion.upgrades(), kind);
+            Map<String, String> placeholders = this.createPlaceholders(behavior, minion.upgrades(), kind);
             GuiItem item = new GuiItem(this.items.create(entry.getValue(), placeholders), event -> {
                 this.upgrades.purchase(player, minion, kind)
                     .ifPresent(updated -> this.open(player, updated));
@@ -84,15 +85,19 @@ public final class MinionUpgradePanel {
         gui.show(player);
     }
 
-    private Map<String, String> createPlaceholders(MinionType type, MinionUpgrades minionUpgrades, MinionUpgradeKind kind) {
+    private Map<String, String> createPlaceholders(
+        MinionBehavior behavior,
+        MinionUpgrades minionUpgrades,
+        UpgradeKind kind
+    ) {
         int tier = minionUpgrades.tier(kind);
-        int maxTier = type.maxUpgradeTier(kind);
-        MinionUpgradeTier nextTier = tier < maxTier ? type.upgradeTier(kind, tier + 1) : null;
+        int maxTier = behavior.config().maxUpgradeTier(kind);
+        MinionUpgradeTier nextTier = tier < maxTier ? behavior.config().upgradeTier(kind, tier + 1) : null;
 
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{UPGRADE_TIER}", Integer.toString(tier));
         placeholders.put("{UPGRADE_MAX_TIER}", Integer.toString(maxTier));
-        placeholders.put("{UPGRADE_VALUE}", Long.toString(this.effectiveValue(type, minionUpgrades, kind)));
+        placeholders.put("{UPGRADE_VALUE}", Long.toString(this.effectiveValue(behavior, minionUpgrades, kind)));
         placeholders.put("{UPGRADE_NEXT_VALUE}", nextTier == null ? "MAX" : Integer.toString(nextTier.value()));
         placeholders.put("{UPGRADE_REQUIRED_LEVEL}", nextTier == null ? "-" : Integer.toString(nextTier.requiredLevel()));
         placeholders.put("{UPGRADE_COST_AMOUNT}", nextTier == null ? "-" : Integer.toString(nextTier.costAmount()));
@@ -100,11 +105,14 @@ public final class MinionUpgradePanel {
         return placeholders;
     }
 
-    private long effectiveValue(MinionType type, MinionUpgrades minionUpgrades, MinionUpgradeKind kind) {
-        return switch (kind) {
-            case SPEED -> type.workIntervalTicks(minionUpgrades);
-            case RANGE -> type.miningRadius(minionUpgrades);
-            case CAPACITY -> type.storageCapacity(minionUpgrades);
-        };
+    private long effectiveValue(MinionBehavior behavior, MinionUpgrades minionUpgrades, UpgradeKind kind) {
+        if (kind.equals(CoreUpgradeKinds.SPEED)) {
+            return behavior.config().workInterval(minionUpgrades);
+        }
+        if (kind.equals(CoreUpgradeKinds.CAPACITY)) {
+            return behavior.config().storageCapacity(minionUpgrades);
+        }
+        int tier = minionUpgrades.tier(kind);
+        return tier == 0 ? 1L : behavior.config().upgradeTier(kind, tier).value();
     }
 }

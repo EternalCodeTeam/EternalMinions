@@ -5,7 +5,7 @@ public final class ScheduledMinion {
     private final MinionId id;
     private int miningTargetIndex;
     private long busyUntilWorldTime = -1L;
-    private long forcedNextDelayTicks = -1L;
+    private float animationYaw = Float.NaN;
 
     public ScheduledMinion(MinionId id) {
         this.id = id;
@@ -25,21 +25,26 @@ public final class ScheduledMinion {
         this.busyUntilWorldTime = worldTime;
     }
 
-    // Lets a behavior override the next reschedule delay for one action (e.g. MINER re-polling
-    // every tick while mid-dig on a block, instead of waiting the type's full work interval).
-    // -1 means "no override, use the type's normal work/idle interval". Consumed (reset to -1)
-    // by MinionActionEngine right after each execute() call, so it must be re-set every tick it
-    // is still wanted.
-    public long forcedNextDelayTicks() {
-        return this.forcedNextDelayTicks;
+    public boolean hasBusyTimer() {
+        return this.busyUntilWorldTime >= 0L;
     }
 
-    public void forceNextDelay(long ticks) {
-        this.forcedNextDelayTicks = ticks;
+    public long remainingBusyTicks(long worldTime) {
+        return Math.max(1L, this.busyUntilWorldTime - worldTime);
     }
 
-    public void clearForcedNextDelay() {
-        this.forcedNextDelayTicks = -1L;
+    public void clearBusyTimer() {
+        this.busyUntilWorldTime = -1L;
+    }
+
+    public void face(float yaw) {
+        this.animationYaw = yaw;
+    }
+
+    public float consumeAnimationYaw() {
+        float yaw = this.animationYaw;
+        this.animationYaw = Float.NaN;
+        return yaw;
     }
 
     public int miningTargetIndex(int targetCount) {

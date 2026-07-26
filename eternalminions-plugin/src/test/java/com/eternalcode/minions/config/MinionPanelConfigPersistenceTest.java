@@ -16,14 +16,20 @@ class MinionPanelConfigPersistenceTest {
         config.withConfigurer(
             new YamlSnakeYamlConfigurer(),
             new SerdesCommons(),
-            registry -> registry.register(new XMaterialTransformer())
+            registry -> {
+                registry.register(new XMaterialTransformer());
+                registry.register(new UpgradeKindTransformer());
+            }
         );
         String yaml = config.saveToString();
         MinionPanelConfig loaded = ConfigManager.create(MinionPanelConfig.class);
         loaded.withConfigurer(
             new YamlSnakeYamlConfigurer(),
             new SerdesCommons(),
-            registry -> registry.register(new XMaterialTransformer())
+            registry -> {
+                registry.register(new XMaterialTransformer());
+                registry.register(new UpgradeKindTransformer());
+            }
         );
         loaded.load(yaml);
 

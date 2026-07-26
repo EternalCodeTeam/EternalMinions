@@ -34,6 +34,16 @@ public final class ConfigService {
         return config;
     }
 
+    public <T extends OkaeriConfig> T load(Class<T> configType, File file) {
+        T config = this.configure(ConfigManager.create(configType));
+        config.withBindFile(file);
+        config.withRemoveOrphans(true);
+        config.saveDefaults();
+        config.load(true);
+        this.validate(config);
+        return config;
+    }
+
     public void reload() {
         List<OkaeriConfig> loadedConfigs = new ArrayList<>(this.configs.size());
         for (ConfigRegistration<?> registration : this.configs) {
@@ -75,6 +85,7 @@ public final class ConfigService {
         public void register(SerdesRegistry registry) {
             registry.register(new XMaterialTransformer());
             registry.register(new MinionStatusTransformer());
+            registry.register(new UpgradeKindTransformer());
         }
     }
 

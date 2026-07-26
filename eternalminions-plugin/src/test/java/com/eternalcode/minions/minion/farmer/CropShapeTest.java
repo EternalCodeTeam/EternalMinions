@@ -2,6 +2,7 @@ package com.eternalcode.minions.minion.farmer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.eternalcode.minions.minion.impl.farmer.CropShape;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 

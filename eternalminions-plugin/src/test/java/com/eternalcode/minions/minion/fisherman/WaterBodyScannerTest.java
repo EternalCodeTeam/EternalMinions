@@ -2,6 +2,7 @@ package com.eternalcode.minions.minion.fisherman;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.eternalcode.minions.minion.impl.fisherman.WaterBodyScanner;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;

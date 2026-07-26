@@ -2,6 +2,8 @@ package com.eternalcode.minions.minion.crafter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.eternalcode.minions.minion.impl.crafter.MinionRecipe;
+import com.eternalcode.minions.minion.impl.crafter.RecipeMatcher;
 import java.util.EnumMap;
 import java.util.Map;
 import org.bukkit.Material;

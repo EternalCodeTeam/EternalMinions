@@ -1,5 +1,7 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.config.AbstractMinionConfig;
+
 public record MinionProgress(int level, long progress) {
 
     public MinionProgress {
@@ -15,10 +17,10 @@ public record MinionProgress(int level, long progress) {
         return new MinionProgress(1, 0L);
     }
 
-    public MinionProgress advanced(MinionType type) {
+    public MinionProgress advanced(AbstractMinionConfig config) {
         long updatedProgress = this.progress + 1;
         int updatedLevel = this.level;
-        while (updatedLevel < type.maxLevel() && updatedProgress >= type.progressToReach(updatedLevel + 1)) {
+        while (updatedLevel < config.maxLevel() && updatedProgress >= config.progressToReach(updatedLevel + 1)) {
             updatedLevel++;
         }
         return new MinionProgress(updatedLevel, updatedProgress);

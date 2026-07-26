@@ -2,8 +2,8 @@ package com.eternalcode.minions.render;
 
 import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionType;
-import com.eternalcode.minions.minion.MinionTypeService;
+import com.eternalcode.minions.minion.MinionBehavior;
+import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
@@ -21,20 +21,20 @@ public final class EntityLibHologramRenderer {
 
     private final Server server;
     private final MiniMessage miniMessage;
-    private final MinionTypeService types;
+    private final MinionBehaviorRegistry behaviors;
     private final MinionsConfig config;
     private final MinionStatusTracker statusTracker;
 
     public EntityLibHologramRenderer(
             Server server,
             MiniMessage miniMessage,
-            MinionTypeService types,
+            MinionBehaviorRegistry behaviors,
             MinionsConfig config,
             MinionStatusTracker statusTracker
     ) {
         this.server = server;
         this.miniMessage = miniMessage;
-        this.types = types;
+        this.behaviors = behaviors;
         this.config = config;
         this.statusTracker = statusTracker;
     }
@@ -155,8 +155,10 @@ public final class EntityLibHologramRenderer {
     }
 
     public Component text(Minion minion) {
-        MinionType type = this.types.type(minion.behaviorId()).orElse(null);
-        String typeName = type == null ? "Minion #" + minion.id().value() : type.displayName();
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
+        String typeName = behavior == null
+            ? "Minion #" + minion.id().value()
+            : behavior.config().displayName;
 
         String ownerName = this.server
                 .getOfflinePlayer(minion.ownerId())
@@ -164,7 +166,10 @@ public final class EntityLibHologramRenderer {
 
         String level = Integer.toString(minion.progress().level());
         MinionStatus currentStatus = this.statusTracker.status(minion.id());
-        String status = type == null ? currentStatus.key() : type.statusText(currentStatus);
+        String status = this.config.statuses.getOrDefault(currentStatus, currentStatus.key());
+        if (behavior != null) {
+            status = behavior.config().statuses.getOrDefault(currentStatus, status);
+        }
 
         List<String> lines = this.config.hologram.hologramLines;
         Component text = Component.empty();

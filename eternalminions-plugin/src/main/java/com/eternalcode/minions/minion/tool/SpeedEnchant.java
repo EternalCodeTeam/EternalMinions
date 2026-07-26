@@ -5,7 +5,7 @@ import org.bukkit.inventory.ItemStack;
 
 // Simple, non-realistic speed scaling from a tool's Efficiency level: each level shortens the
 // minion's next action interval by 25% (floor 10% of the base interval, minimum 1 tick). Gated
-// behind MinionType#respectSpeedEnchants() so operators can turn this off entirely.
+// The profession config decides whether this scaling is used.
 public final class SpeedEnchant {
 
     private static final double REDUCTION_PER_LEVEL = 0.25D;

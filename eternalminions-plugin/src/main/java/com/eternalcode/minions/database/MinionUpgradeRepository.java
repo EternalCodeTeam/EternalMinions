@@ -2,7 +2,7 @@ package com.eternalcode.minions.database;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
-import com.eternalcode.minions.minion.MinionUpgradeKind;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.j256.ormlite.stmt.DeleteBuilder;
 import com.j256.ormlite.stmt.UpdateBuilder;
 import java.util.concurrent.CompletableFuture;
@@ -13,7 +13,7 @@ public final class MinionUpgradeRepository extends AbstractRepositoryOrmLite {
         super(databaseManager, scheduler);
     }
 
-    private static void validate(MinionId minionId, MinionUpgradeKind upgrade, int tier) {
+    private static void validate(MinionId minionId, UpgradeKind upgrade, int tier) {
         if (minionId == null || upgrade == null) {
             throw new IllegalArgumentException("Minion id and upgrade type are required");
         }
@@ -22,7 +22,7 @@ public final class MinionUpgradeRepository extends AbstractRepositoryOrmLite {
         }
     }
 
-    public CompletableFuture<Void> saveUpgrade(MinionId minionId, MinionUpgradeKind upgrade, int tier) {
+    public CompletableFuture<Void> saveUpgrade(MinionId minionId, UpgradeKind upgrade, int tier) {
         validate(minionId, upgrade, tier);
         return this.action(
                 MinionUpgradeTable.class, upgrades -> {
@@ -31,15 +31,15 @@ public final class MinionUpgradeRepository extends AbstractRepositoryOrmLite {
                     update.where()
                             .eq(MinionUpgradeTable.MINION_ID_COLUMN, minionId.value())
                             .and()
-                            .eq("upgrade_type", upgrade.name());
+                            .eq("upgrade_type", upgrade.key());
                     if (update.update() == 0) {
-                        upgrades.create(new MinionUpgradeTable(minionId.value(), upgrade.name(), tier));
+                        upgrades.create(new MinionUpgradeTable(minionId.value(), upgrade.key(), tier));
                     }
                     return null;
                 });
     }
 
-    public CompletableFuture<Void> deleteUpgrade(MinionId minionId, MinionUpgradeKind upgrade) {
+    public CompletableFuture<Void> deleteUpgrade(MinionId minionId, UpgradeKind upgrade) {
         if (minionId == null || upgrade == null) {
             throw new IllegalArgumentException("Minion id and upgrade type are required");
         }
@@ -50,7 +50,7 @@ public final class MinionUpgradeRepository extends AbstractRepositoryOrmLite {
                     delete.where()
                             .eq(MinionUpgradeTable.MINION_ID_COLUMN, minionId.value())
                             .and()
-                            .eq("upgrade_type", upgrade.name());
+                            .eq("upgrade_type", upgrade.key());
                     delete.delete();
                     return null;
                 });
