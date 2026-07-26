@@ -32,6 +32,9 @@ dependencies {
     implementation("dev.rollczi:litecommands-adventure:${Versions.LITE_COMMANDS}")
 
     compileOnly("com.github.retrooper:packetevents-spigot:${Versions.PACKET_EVENTS}")
+    compileOnly("com.github.brcdev-minecraft:shopgui-api:${Versions.SHOPGUI_API}") {
+        exclude(group = "org.spigotmc", module = "spigot-api")
+    }
     implementation("io.github.tofaa2:spigot:${Versions.ENTITY_LIB}")
     implementation("io.github.tofaa2:common:${Versions.ENTITY_LIB}")
     implementation("io.github.tofaa2:api:${Versions.ENTITY_LIB}")
@@ -45,6 +48,10 @@ dependencies {
     implementation("com.h2database:h2:${Versions.H2}")
     implementation("org.mariadb.jdbc:mariadb-java-client:${Versions.MARIA_DB}")
     implementation("org.postgresql:postgresql:${Versions.POSTGRESQL}")
+
+    // compileOnly, never shaded/relocated: our code must see the exact same Economy class the
+    // Vault plugin registers at runtime, not a shaded copy of it.
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
 }
 
 paper {
@@ -61,6 +68,16 @@ paper {
     serverDependencies {
         register("packetevents") {
             required = true
+            load = PaperPluginDescription.RelativeLoadOrder.BEFORE
+            joinClasspath = true
+        }
+        register("ShopGUIPlus") {
+            required = false
+            load = PaperPluginDescription.RelativeLoadOrder.BEFORE
+            joinClasspath = true
+        }
+        register("Vault") {
+            required = false
             load = PaperPluginDescription.RelativeLoadOrder.BEFORE
             joinClasspath = true
         }

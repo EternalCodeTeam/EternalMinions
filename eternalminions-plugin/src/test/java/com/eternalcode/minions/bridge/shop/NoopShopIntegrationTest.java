@@ -1,9 +1,8 @@
-package com.eternalcode.minions.minion.seller;
+package com.eternalcode.minions.bridge.shop;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.eternalcode.minions.minion.impl.seller.NoopShopIntegration;
-import com.eternalcode.minions.minion.impl.seller.ShopIntegration;
+import com.eternalcode.minions.shop.MinionShopProvider;
 import java.util.UUID;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
@@ -12,7 +11,7 @@ class NoopShopIntegrationTest {
 
     @Test
     void reportsUnavailableShopWithoutPrices() {
-        ShopIntegration shop = new NoopShopIntegration();
+        MinionShopProvider shop = new NoopShopIntegration();
 
         assertThat(shop.available()).isFalse();
         assertThat(shop.priceOf(Material.DIAMOND)).isZero();
@@ -20,7 +19,7 @@ class NoopShopIntegrationTest {
 
     @Test
     void ignoresPayoutWhenShopIsNotLinked() {
-        ShopIntegration shop = new NoopShopIntegration();
+        MinionShopProvider shop = new NoopShopIntegration();
 
         shop.payout(UUID.randomUUID(), 10.0D);
 

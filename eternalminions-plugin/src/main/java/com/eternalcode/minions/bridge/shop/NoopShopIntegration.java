@@ -1,9 +1,10 @@
-package com.eternalcode.minions.minion.impl.seller;
+package com.eternalcode.minions.bridge.shop;
 
+import com.eternalcode.minions.shop.MinionShopProvider;
 import java.util.UUID;
 import org.bukkit.Material;
 
-public final class NoopShopIntegration implements ShopIntegration {
+public final class NoopShopIntegration implements MinionShopProvider {
 
     @Override
     public boolean available() {

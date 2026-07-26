@@ -40,9 +40,8 @@ import com.eternalcode.minions.minion.impl.killer.KillerBehavior;
 import com.eternalcode.minions.minion.impl.killer.KillerLootingListener;
 import com.eternalcode.minions.minion.impl.lumberjack.LumberjackBehavior;
 import com.eternalcode.minions.minion.impl.miner.MiningBehavior;
-import com.eternalcode.minions.minion.impl.seller.NoopShopIntegration;
 import com.eternalcode.minions.minion.impl.seller.SellerBehavior;
-import com.eternalcode.minions.minion.impl.seller.ShopIntegration;
+import com.eternalcode.minions.minion.impl.seller.SellerConfig;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.eternalcode.minions.minion.tool.ToolDurabilityService;
@@ -56,6 +55,11 @@ import com.eternalcode.minions.render.MinionInteractionListener;
 import com.eternalcode.minions.render.MinionRenderService;
 import com.eternalcode.minions.render.MinionRenderer;
 import com.eternalcode.minions.render.MinionViewerListener;
+import com.eternalcode.minions.bridge.BridgeManager;
+import com.eternalcode.minions.bridge.shop.MinionShopServiceImpl;
+import com.eternalcode.minions.bridge.shop.ShopBridges;
+import com.eternalcode.minions.shop.MinionShopProvider;
+import com.eternalcode.minions.shop.MinionShopService;
 import com.eternalcode.multification.notice.Notice;
 import com.github.retrooper.packetevents.PacketEvents;
 import dev.rollczi.litecommands.LiteCommands;
@@ -78,6 +82,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
 
     private MinionRegistry minionRegistry;
     private MinionAccessServiceImpl minionAccess;
+    private MinionShopServiceImpl shopService;
     private MinionRenderer renderer;
     private MinionDatabase database;
     private MinionInteractionListener interactionListener;
@@ -112,7 +117,11 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 itemTransfers
         );
         KillerLootingListener killerLooting = new KillerLootingListener();
-        ShopIntegration shop = new NoopShopIntegration();
+        SellerConfig sellerConfig = configs.load(SellerConfig.class, new File(minionConfigDirectory, "seller.yml"));
+        BridgeManager bridgeManager = new BridgeManager(this.getLogger());
+        List<MinionShopProvider> shopHooks = ShopBridges.discover(bridgeManager, this, sellerConfig.sellPrices);
+        this.shopService = new MinionShopServiceImpl(this.getLogger(), shopHooks);
+        this.getServer().getPluginManager().registerEvents(this.shopService, this);
         this.getServer().getPluginManager().registerEvents(killerLooting, this);
         behaviors.replace(this.createBehaviors(
             configs,
@@ -120,7 +129,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
             tools,
             itemTransfers,
             killerLooting,
-            shop
+            this.shopService
         ));
         MinionAppearanceItems appearance = new MinionAppearanceItems(this.getServer());
 
@@ -256,7 +265,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 tools,
                 itemTransfers,
                 killerLooting,
-                shop
+                this.shopService
             ));
         };
         this.liteCommands = LiteBukkitFactory.builder("eternalminions", this, this.getServer())
@@ -313,7 +322,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         MinionToolService tools,
         MinionItemTransferService transfers,
         KillerLootingListener killerLooting,
-        ShopIntegration shop
+        MinionShopProvider shop
     ) {
         return List.of(
             MiningBehavior.create(configs, directory, tools, transfers),
@@ -372,5 +381,16 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         }
 
         return this.minionAccess;
+    }
+
+    @Override
+    public MinionShopService minionShopService() {
+        if (this.shopService == null) {
+            throw new IllegalStateException(
+                    "EternalMinions runtime has not been initialized yet!"
+            );
+        }
+
+        return this.shopService;
     }
 }

@@ -27,7 +27,7 @@ class EternalMinionsProviderTest {
 
     @Test
     void providesInitializedApi() {
-        EternalMinionsApi api = () -> new EmptyMinionService();
+        EternalMinionsApi api = new EmptyEternalMinionsApi();
 
         EternalMinionsProvider.initialize(api);
 
@@ -36,12 +36,30 @@ class EternalMinionsProviderTest {
 
     @Test
     void rejectsSecondInitialization() {
-        EternalMinionsApi api = () -> new EmptyMinionService();
+        EternalMinionsApi api = new EmptyEternalMinionsApi();
         EternalMinionsProvider.initialize(api);
 
         assertThatIllegalStateException()
             .isThrownBy(() -> EternalMinionsProvider.initialize(api))
             .withMessage("EternalMinionsApi has already been initialized!");
+    }
+
+    private static final class EmptyEternalMinionsApi implements EternalMinionsApi {
+
+        @Override
+        public MinionService minionService() {
+            return new EmptyMinionService();
+        }
+
+        @Override
+        public com.eternalcode.minions.access.MinionAccessService minionAccessService() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public com.eternalcode.minions.shop.MinionShopService minionShopService() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private static final class EmptyMinionService implements MinionService {

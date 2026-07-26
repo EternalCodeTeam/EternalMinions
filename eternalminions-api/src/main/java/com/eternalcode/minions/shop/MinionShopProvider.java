@@ -1,9 +1,9 @@
-package com.eternalcode.minions.minion.impl.seller;
+package com.eternalcode.minions.shop;
 
 import java.util.UUID;
 import org.bukkit.Material;
 
-public interface ShopIntegration {
+public interface MinionShopProvider {
 
     boolean available();
 

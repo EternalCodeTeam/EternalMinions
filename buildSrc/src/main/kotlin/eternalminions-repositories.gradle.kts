@@ -12,4 +12,5 @@ repositories {
     maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.codemc.io/repository/maven-snapshots/")
     maven("https://maven.pvphub.me/tofaa")
+    maven("https://jitpack.io")
 }
