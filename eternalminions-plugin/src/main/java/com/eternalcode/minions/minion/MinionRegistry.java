@@ -2,6 +2,7 @@ package com.eternalcode.minions.minion;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,6 +49,48 @@ public final class MinionRegistry implements MinionService {
 
     public Collection<Minion> minions() {
         return this.minionView;
+    }
+
+    public boolean hasMinionAt(
+            String worldKey,
+            int blockX,
+            int blockY,
+            int blockZ
+    ) {
+        Long2ObjectOpenHashMap<LongOpenHashSet> worldChunks =
+                this.minionsByWorldChunk.get(worldKey);
+
+        if (worldChunks == null) {
+            return false;
+        }
+
+        LongOpenHashSet ids = worldChunks.get(
+                chunkKey(blockX >> 4, blockZ >> 4)
+        );
+
+        if (ids == null) {
+            return false;
+        }
+
+        LongIterator iterator = ids.iterator();
+
+        while (iterator.hasNext()) {
+            Minion minion = this.minions.get(iterator.nextLong());
+
+            if (minion == null) {
+                continue;
+            }
+
+            MinionPosition position = minion.position();
+
+            if (position.blockX() == blockX
+                    && position.blockY() == blockY
+                    && position.blockZ() == blockZ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void forEachMinionIdInChunk(String worldKey, int chunkX, int chunkZ, LongConsumer action) {

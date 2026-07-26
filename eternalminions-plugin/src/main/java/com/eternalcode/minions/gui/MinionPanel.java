@@ -1,5 +1,7 @@
 package com.eternalcode.minions.gui;
 
+import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.access.MinionAccessGuard;
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.config.MinionPanelAction;
 import com.eternalcode.minions.config.MinionPanelConfig;
@@ -11,6 +13,7 @@ import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.MinionEquipment;
 import com.eternalcode.minions.minion.MinionLifecycleService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.MiningMode;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.multification.notice.Notice;
@@ -40,6 +43,8 @@ public final class MinionPanel {
     private final MinionBehaviorRegistry behaviors;
     private final PanelItemFactory items;
     private final MinionLifecycleService lifecycle;
+    private final MinionAccessGuard access;
+    private final MinionItemTransferService transfers;
     private final BiConsumer<Player, Minion> pickup;
     private final BiConsumer<Player, Minion> openUpgrades;
     private final BiConsumer<Player, Minion> linkChest;
@@ -52,6 +57,8 @@ public final class MinionPanel {
         MiniMessage miniMessage,
         MinionBehaviorRegistry behaviors,
         MinionLifecycleService lifecycle,
+        MinionAccessGuard access,
+        MinionItemTransferService transfers,
         BiConsumer<Player, Minion> pickup,
         BiConsumer<Player, Minion> openUpgrades,
         BiConsumer<Player, Minion> linkChest
@@ -64,12 +71,22 @@ public final class MinionPanel {
         this.behaviors = behaviors;
         this.items = new PanelItemFactory(miniMessage);
         this.lifecycle = lifecycle;
+        this.access = access;
+        this.transfers = transfers;
         this.pickup = pickup;
         this.openUpgrades = openUpgrades;
         this.linkChest = linkChest;
     }
 
     public void open(Player player, Minion minion) {
+        this.access.findAccessible(
+                player,
+                minion.id(),
+                MinionAccessAction.OPEN_PANEL
+        ).ifPresent(current -> this.openAccessible(player, current));
+    }
+
+    private void openAccessible(Player player, Minion minion) {
         MinionPanelLayout layout = MinionPanelLayout.from(this.config);
         Map<String, String> placeholders = this.createPlaceholders(minion);
         ChestGui gui = new ChestGui(
@@ -93,9 +110,31 @@ public final class MinionPanel {
                 storageIndex = this.addElement(pane, column, row, player, minion, element, placeholders, storageIndex);
             }
         }
+        this.addUsageInstructions(pane, layout, minion, placeholders);
 
         gui.addPane(Slot.fromIndex(0), pane);
         gui.show(player);
+    }
+
+    private void addUsageInstructions(
+        StaticPane pane,
+        MinionPanelLayout layout,
+        Minion minion,
+        Map<String, String> placeholders
+    ) {
+        if (this.config.usageInstructionsSlot < 0 || this.config.usageInstructionsSlot >= layout.rows() * 9) {
+            throw new IllegalArgumentException("Usage instructions slot is outside the minion panel");
+        }
+
+        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
+        if (behavior == null) {
+            return;
+        }
+
+        int column = this.config.usageInstructionsSlot % 9;
+        int row = this.config.usageInstructionsSlot / 9;
+        ItemStack icon = this.items.create(behavior.config().usageInstructions, placeholders);
+        pane.addItem(new GuiItem(icon, this.plugin), column, row);
     }
 
     private int addElement(
@@ -117,13 +156,34 @@ public final class MinionPanel {
 
         GuiItem item = switch (element.action) {
             case TOOL_SLOT -> this.createToolElement(player, minion, element, placeholders);
-            case COLLECT_ITEMS -> this.createConfiguredElement(element, placeholders, event -> this.collect(player, minion));
-            case PICKUP_MINION -> this.createConfiguredElement(element, placeholders, event -> this.pickup.accept(player, minion));
-            case TOGGLE_ACTIVE -> this.createConfiguredElement(element, placeholders, event -> this.toggleActive(player, minion));
-            case UPGRADES -> this.createConfiguredElement(element, placeholders, event -> this.openUpgrades.accept(player, minion));
-            case LINK_CHEST -> this.createConfiguredElement(element, placeholders, event -> this.linkChest.accept(player, minion));
-            case ROTATE -> this.createConfiguredElement(element, placeholders, event -> this.rotate(player, minion));
-            case TOGGLE_MODE -> this.createConfiguredElement(element, placeholders, event -> this.toggleMode(player, minion));
+            case COLLECT_ITEMS -> this.createAccessibleElement(
+                    player, minion, MinionAccessAction.MANAGE, element, placeholders,
+                    current -> this.collect(player, current)
+            );
+            case PICKUP_MINION -> this.createAccessibleElement(
+                    player, minion, MinionAccessAction.PICK_UP, element, placeholders,
+                    current -> this.pickup.accept(player, current)
+            );
+            case TOGGLE_ACTIVE -> this.createAccessibleElement(
+                    player, minion, MinionAccessAction.MANAGE, element, placeholders,
+                    current -> this.toggleActive(player, current)
+            );
+            case UPGRADES -> this.createAccessibleElement(
+                    player, minion, MinionAccessAction.OPEN_PANEL, element, placeholders,
+                    current -> this.openUpgrades.accept(player, current)
+            );
+            case LINK_CHEST -> this.createAccessibleElement(
+                    player, minion, MinionAccessAction.MANAGE, element, placeholders,
+                    current -> this.linkChest.accept(player, current)
+            );
+            case ROTATE -> this.createAccessibleElement(
+                    player, minion, MinionAccessAction.MANAGE, element, placeholders,
+                    current -> this.rotate(player, current)
+            );
+            case TOGGLE_MODE -> this.createAccessibleElement(
+                    player, minion, MinionAccessAction.MANAGE, element, placeholders,
+                    current -> this.toggleMode(player, current)
+            );
             case NONE, MINION_INFORMATION -> this.createConfiguredElement(element, placeholders, null);
             case STORAGE_SLOT -> throw new IllegalStateException("Storage action was not handled");
         };
@@ -139,14 +199,23 @@ public final class MinionPanel {
     ) {
         ItemStack tool = minion.equipment().tool();
         ItemStack icon = tool == null ? this.items.create(element, placeholders) : tool;
-        return new GuiItem(icon, event -> {
-            ItemStack cursor = event.getCursor();
-            Minion updated = minion.withEquipment(new MinionEquipment(cursor.getType().isAir() ? null : cursor));
-            this.lifecycle.updateEquipment(updated);
-            player.setItemOnCursor(tool);
-            this.send(player, this.messages.minionToolUpdated);
-            this.refresh(player, updated);
-        }, this.plugin);
+        return new GuiItem(icon, event -> this.withAccess(
+                player,
+                minion,
+                MinionAccessAction.MANAGE,
+                current -> this.updateTool(player, current, event.getCursor())
+        ), this.plugin);
+    }
+
+    private void updateTool(Player player, Minion minion, ItemStack cursor) {
+        ItemStack currentTool = minion.equipment().tool();
+        Minion updated = minion.withEquipment(
+                new MinionEquipment(cursor.getType().isAir() ? null : cursor)
+        );
+        this.lifecycle.updateEquipment(updated);
+        player.setItemOnCursor(currentTool);
+        this.send(player, this.messages.minionToolUpdated);
+        this.refresh(player, updated);
     }
 
     private GuiItem createConfiguredElement(
@@ -156,6 +225,21 @@ public final class MinionPanel {
     ) {
         ItemStack item = this.items.create(element, placeholders);
         return click == null ? new GuiItem(item, this.plugin) : new GuiItem(item, click, this.plugin);
+    }
+
+    private GuiItem createAccessibleElement(
+            Player player,
+            Minion minion,
+            MinionAccessAction action,
+            MinionPanelElementConfig element,
+            Map<String, String> placeholders,
+            Consumer<Minion> click
+    ) {
+        return this.createConfiguredElement(
+                element,
+                placeholders,
+                event -> this.withAccess(player, minion, action, click)
+        );
     }
 
     private void toggleActive(Player player, Minion minion) {
@@ -187,7 +271,7 @@ public final class MinionPanel {
             if (item == null) {
                 continue;
             }
-            ItemStack remaining = player.getInventory().addItem(item).get(0);
+            ItemStack remaining = this.transfers.addToInventory(player.getInventory(), item);
             storage = storage.withItem(slot, remaining);
         }
         Minion updated = minion.withStorage(storage);
@@ -259,6 +343,19 @@ public final class MinionPanel {
     private void refresh(Player player, Minion minion) {
         player.closeInventory();
         this.open(player, minion);
+    }
+
+    private void withAccess(
+            Player player,
+            Minion minion,
+            MinionAccessAction action,
+            Consumer<Minion> operation
+    ) {
+        this.access.findAccessible(
+                player,
+                minion.id(),
+                action
+        ).ifPresent(operation);
     }
 
     private void send(Player player, Notice notice) {

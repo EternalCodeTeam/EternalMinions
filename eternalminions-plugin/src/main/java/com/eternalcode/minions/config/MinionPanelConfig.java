@@ -23,6 +23,9 @@ public final class MinionPanelConfig extends OkaeriConfig {
         "#RUACPLM#"
     );
 
+    @Comment("Inventory slot occupied by the profession usage instructions.")
+    public int usageInstructionsSlot = 4;
+
     @Comment("Status texts used by the {MINION_STATUS} placeholder.")
     public String statusWorking = "Pracuje";
     public String statusPaused = "Pauza";

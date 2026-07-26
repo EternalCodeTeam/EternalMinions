@@ -38,6 +38,7 @@ dependencies {
     implementation("com.github.cryptomorin:XSeries:${Versions.X_SERIES}")
     implementation("com.github.stefvanschie.inventoryframework:IF:${Versions.INVENTORY_FRAMEWORK}")
     implementation("it.unimi.dsi:fastutil:${Versions.FASTUTIL}")
+    implementation("com.github.ben-manes.caffeine:caffeine:${Versions.CAFFEINE}")
 
     implementation("com.zaxxer:HikariCP:${Versions.HIKARI_CP}")
     implementation("com.j256.ormlite:ormlite-jdbc:${Versions.ORMLITE}")
@@ -96,6 +97,7 @@ tasks.shadowJar {
         "com.cryptomorin.xseries",
         "com.github.stefvanschie.inventoryframework",
         "it.unimi.dsi.fastutil",
+        "com.github.benmanes.caffeine",
         "com.zaxxer.hikari",
         "com.j256.ormlite",
         "com.h2database",

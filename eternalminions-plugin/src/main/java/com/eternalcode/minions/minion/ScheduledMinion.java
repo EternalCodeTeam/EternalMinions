@@ -2,9 +2,12 @@ package com.eternalcode.minions.minion;
 
 public final class ScheduledMinion {
 
+    private static final long NO_BUSY_TIMER = -1L;
+
     private final MinionId id;
+
     private int miningTargetIndex;
-    private long busyUntilWorldTime = -1L;
+    private long busyUntilWorldTime = NO_BUSY_TIMER;
     private float animationYaw = Float.NaN;
 
     public ScheduledMinion(MinionId id) {
@@ -15,26 +18,32 @@ public final class ScheduledMinion {
         return this.id;
     }
 
-    // Generic "this minion is mid-action until this world tick" marker, used by professions with
-    // a real elapsed-time wait (FISHERMAN's cast-and-reel, KILLER's attack cooldown).
+    public boolean hasBusyTimer() {
+        return this.busyUntilWorldTime != NO_BUSY_TIMER;
+    }
+
     public boolean isBusyUntil(long worldTime) {
-        return worldTime < this.busyUntilWorldTime;
+        return this.hasBusyTimer()
+                && worldTime < this.busyUntilWorldTime;
+    }
+
+    public long remainingBusyTicks(long worldTime) {
+        if (!this.hasBusyTimer()) {
+            return 0L;
+        }
+
+        return Math.max(
+                0L,
+                this.busyUntilWorldTime - worldTime
+        );
     }
 
     public void busyUntil(long worldTime) {
         this.busyUntilWorldTime = worldTime;
     }
 
-    public boolean hasBusyTimer() {
-        return this.busyUntilWorldTime >= 0L;
-    }
-
-    public long remainingBusyTicks(long worldTime) {
-        return Math.max(1L, this.busyUntilWorldTime - worldTime);
-    }
-
     public void clearBusyTimer() {
-        this.busyUntilWorldTime = -1L;
+        this.busyUntilWorldTime = NO_BUSY_TIMER;
     }
 
     public void face(float yaw) {
@@ -43,19 +52,31 @@ public final class ScheduledMinion {
 
     public float consumeAnimationYaw() {
         float yaw = this.animationYaw;
+
         this.animationYaw = Float.NaN;
+
         return yaw;
     }
 
     public int miningTargetIndex(int targetCount) {
-        // The radius can shrink between actions (config reload), so clamp the cursor into range.
-        return this.miningTargetIndex % targetCount;
+        if (targetCount <= 0) {
+            return 0;
+        }
+
+        return Math.floorMod(
+                this.miningTargetIndex,
+                targetCount
+        );
     }
 
     public void advanceMiningTarget(int targetCount) {
-        this.miningTargetIndex = (this.miningTargetIndex % targetCount) + 1;
-        if (this.miningTargetIndex >= targetCount) {
+        if (targetCount <= 0) {
             this.miningTargetIndex = 0;
+            return;
         }
+
+        this.miningTargetIndex =
+                (this.miningTargetIndex + 1) % targetCount;
     }
 }
+

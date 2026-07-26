@@ -8,10 +8,12 @@ import com.j256.ormlite.table.DatabaseTable;
 final class MinionEquipmentTable {
 
     static final String MINION_ID_COLUMN = "minion_id";
+    static final String SLOT_COLUMN = "slot";
+    static final String ITEM_COLUMN = "serialized_item";
 
     @DatabaseField(columnName = MINION_ID_COLUMN) private long minionId;
-    @DatabaseField(columnName = "slot", canBeNull = false) private String slot;
-    @DatabaseField(columnName = "serialized_item", canBeNull = false, dataType = DataType.BYTE_ARRAY)
+    @DatabaseField(columnName = SLOT_COLUMN, canBeNull = false) private String slot;
+    @DatabaseField(columnName = ITEM_COLUMN, canBeNull = false, dataType = DataType.BYTE_ARRAY)
     private byte[] serializedItem;
 
     MinionEquipmentTable() {

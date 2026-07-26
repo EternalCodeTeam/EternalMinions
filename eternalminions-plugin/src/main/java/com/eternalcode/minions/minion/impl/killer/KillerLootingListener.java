@@ -1,8 +1,10 @@
 package com.eternalcode.minions.minion.impl.killer;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.event.EventHandler;
@@ -10,47 +12,78 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 
-// Minions render as packet-only bodies (EntityLib WrapperEntity), not real Bukkit entities, so
-// vanilla Looting never applies on its own - there is no server-side attacker for the game to
-// read the weapon's enchantments from. This listener tracks the Looting level of the last KILLER
-// hit per entity and, on death, applies an approximate Looting bonus (a per-level chance of one
-// extra copy of an existing natural drop) - not a byte-exact reproduction of vanilla's table.
 public final class KillerLootingListener implements Listener {
 
-    private static final long ENTRY_TTL_MILLIS = 30_000L;
+    private final Cache<UUID, Integer> pendingLooting =
+            Caffeine.newBuilder()
+                    .expireAfterWrite(Duration.ofSeconds(30))
+                    .maximumSize(10_000)
+                    .build();
 
-    private record PendingLooting(int level, long expiresAtMillis) {
-    }
-
-    private final Map<UUID, PendingLooting> pending = new HashMap<>();
-
-    public void trackHit(UUID entityId, int lootingLevel) {
+    public void trackHit(
+            UUID entityId,
+            int lootingLevel
+    ) {
         if (lootingLevel <= 0) {
+            this.pendingLooting.invalidate(entityId);
             return;
         }
-        long now = System.currentTimeMillis();
-        this.pending.entrySet().removeIf(entry -> entry.getValue().expiresAtMillis() < now);
-        this.pending.put(entityId, new PendingLooting(lootingLevel, now + ENTRY_TTL_MILLIS));
+
+        this.pendingLooting.put(
+                entityId,
+                lootingLevel
+        );
     }
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        PendingLooting entry = this.pending.remove(event.getEntity().getUniqueId());
-        if (entry == null || event.getDrops().isEmpty()) {
+        Integer lootingLevel = this.pendingLooting.asMap().remove(
+                event.getEntity().getUniqueId()
+        );
+
+        if (
+                lootingLevel == null
+                        || lootingLevel <= 0
+                        || event.getDrops().isEmpty()
+        ) {
             return;
         }
 
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        java.util.List<ItemStack> bonus = new ArrayList<>();
-        for (ItemStack drop : new ArrayList<>(event.getDrops())) {
-            for (int level = 0; level < entry.level(); level++) {
-                if (random.nextDouble() < 0.5D) {
-                    ItemStack extra = drop.clone();
-                    extra.setAmount(1);
-                    bonus.add(extra);
-                }
+        ThreadLocalRandom random =
+                ThreadLocalRandom.current();
+
+        List<ItemStack> bonusDrops =
+                new ArrayList<>();
+
+        for (ItemStack drop : event.getDrops()) {
+            if (
+                    drop == null
+                            || drop.getType().isAir()
+                            || drop.getAmount() <= 0
+            ) {
+                continue;
             }
+
+            int bonusAmount = random.nextInt(
+                    lootingLevel + 1
+            );
+
+            if (bonusAmount <= 0) {
+                continue;
+            }
+
+            ItemStack bonus = drop.clone();
+
+            bonus.setAmount(
+                    Math.min(
+                            bonusAmount,
+                            bonus.getMaxStackSize()
+                    )
+            );
+
+            bonusDrops.add(bonus);
         }
-        event.getDrops().addAll(bonus);
+
+        event.getDrops().addAll(bonusDrops);
     }
 }

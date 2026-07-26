@@ -1,75 +1,79 @@
 package com.eternalcode.minions.minion.impl.killer;
 
 import com.eternalcode.minions.config.AbstractMinionConfig;
+import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
+import com.eternalcode.minions.minion.MinionRotation;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.tool.MinionToolPreparation;
+import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
-import com.eternalcode.minions.minion.tool.ToolDurabilityService;
-import com.eternalcode.minions.minion.tool.ToolInventoryLocator;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import com.eternalcode.minions.minion.tool.ToolValidationService;
-import java.util.ArrayList;
+import java.io.File;
+import java.util.Collection;
 import java.util.EnumSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.util.Vector;
 
 public final class KillerBehavior implements MinionBehavior {
 
-    private static final Set<EntityType> UNDEAD = EnumSet.of(
-        EntityType.ZOMBIE,
-        EntityType.SKELETON,
-        EntityType.WITHER_SKELETON,
-        EntityType.ZOMBIE_VILLAGER,
-        EntityType.HUSK,
-        EntityType.STRAY,
-        EntityType.DROWNED,
-        EntityType.PHANTOM,
-        EntityType.WITHER,
-        EntityType.ZOGLIN
-    );
-    private static final Set<EntityType> ARTHROPODS = EnumSet.of(
-        EntityType.SPIDER,
-        EntityType.CAVE_SPIDER,
-        EntityType.SILVERFISH,
-        EntityType.ENDERMITE
-    );
-
     private final KillerConfig config;
-    private final ToolValidationService toolValidation;
-    private final ToolDurabilityService toolDurability;
-    private final ToolInventoryLocator toolLocator;
+
+    private final MinionToolService tools;
     private final ToolRequirement toolRequirement;
-    private final NearestMobFinder finder = new NearestMobFinder();
+
+    private final NearestMobFinder finder =
+            new NearestMobFinder();
+
     private final KillerLootingListener looting;
     private final Set<EntityType> allowedMobs;
 
+    public static KillerBehavior create(
+            ConfigService configs,
+            File directory,
+            MinionToolService tools,
+            KillerLootingListener looting
+    ) {
+        KillerConfig config = configs.load(
+                KillerConfig.class,
+                new File(directory, "killer.yml")
+        );
+
+        return new KillerBehavior(
+                config,
+                tools,
+                looting
+        );
+    }
+
     public KillerBehavior(
-        KillerConfig config,
-        ToolValidationService toolValidation,
-        ToolDurabilityService toolDurability,
-        ToolInventoryLocator toolLocator,
-        KillerLootingListener looting
+            KillerConfig config,
+            MinionToolService tools,
+            KillerLootingListener looting
     ) {
         this.config = config;
-        this.toolValidation = toolValidation;
-        this.toolDurability = toolDurability;
-        this.toolLocator = toolLocator;
+
+        this.tools = tools;
         this.toolRequirement = config.toolRequirement();
+
         this.looting = looting;
+
         this.allowedMobs = config.allowedMobs.isEmpty()
-            ? Set.of(EntityType.ZOMBIE)
-            : Set.copyOf(config.allowedMobs);
-        if (config.attackRangeBlocks < 1 || config.attackCooldownTicks < 1 || config.baseDamage <= 0.0D) {
-            throw new IllegalArgumentException("Killer range, cooldown and damage must be positive");
-        }
+                ? Set.of()
+                : Set.copyOf(EnumSet.copyOf(config.allowedMobs));
     }
 
     @Override
@@ -84,105 +88,290 @@ public final class KillerBehavior implements MinionBehavior {
 
     @Override
     public MinionResult execute(MinionContext context) {
-        Minion minion = context.retireWornTool(
-            context.minion(),
-            this.toolRequirement,
-            this.toolValidation,
-            this.toolLocator
+        MinionToolPreparation preparation = this.tools.prepare(
+                context,
+                this.toolRequirement,
+                KillerStatuses.NO_WEAPON
         );
-        ToolCheck toolCheck = this.toolValidation.validate(
-            this.toolRequirement,
-            minion.equipment().tool(),
-            KillerStatuses.NO_WEAPON
-        );
-        if (toolCheck instanceof ToolCheck.Stopped stopped) {
-            return MinionResult.idle(minion, stopped.reason());
+        if (preparation.check() instanceof ToolCheck.Stopped stopped) {
+            return MinionResult.idle(
+                    preparation.minion(),
+                    stopped.reason()
+            );
+        }
+        Minion minion = preparation.minion();
+        ToolCheck toolCheck = preparation.check();
+
+        ItemStack weapon = toolCheck instanceof ToolCheck.Ready ready
+                ? ready.tool()
+                : null;
+
+        Location origin = context.location();
+        int range = this.config.attackRange(minion.upgrades());
+
+        Collection<Entity> nearbyEntities =
+                context.world().getNearbyEntities(
+                        origin,
+                        range,
+                        range,
+                        range
+                );
+
+        NearestMobFinder.SearchResult searchResult =
+                this.finder.find(
+                        origin,
+                        nearbyEntities,
+                        this.allowedMobs,
+                        this.config.attackAllMonstersWhenEmpty,
+                        this.config.ignoreNamedMobs,
+                        this.config.ignoreInvulnerableMobs
+                );
+
+        if (
+                searchResult.state()
+                        == NearestMobFinder.SearchResult.State.PROTECTED_MOBS
+        ) {
+            return MinionResult.idle(
+                    minion,
+                    KillerStatuses.PROTECTED_MOBS_NEARBY
+            );
         }
 
-        ItemStack tool = toolCheck instanceof ToolCheck.Ready ready ? ready.tool() : null;
-        Location center = context.location();
-        List<LivingEntity> nearby = this.nearbyTargets(context, center);
-        List<NearestMobFinder.Candidate> candidates = this.candidates(nearby);
-        int nearestIndex = this.finder.findNearest(center.getX(), center.getY(), center.getZ(), candidates);
-        if (nearestIndex < 0) {
-            return MinionResult.idle(minion, KillerStatuses.NO_ENEMIES);
+        LivingEntity target = searchResult.target();
+
+        if (target == null) {
+            return MinionResult.idle(
+                    minion,
+                    KillerStatuses.NO_ENEMIES
+            );
         }
 
-        LivingEntity target = nearby.get(nearestIndex);
-        double damage = this.damage(tool, target);
-        int lootingLevel = tool == null ? 0 : tool.getEnchantmentLevel(Enchantment.LOOTING);
-        this.looting.trackHit(target.getUniqueId(), lootingLevel);
+        this.faceTarget(context, origin, target);
+
+        double damage = this.calculateDamage(
+                weapon,
+                target
+        );
+
+        int lootingLevel = enchantmentLevel(
+                weapon,
+                Enchantment.LOOTING
+        );
+
+        this.looting.trackHit(
+                target.getUniqueId(),
+                lootingLevel
+        );
+
+        this.applyFireAspect(weapon, target);
+
         target.damage(damage);
 
-        Minion updated = this.consumeTool(minion, tool);
-        updated = updated.withProgress(updated.progress().advanced(this.config));
-        float yaw = (float) Math.toDegrees(Math.atan2(
-            -(target.getLocation().getX() - center.getX()),
-            target.getLocation().getZ() - center.getZ()
-        ));
-        context.scheduledMinion().face(yaw);
-        return MinionResult.worked(updated, KillerStatuses.ATTACKING)
-            .withDelay(this.config.attackCooldownTicks);
+        if (!target.isDead()) {
+            this.applyKnockback(
+                    weapon,
+                    origin,
+                    target
+            );
+        }
+
+        Minion updated = this.tools.consume(minion, 1);
+
+        updated = updated.withProgress(
+                updated.progress().advanced(this.config)
+        );
+
+        return MinionResult
+                .worked(updated, KillerStatuses.ATTACKING)
+                .withDelay(this.config.attackCooldown());
     }
 
-    private List<LivingEntity> nearbyTargets(MinionContext context, Location center) {
-        double range = this.config.attackRangeBlocks;
-        List<LivingEntity> nearby = new ArrayList<>();
-        for (Entity entity : context.world().getNearbyEntities(center, range, range, range)) {
-            if (entity instanceof LivingEntity livingEntity && livingEntity.isValid() && !livingEntity.isDead()) {
-                nearby.add(livingEntity);
+    private double calculateDamage(
+            ItemStack weapon,
+            LivingEntity target
+    ) {
+        double baseDamage =
+                this.config.baseAttackDamage();
+
+        if (weapon == null || weapon.getType().isAir()) {
+            return baseDamage;
+        }
+
+        Collection<AttributeModifier> modifiers =
+                this.attackDamageModifiers(weapon);
+
+        double weaponDamage = applyModifiers(
+                baseDamage,
+                modifiers
+        );
+
+        double enchantmentDamage =
+                this.enchantmentDamage(weapon, target);
+
+        return Math.max(
+                0.0D,
+                weaponDamage + enchantmentDamage
+        );
+    }
+
+    private Collection<AttributeModifier> attackDamageModifiers(
+            ItemStack weapon
+    ) {
+        ItemMeta meta = weapon.getItemMeta();
+
+        if (meta != null) {
+            Collection<AttributeModifier> customModifiers =
+                    meta.getAttributeModifiers(
+                            Attribute.ATTACK_DAMAGE
+                    );
+
+            if (
+                    customModifiers != null
+                            && !customModifiers.isEmpty()
+            ) {
+                return customModifiers;
             }
         }
-        return nearby;
+
+        return weapon.getType()
+                .getDefaultAttributeModifiers(EquipmentSlot.HAND)
+                .get(Attribute.ATTACK_DAMAGE);
     }
 
-    private List<NearestMobFinder.Candidate> candidates(List<LivingEntity> nearby) {
-        List<NearestMobFinder.Candidate> candidates = new ArrayList<>(nearby.size());
-        for (int entityIndex = 0; entityIndex < nearby.size(); entityIndex++) {
-            LivingEntity entity = nearby.get(entityIndex);
-            Location location = entity.getLocation();
-            candidates.add(new NearestMobFinder.Candidate(
-                entityIndex,
-                location.getX(),
-                location.getY(),
-                location.getZ(),
-                this.allowedMobs.contains(entity.getType())
-            ));
-        }
-        return candidates;
-    }
+    @SuppressWarnings("deprecation")
+    private double enchantmentDamage(
+            ItemStack weapon,
+            LivingEntity target
+    ) {
+        double damage = 0.0D;
 
-    private double damage(ItemStack tool, LivingEntity target) {
-        if (tool == null) {
-            return this.config.baseDamage;
+        for (
+                Map.Entry<Enchantment, Integer> entry
+                : weapon.getEnchantments().entrySet()
+        ) {
+            Enchantment enchantment = entry.getKey();
+            int level = entry.getValue();
+
+            damage += enchantment.getDamageIncrease(
+                    level,
+                    target.getType()
+            );
         }
 
-        double damage = this.config.baseDamage;
-        int sharpness = tool.getEnchantmentLevel(Enchantment.SHARPNESS);
-        if (sharpness > 0) {
-            damage += sharpness * 0.5D + 0.5D;
-        }
-        int smite = tool.getEnchantmentLevel(Enchantment.SMITE);
-        if (smite > 0 && UNDEAD.contains(target.getType())) {
-            damage += smite * 2.5D;
-        }
-        int bane = tool.getEnchantmentLevel(Enchantment.BANE_OF_ARTHROPODS);
-        if (bane > 0 && ARTHROPODS.contains(target.getType())) {
-            damage += bane * 2.5D;
-        }
-        int fireAspect = tool.getEnchantmentLevel(Enchantment.FIRE_ASPECT);
-        if (fireAspect > 0) {
-            target.setFireTicks(fireAspect * 80);
-        }
         return damage;
     }
 
-    private Minion consumeTool(Minion minion, ItemStack tool) {
-        if (tool == null) {
-            return minion;
+    private void applyFireAspect(
+            ItemStack weapon,
+            LivingEntity target
+    ) {
+        int level = enchantmentLevel(
+                weapon,
+                Enchantment.FIRE_ASPECT
+        );
+
+        if (level <= 0) {
+            return;
         }
-        ItemStack damagedTool = this.toolDurability.consume(tool, 1);
-        return minion.withEquipment(minion.equipment().withTool(damagedTool));
+
+        int fireTicks = level * 80;
+
+        target.setFireTicks(
+                Math.max(target.getFireTicks(), fireTicks)
+        );
     }
 
+    private void applyKnockback(
+            ItemStack weapon,
+            Location origin,
+            LivingEntity target
+    ) {
+        int level = enchantmentLevel(
+                weapon,
+                Enchantment.KNOCKBACK
+        );
+
+        if (level <= 0) {
+            return;
+        }
+
+        Vector direction = target.getLocation()
+                .toVector()
+                .subtract(origin.toVector());
+
+        direction.setY(0.0D);
+
+        if (direction.lengthSquared() <= 0.0001D) {
+            return;
+        }
+
+        direction.normalize().multiply(
+                Math.max(0.0D, this.config.knockbackStrengthPerLevel)
+                        * level
+        );
+
+        direction.setY(
+                Math.max(0.0D, this.config.knockbackVerticalStrength)
+        );
+
+        target.setVelocity(
+                target.getVelocity().add(direction)
+        );
+    }
+
+    private static double applyModifiers(
+            double baseValue,
+            Collection<AttributeModifier> modifiers
+    ) {
+        double addedValue = 0.0D;
+        double multipliedBase = 0.0D;
+        double multipliedTotal = 1.0D;
+
+        for (AttributeModifier modifier : modifiers) {
+            switch (modifier.getOperation()) {
+                case ADD_NUMBER ->
+                        addedValue += modifier.getAmount();
+
+                case ADD_SCALAR ->
+                        multipliedBase += modifier.getAmount();
+
+                case MULTIPLY_SCALAR_1 ->
+                        multipliedTotal *= 1.0D + modifier.getAmount();
+            }
+        }
+
+        double value = baseValue + addedValue;
+
+        value += value * multipliedBase;
+
+        return value * multipliedTotal;
+    }
+
+    private static int enchantmentLevel(
+            ItemStack item,
+            Enchantment enchantment
+    ) {
+        if (item == null) {
+            return 0;
+        }
+
+        return item.getEnchantmentLevel(enchantment);
+    }
+
+    private static void faceTarget(
+            MinionContext context,
+            Location origin,
+            LivingEntity target
+    ) {
+        Location targetLocation = target.getLocation();
+
+        float yaw = MinionRotation.yawTowards(
+                origin.getX(),
+                origin.getZ(),
+                targetLocation.getX(),
+                targetLocation.getZ()
+        );
+
+        context.scheduledMinion().face(yaw);
+    }
 }

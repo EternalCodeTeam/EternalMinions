@@ -1,11 +1,10 @@
 package com.eternalcode.minions.render;
 
-import com.eternalcode.minions.config.MessagesConfig;
+import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.access.MinionAccessGuard;
 import com.eternalcode.minions.gui.MinionPanel;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionRegistry;
-import com.eternalcode.minions.notice.NoticeService;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
@@ -21,28 +20,22 @@ public final class MinionInteractionListener extends PacketListenerAbstract {
 
     private final Plugin plugin;
     private final MinionEntityIndex entityIndex;
-    private final MinionRegistry minions;
+    private final MinionAccessGuard access;
     private final MinionPanel panel;
-    private final MessagesConfig messages;
-    private final NoticeService notices;
     private final BiConsumer<Player, Minion> pickup;
 
     public MinionInteractionListener(
         Plugin plugin,
         MinionEntityIndex entityIndex,
-        MinionRegistry minions,
+        MinionAccessGuard access,
         MinionPanel panel,
-        MessagesConfig messages,
-        NoticeService notices,
         BiConsumer<Player, Minion> pickup
     ) {
         super(PacketListenerPriority.NORMAL);
         this.plugin = plugin;
         this.entityIndex = entityIndex;
-        this.minions = minions;
+        this.access = access;
         this.panel = panel;
-        this.messages = messages;
-        this.notices = notices;
         this.pickup = pickup;
     }
 
@@ -80,29 +73,18 @@ public final class MinionInteractionListener extends PacketListenerAbstract {
     }
 
     private void open(Player player, MinionId minionId) {
-        Minion minion = this.findOwnedMinion(player, minionId);
-        if (minion != null) {
-            this.panel.open(player, minion);
-        }
+        this.access.findAccessible(
+                player,
+                minionId,
+                MinionAccessAction.OPEN_PANEL
+        ).ifPresent(minion -> this.panel.open(player, minion));
     }
 
     private void pickup(Player player, MinionId minionId) {
-        Minion minion = this.findOwnedMinion(player, minionId);
-        if (minion != null) {
-            this.pickup.accept(player, minion);
-        }
-    }
-
-    private Minion findOwnedMinion(Player player, MinionId minionId) {
-        Minion minion = this.minions.findMinion(minionId).orElse(null);
-        if (minion == null) {
-            this.notices.create().viewer(player).notice(this.messages.minionNotFound).send();
-            return null;
-        }
-        if (!minion.ownerId().equals(player.getUniqueId())) {
-            this.notices.create().viewer(player).notice(this.messages.minionOwnerRequired).send();
-            return null;
-        }
-        return minion;
+        this.access.findAccessible(
+                player,
+                minionId,
+                MinionAccessAction.PICK_UP
+        ).ifPresent(minion -> this.pickup.accept(player, minion));
     }
 }

@@ -7,6 +7,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 final class MinionSchema {
@@ -28,8 +29,12 @@ final class MinionSchema {
         this.scheduler = scheduler;
     }
 
-    private static boolean hasIndex(DatabaseMetaData metadata, String table, String index) throws Exception {
-        try (ResultSet indexes = metadata.getIndexInfo(null, null, table, false, false)) {
+    private static boolean hasIndex(Connection connection, String table, String index) throws Exception {
+        DatabaseMetaData metadata = connection.getMetaData();
+        String tableName = metadata.storesUpperCaseIdentifiers()
+            ? table.toUpperCase(Locale.ROOT)
+            : table;
+        try (ResultSet indexes = metadata.getIndexInfo(connection.getCatalog(), null, tableName, false, false)) {
             while (indexes.next()) {
                 String existingIndex = indexes.getString("INDEX_NAME");
                 if (existingIndex != null && existingIndex.equalsIgnoreCase(index)) {
@@ -147,7 +152,7 @@ final class MinionSchema {
     }
 
     private void createIndex(Connection connection, String table, String index, String columns) throws Exception {
-        if (hasIndex(connection.getMetaData(), table, index)) {
+        if (hasIndex(connection, table, index)) {
             return;
         }
         try (Statement statement = connection.createStatement()) {

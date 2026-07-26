@@ -17,6 +17,7 @@ object Versions {
     const val X_SERIES = "13.7.1"
     const val INVENTORY_FRAMEWORK = "0.12.0"
     const val FASTUTIL = "8.5.16"
+    const val CAFFEINE = "3.1.8"
 
     const val HIKARI_CP = "7.1.0"
     const val ORMLITE = "6.1"

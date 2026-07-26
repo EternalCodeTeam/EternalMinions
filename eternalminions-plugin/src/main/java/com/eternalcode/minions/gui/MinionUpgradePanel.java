@@ -1,5 +1,7 @@
 package com.eternalcode.minions.gui;
 
+import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.access.MinionAccessGuard;
 import com.eternalcode.minions.config.MinionPanelConfig;
 import com.eternalcode.minions.config.MinionPanelElementConfig;
 import com.eternalcode.minions.minion.Minion;
@@ -34,6 +36,7 @@ public final class MinionUpgradePanel {
     private final MiniMessage miniMessage;
     private final MinionBehaviorRegistry behaviors;
     private final MinionUpgradeService upgrades;
+    private final MinionAccessGuard access;
     private final PanelItemFactory items;
 
     public MinionUpgradePanel(
@@ -41,17 +44,27 @@ public final class MinionUpgradePanel {
         MinionPanelConfig config,
         MiniMessage miniMessage,
         MinionBehaviorRegistry behaviors,
-        MinionUpgradeService upgrades
+        MinionUpgradeService upgrades,
+        MinionAccessGuard access
     ) {
         this.plugin = plugin;
         this.config = config;
         this.miniMessage = miniMessage;
         this.behaviors = behaviors;
         this.upgrades = upgrades;
+        this.access = access;
         this.items = new PanelItemFactory(miniMessage);
     }
 
     public void open(Player player, Minion minion) {
+        this.access.findAccessible(
+                player,
+                minion.id(),
+                MinionAccessAction.OPEN_PANEL
+        ).ifPresent(current -> this.openAccessible(player, current));
+    }
+
+    private void openAccessible(Player player, Minion minion) {
         MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
         if (behavior == null) {
             return;

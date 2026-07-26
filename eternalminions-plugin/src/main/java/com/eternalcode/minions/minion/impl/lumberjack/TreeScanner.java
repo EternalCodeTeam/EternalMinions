@@ -1,277 +1,448 @@
 package com.eternalcode.minions.minion.impl.lumberjack;
 
+import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.type.Leaves;
 
 public final class TreeScanner {
 
-    private static final int MIN_EXPECTED_POSITIONS = 16;
-    private static final int EXPECTED_POSITIONS_PER_LOG = 4;
+    private static long pack(int x, int y, int z) {
+        return ((long) (x & 0x3FFFFFF) << 38)
+                | ((long) (z & 0x3FFFFFF) << 12)
+                | (y & 0xFFFL);
+    }
+
+    private static int unpackX(long packed) {
+        return (int) (packed >> 38);
+    }
+
+    private static int unpackY(long packed) {
+        int y = (int) (packed & 0xFFFL);
+
+        return y >= 0x800
+                ? y - 0x1000
+                : y;
+    }
+
+    private static int unpackZ(long packed) {
+        int z = (int) ((packed >> 12) & 0x3FFFFFFL);
+
+        return z >= 0x2000000
+                ? z - 0x4000000
+                : z;
+    }
 
     public ScanResult scan(
             World world,
             int baseX,
             int baseY,
             int baseZ,
-            Material logMaterial,
-            int maxLogs
+            Set<Material> logMaterials,
+            Set<Material> leafMaterials,
+            int maxLogs,
+            int maxLeaves,
+            int maxTreeRadius,
+            int maxTreeHeight,
+            int leafSearchRadius,
+            boolean collectLeaves,
+            boolean collectPersistentLeaves
     ) {
-        if (maxLogs <= 0) {
+        if (
+                maxLogs < 1
+                        || baseY < world.getMinHeight()
+                        || baseY >= world.getMaxHeight()
+                        || !logMaterials.contains(
+                        world.getBlockAt(baseX, baseY, baseZ).getType()
+                )
+        ) {
             return ScanResult.empty();
         }
 
-        if (baseY < world.getMinHeight() || baseY >= world.getMaxHeight()) {
-            return ScanResult.empty();
-        }
-
-        if (world.getBlockAt(baseX, baseY, baseZ).getType() != logMaterial) {
-            return ScanResult.empty();
-        }
-
-        int[] queueX = new int[maxLogs];
-        int[] queueY = new int[maxLogs];
-        int[] queueZ = new int[maxLogs];
-
-        queueX[0] = baseX;
-        queueY[0] = baseY;
-        queueZ[0] = baseZ;
-
-        int baseChunkX = baseX >> 4;
-        int baseChunkZ = baseZ >> 4;
-
-        int head = 0;
-        int tail = 1;
-
-        LongOpenHashSet checkedPositions = new LongOpenHashSet(
-                expectedCheckedPositionCount(maxLogs)
+        PositionBuffer logs = new PositionBuffer(maxLogs);
+        LongOpenHashSet visitedLogs = new LongOpenHashSet(
+                Math.max(16, maxLogs * 2)
         );
 
-        checkedPositions.add(pack(baseX, baseY, baseZ));
+        LongArrayFIFOQueue logQueue =
+                new LongArrayFIFOQueue();
 
-        while (head < tail && tail < maxLogs) {
-            int x = queueX[head];
-            int y = queueY[head];
-            int z = queueZ[head];
+        long basePosition = pack(baseX, baseY, baseZ);
 
-            head++;
+        visitedLogs.add(basePosition);
+        logQueue.enqueue(basePosition);
 
-            tail = tryAdd(
-                    world,
-                    logMaterial,
-                    baseChunkX,
-                    baseChunkZ,
-                    x + 1,
-                    y,
-                    z,
-                    queueX,
-                    queueY,
-                    queueZ,
-                    checkedPositions,
-                    tail,
-                    maxLogs
-            );
+        boolean logsTruncated = false;
 
-            tail = tryAdd(
-                    world,
-                    logMaterial,
-                    baseChunkX,
-                    baseChunkZ,
-                    x - 1,
-                    y,
-                    z,
-                    queueX,
-                    queueY,
-                    queueZ,
-                    checkedPositions,
-                    tail,
-                    maxLogs
-            );
+        while (!logQueue.isEmpty()) {
+            long packed = logQueue.dequeueLong();
 
-            tail = tryAdd(
-                    world,
-                    logMaterial,
-                    baseChunkX,
-                    baseChunkZ,
-                    x,
-                    y + 1,
-                    z,
-                    queueX,
-                    queueY,
-                    queueZ,
-                    checkedPositions,
-                    tail,
-                    maxLogs
-            );
+            int x = unpackX(packed);
+            int y = unpackY(packed);
+            int z = unpackZ(packed);
 
-            tail = tryAdd(
-                    world,
-                    logMaterial,
-                    baseChunkX,
-                    baseChunkZ,
-                    x,
-                    y - 1,
-                    z,
-                    queueX,
-                    queueY,
-                    queueZ,
-                    checkedPositions,
-                    tail,
-                    maxLogs
-            );
+            if (!logs.add(x, y, z)) {
+                logsTruncated = true;
+                break;
+            }
 
-            tail = tryAdd(
-                    world,
-                    logMaterial,
-                    baseChunkX,
-                    baseChunkZ,
-                    x,
-                    y,
-                    z + 1,
-                    queueX,
-                    queueY,
-                    queueZ,
-                    checkedPositions,
-                    tail,
-                    maxLogs
-            );
+            for (int offsetX = -1; offsetX <= 1; offsetX++) {
+                for (int offsetY = -1; offsetY <= 1; offsetY++) {
+                    for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
+                        if (
+                                offsetX == 0
+                                        && offsetY == 0
+                                        && offsetZ == 0
+                        ) {
+                            continue;
+                        }
 
-            tail = tryAdd(
-                    world,
-                    logMaterial,
-                    baseChunkX,
-                    baseChunkZ,
-                    x,
-                    y,
-                    z - 1,
-                    queueX,
-                    queueY,
-                    queueZ,
-                    checkedPositions,
-                    tail,
-                    maxLogs
-            );
-        }
+                        int neighborX = x + offsetX;
+                        int neighborY = y + offsetY;
+                        int neighborZ = z + offsetZ;
 
-        return new ScanResult(
-                queueX,
-                queueY,
-                queueZ,
-                tail
-        );
-    }
+                        if (
+                                Math.abs(neighborX - baseX) > maxTreeRadius
+                                        || Math.abs(neighborZ - baseZ) > maxTreeRadius
+                                        || neighborY < baseY - 1
+                                        || neighborY > baseY + maxTreeHeight
+                        ) {
+                            continue;
+                        }
 
-    private static int tryAdd(
-            World world,
-            Material logMaterial,
-            int baseChunkX,
-            int baseChunkZ,
-            int x,
-            int y,
-            int z,
-            int[] queueX,
-            int[] queueY,
-            int[] queueZ,
-            LongOpenHashSet checkedPositions,
-            int tail,
-            int maxLogs
-    ) {
-        if (tail >= maxLogs) {
-            return tail;
-        }
+                        if (
+                                neighborY < world.getMinHeight()
+                                        || neighborY >= world.getMaxHeight()
+                        ) {
+                            continue;
+                        }
 
-        if (y < world.getMinHeight() || y >= world.getMaxHeight()) {
-            return tail;
-        }
+                        if (
+                                !world.isChunkLoaded(
+                                        neighborX >> 4,
+                                        neighborZ >> 4
+                                )
+                        ) {
+                            continue;
+                        }
 
-        long packedPosition = pack(x, y, z);
+                        long neighborPosition = pack(
+                                neighborX,
+                                neighborY,
+                                neighborZ
+                        );
 
-        if (!checkedPositions.add(packedPosition)) {
-            return tail;
-        }
+                        if (!visitedLogs.add(neighborPosition)) {
+                            continue;
+                        }
 
-        int chunkX = x >> 4;
-        int chunkZ = z >> 4;
+                        Material material = world.getBlockAt(
+                                neighborX,
+                                neighborY,
+                                neighborZ
+                        ).getType();
 
-        if ((chunkX != baseChunkX || chunkZ != baseChunkZ)
-                && !world.isChunkLoaded(chunkX, chunkZ)) {
-            return tail;
-        }
+                        if (!logMaterials.contains(material)) {
+                            continue;
+                        }
 
-        if (world.getBlockAt(x, y, z).getType() != logMaterial) {
-            return tail;
-        }
+                        if (logs.size() + logQueue.size() >= maxLogs) {
+                            logsTruncated = true;
+                            continue;
+                        }
 
-        queueX[tail] = x;
-        queueY[tail] = y;
-        queueZ[tail] = z;
-
-        return tail + 1;
-    }
-
-    private static int expectedCheckedPositionCount(int maxLogs) {
-        long expectedCount = Math.max(
-                MIN_EXPECTED_POSITIONS,
-                (long) maxLogs * EXPECTED_POSITIONS_PER_LOG
-        );
-
-        return (int) Math.min(
-                expectedCount,
-                Integer.MAX_VALUE - 8L
-        );
-    }
-
-    private static long pack(int x, int y, int z) {
-        return ((long) (x & 0x3FFFFFF) << 38)
-                | ((long) (z & 0x3FFFFFF) << 12)
-                | (y & 0xFFF);
-    }
-
-    public record ScanResult(
-            int[] positionsX,
-            int[] positionsY,
-            int[] positionsZ,
-            int size
-    ) {
-
-        private static final ScanResult EMPTY = new ScanResult(
-                new int[0],
-                new int[0],
-                new int[0],
-                0
-        );
-
-        public ScanResult {
-            if (size < 0
-                    || size > positionsX.length
-                    || size > positionsY.length
-                    || size > positionsZ.length) {
-                throw new IllegalArgumentException(
-                        "Tree scan result contains an invalid size"
-                );
+                        logQueue.enqueue(neighborPosition);
+                    }
+                }
             }
         }
 
-        public static ScanResult empty() {
+        if (logsTruncated) {
+            return ScanResult.logsTruncated();
+        }
+
+        if (!collectLeaves || leafMaterials.isEmpty()) {
+            return ScanResult.complete(
+                    logs,
+                    PositionBuffer.empty()
+            );
+        }
+
+        PositionBuffer leaves = new PositionBuffer(maxLeaves);
+
+        LongOpenHashSet visitedLeaves = new LongOpenHashSet(
+                Math.max(16, maxLeaves * 2)
+        );
+
+        LongArrayFIFOQueue leafQueue =
+                new LongArrayFIFOQueue();
+
+        for (int logIndex = 0; logIndex < logs.size(); logIndex++) {
+            int logX = logs.x(logIndex);
+            int logY = logs.y(logIndex);
+            int logZ = logs.z(logIndex);
+
+            for (int offsetX = -1; offsetX <= 1; offsetX++) {
+                for (int offsetY = -1; offsetY <= 1; offsetY++) {
+                    for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
+                        if (
+                                offsetX == 0
+                                        && offsetY == 0
+                                        && offsetZ == 0
+                        ) {
+                            continue;
+                        }
+
+                        int leafX = logX + offsetX;
+                        int leafY = logY + offsetY;
+                        int leafZ = logZ + offsetZ;
+
+                        this.enqueueLeaf(
+                                world,
+                                leafMaterials,
+                                collectPersistentLeaves,
+                                baseX,
+                                baseY,
+                                baseZ,
+                                maxTreeRadius,
+                                maxTreeHeight,
+                                leafSearchRadius,
+                                leafX,
+                                leafY,
+                                leafZ,
+                                visitedLeaves,
+                                leafQueue
+                        );
+                    }
+                }
+            }
+        }
+
+        boolean leavesTruncated = false;
+
+        while (!leafQueue.isEmpty()) {
+            long packed = leafQueue.dequeueLong();
+
+            int x = unpackX(packed);
+            int y = unpackY(packed);
+            int z = unpackZ(packed);
+
+            if (!leaves.add(x, y, z)) {
+                leavesTruncated = true;
+                break;
+            }
+
+            for (int offsetX = -1; offsetX <= 1; offsetX++) {
+                for (int offsetY = -1; offsetY <= 1; offsetY++) {
+                    for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
+                        if (
+                                offsetX == 0
+                                        && offsetY == 0
+                                        && offsetZ == 0
+                        ) {
+                            continue;
+                        }
+
+                        this.enqueueLeaf(
+                                world,
+                                leafMaterials,
+                                collectPersistentLeaves,
+                                baseX,
+                                baseY,
+                                baseZ,
+                                maxTreeRadius,
+                                maxTreeHeight,
+                                leafSearchRadius,
+                                x + offsetX,
+                                y + offsetY,
+                                z + offsetZ,
+                                visitedLeaves,
+                                leafQueue
+                        );
+                    }
+                }
+            }
+
+            if (leaves.size() + leafQueue.size() > maxLeaves) {
+                leavesTruncated = true;
+                break;
+            }
+        }
+
+        if (leavesTruncated) {
+            return ScanResult.leavesTruncated();
+        }
+
+        return ScanResult.complete(logs, leaves);
+    }
+
+    private void enqueueLeaf(
+            World world,
+            Set<Material> leafMaterials,
+            boolean collectPersistentLeaves,
+            int baseX,
+            int baseY,
+            int baseZ,
+            int maxTreeRadius,
+            int maxTreeHeight,
+            int leafSearchRadius,
+            int x,
+            int y,
+            int z,
+            LongOpenHashSet visited,
+            LongArrayFIFOQueue queue
+    ) {
+        if (
+                y < world.getMinHeight()
+                        || y >= world.getMaxHeight()
+                        || Math.abs(x - baseX)
+                        > maxTreeRadius + leafSearchRadius
+                        || Math.abs(z - baseZ)
+                        > maxTreeRadius + leafSearchRadius
+                        || y < baseY - leafSearchRadius
+                        || y > baseY + maxTreeHeight + leafSearchRadius
+        ) {
+            return;
+        }
+
+        if (!world.isChunkLoaded(x >> 4, z >> 4)) {
+            return;
+        }
+
+        long packed = pack(x, y, z);
+
+        if (!visited.add(packed)) {
+            return;
+        }
+
+        Block block = world.getBlockAt(x, y, z);
+
+        if (!leafMaterials.contains(block.getType())) {
+            return;
+        }
+
+        if (
+                !collectPersistentLeaves
+                        && block.getBlockData() instanceof Leaves leaves
+                        && leaves.isPersistent()
+        ) {
+            return;
+        }
+
+        queue.enqueue(packed);
+    }
+
+    public enum State {
+
+        COMPLETE,
+        LOG_LIMIT_REACHED,
+        LEAF_LIMIT_REACHED,
+        EMPTY
+    }
+
+    public record ScanResult(
+            PositionBuffer logs,
+            PositionBuffer leaves,
+            State state
+    ) {
+
+        private static ScanResult complete(
+                PositionBuffer logs,
+                PositionBuffer leaves
+        ) {
+            return new ScanResult(
+                    logs,
+                    leaves,
+                    State.COMPLETE
+            );
+        }
+
+        private static ScanResult logsTruncated() {
+            return new ScanResult(
+                    PositionBuffer.empty(),
+                    PositionBuffer.empty(),
+                    State.LOG_LIMIT_REACHED
+            );
+        }
+
+        private static ScanResult leavesTruncated() {
+            return new ScanResult(
+                    PositionBuffer.empty(),
+                    PositionBuffer.empty(),
+                    State.LEAF_LIMIT_REACHED
+            );
+        }
+
+        private static ScanResult empty() {
+            return new ScanResult(
+                    PositionBuffer.empty(),
+                    PositionBuffer.empty(),
+                    State.EMPTY
+            );
+        }
+
+        public boolean complete() {
+            return this.state == State.COMPLETE;
+        }
+    }
+
+    public static final class PositionBuffer {
+
+        private static final PositionBuffer EMPTY =
+                new PositionBuffer(0);
+
+        private final int[] positionsX;
+        private final int[] positionsY;
+        private final int[] positionsZ;
+
+        private int size;
+
+        private PositionBuffer(int capacity) {
+            this.positionsX = new int[capacity];
+            this.positionsY = new int[capacity];
+            this.positionsZ = new int[capacity];
+        }
+
+        private static PositionBuffer empty() {
             return EMPTY;
         }
 
-        public boolean isEmpty() {
-            return this.size == 0;
+        private boolean add(int x, int y, int z) {
+            if (this.size >= this.positionsX.length) {
+                return false;
+            }
+
+            this.positionsX[this.size] = x;
+            this.positionsY[this.size] = y;
+            this.positionsZ[this.size] = z;
+
+            this.size++;
+
+            return true;
+        }
+
+        public int size() {
+            return this.size;
         }
 
         public int x(int index) {
             this.checkIndex(index);
+
             return this.positionsX[index];
         }
 
         public int y(int index) {
             this.checkIndex(index);
+
             return this.positionsY[index];
         }
 
         public int z(int index) {
             this.checkIndex(index);
+
             return this.positionsZ[index];
         }
 

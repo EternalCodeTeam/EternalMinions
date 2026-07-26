@@ -3,6 +3,8 @@ package com.eternalcode.minions.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.cryptomorin.xseries.XMaterial;
+import com.eternalcode.minions.config.transformer.UpgradeKindTransformer;
+import com.eternalcode.minions.config.transformer.XMaterialTransformer;
 import eu.okaeri.configs.ConfigManager;
 import eu.okaeri.configs.serdes.commons.SerdesCommons;
 import eu.okaeri.configs.yaml.snakeyaml.YamlSnakeYamlConfigurer;

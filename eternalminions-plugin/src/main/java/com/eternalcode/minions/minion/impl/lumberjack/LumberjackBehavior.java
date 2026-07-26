@@ -1,55 +1,90 @@
 package com.eternalcode.minions.minion.impl.lumberjack;
 
+import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
+import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
+import com.eternalcode.minions.minion.tool.MinionToolPreparation;
+import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.SpeedEnchant;
 import com.eternalcode.minions.minion.tool.ToolCheck;
-import com.eternalcode.minions.minion.tool.ToolDurabilityService;
-import com.eternalcode.minions.minion.tool.ToolInventoryLocator;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import com.eternalcode.minions.minion.tool.ToolValidationService;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
 public final class LumberjackBehavior implements MinionBehavior {
 
-    private static final int EXPECTED_DROPS_PER_LOG = 2;
+    private static final int EXPECTED_DROPS_PER_BLOCK = 2;
 
     private final LumberjackConfig config;
-    private final ToolValidationService toolValidation;
-    private final ToolDurabilityService toolDurability;
-    private final ToolInventoryLocator toolLocator;
+
+    private final MinionToolService tools;
+    private final MinionItemTransferService transfers;
     private final ToolRequirement toolRequirement;
-    private final TreeScanner treeScanner = new TreeScanner();
-    private final Material logMaterial;
+
+    private final TreeScanner treeScanner =
+            new TreeScanner();
+
+    private final Set<Material> logMaterials;
+    private final Set<Material> leafMaterials;
     private final Material saplingMaterial;
 
+    public static LumberjackBehavior create(
+            ConfigService configs,
+            File directory,
+            MinionToolService tools,
+            MinionItemTransferService transfers
+    ) {
+        LumberjackConfig config = configs.load(
+                LumberjackConfig.class,
+                new File(directory, "lumberjack.yml")
+        );
+
+        return new LumberjackBehavior(
+                config,
+                tools,
+                transfers
+        );
+    }
+
     public LumberjackBehavior(
-        LumberjackConfig config,
-        ToolValidationService toolValidation,
-        ToolDurabilityService toolDurability,
-        ToolInventoryLocator toolLocator
+            LumberjackConfig config,
+            MinionToolService tools,
+            MinionItemTransferService transfers
     ) {
         this.config = config;
-        this.toolValidation = toolValidation;
-        this.toolDurability = toolDurability;
-        this.toolLocator = toolLocator;
+
+        this.tools = tools;
+        this.transfers = transfers;
         this.toolRequirement = config.toolRequirement();
-        this.logMaterial = requireMaterial(config.logMaterial);
-        this.saplingMaterial = requireMaterial(config.saplingMaterial);
-        if (config.maxLogsPerTree < 1 || config.maxLogsPerTree > 4096) {
-            throw new IllegalArgumentException("Lumberjack max logs per tree must be between 1 and 4096");
-        }
+
+        this.logMaterials = parseMaterials(
+                config.logMaterials,
+                "logs"
+        );
+
+        this.leafMaterials = parseOptionalMaterials(
+                config.leafMaterials
+        );
+
+        this.saplingMaterial = requireMaterial(
+                config.saplingMaterial,
+                "sapling"
+        );
     }
 
     @Override
@@ -64,124 +99,433 @@ public final class LumberjackBehavior implements MinionBehavior {
 
     @Override
     public MinionResult execute(MinionContext context) {
-        Minion minion = context.retireWornTool(
-            context.minion(),
-            this.toolRequirement,
-            this.toolValidation,
-            this.toolLocator
+        MinionToolPreparation preparation = this.tools.prepare(
+                context,
+                this.toolRequirement,
+                LumberjackStatuses.NO_AXE
         );
-        ToolCheck toolCheck = this.toolValidation.validate(
-            this.toolRequirement,
-            minion.equipment().tool(),
-            LumberjackStatuses.NO_AXE
-        );
-        if (toolCheck instanceof ToolCheck.Stopped stopped) {
-            return MinionResult.idle(minion, stopped.reason());
+        if (preparation.check() instanceof ToolCheck.Stopped stopped) {
+            return MinionResult.idle(
+                    preparation.minion(),
+                    stopped.reason()
+            );
         }
+        Minion minion = preparation.minion();
+
         if (!context.hasStorageRoom()) {
-            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+            return MinionResult.idle(
+                    minion,
+                    CoreMinionStatuses.STORAGE_FULL
+            );
         }
 
-        int stationCount = this.config.stationCount(minion.upgrades());
-        MinionDirection direction = minion.settings().direction();
-        int firstStationIndex = context.scheduledMinion().miningTargetIndex(stationCount);
-        context.scheduledMinion().advanceMiningTarget(stationCount);
+        int stationCount = this.config.stationCount(
+                minion.upgrades()
+        );
+
+        MinionDirection direction =
+                minion.settings().direction();
+
+        int firstStationIndex = context.scheduledMinion()
+                .miningTargetIndex(stationCount);
+
+        context.scheduledMinion()
+                .advanceMiningTarget(stationCount);
+
         boolean foundSapling = false;
         boolean foundInvalidStation = false;
 
         for (int offset = 0; offset < stationCount; offset++) {
-            int distance = (firstStationIndex + offset) % stationCount + 1;
-            int stationX = minion.position().blockX() + direction.offsetX() * distance;
-            int stationZ = minion.position().blockZ() + direction.offsetZ() * distance;
-            if (!context.world().isChunkLoaded(stationX >> 4, stationZ >> 4)) {
+            int stationIndex =
+                    (firstStationIndex + offset) % stationCount;
+
+            int distance = stationIndex + 1;
+
+            int stationX =
+                    minion.position().blockX()
+                            + direction.offsetX() * distance;
+
+            int stationY =
+                    minion.position().blockY();
+
+            int stationZ =
+                    minion.position().blockZ()
+                            + direction.offsetZ() * distance;
+
+            if (
+                    !context.world().isChunkLoaded(
+                            stationX >> 4,
+                            stationZ >> 4
+                    )
+            ) {
                 continue;
             }
 
-            Block station = context.world().getBlockAt(stationX, minion.position().blockY(), stationZ);
-            Material stationMaterial = station.getType();
-            if (stationMaterial == this.logMaterial) {
-                context.scheduledMinion().face(direction.yaw());
-                return this.fellTree(context, minion, station);
+            Block station = context.world().getBlockAt(
+                    stationX,
+                    stationY,
+                    stationZ
+            );
+
+            Material material = station.getType();
+
+            if (this.logMaterials.contains(material)) {
+                context.scheduledMinion().face(
+                        direction.yaw()
+                );
+
+                return this.fellTree(
+                        context,
+                        minion,
+                        station
+                );
             }
-            if (stationMaterial == this.saplingMaterial) {
+
+            if (material == this.saplingMaterial) {
                 foundSapling = true;
                 continue;
             }
-            if (stationMaterial != Material.AIR) {
+
+            if (!material.isAir()) {
                 foundInvalidStation = true;
             }
         }
 
-        return MinionResult.idle(minion, resolveIdleStatus(foundSapling, foundInvalidStation));
+        return MinionResult.idle(
+                minion,
+                resolveIdleStatus(
+                        foundSapling,
+                        foundInvalidStation
+                )
+        );
     }
 
-    private MinionResult fellTree(MinionContext context, Minion minion, Block trunkBase) {
-        TreeScanner.ScanResult tree = this.treeScanner.scan(
-            context.world(),
-            trunkBase.getX(),
-            trunkBase.getY(),
-            trunkBase.getZ(),
-            this.logMaterial,
-            this.config.maxLogsPerTree
-        );
-        if (tree.isEmpty()) {
-            return MinionResult.idle(minion, LumberjackStatuses.INVALID_STATION);
+    private MinionResult fellTree(
+            MinionContext context,
+            Minion minion,
+            Block trunkBase
+    ) {
+        TreeScanner.ScanResult tree =
+                this.treeScanner.scan(
+                        context.world(),
+                        trunkBase.getX(),
+                        trunkBase.getY(),
+                        trunkBase.getZ(),
+                        this.logMaterials,
+                        this.leafMaterials,
+                        this.config.maximumLogs(),
+                        this.config.maximumLeaves(),
+                        this.config.maximumTreeRadius(),
+                        this.config.maximumTreeHeight(),
+                        this.config.maximumLeafRadius(),
+                        this.config.breakLeaves,
+                        this.config.breakPersistentLeaves
+                );
+
+        if (
+                tree.state()
+                        == TreeScanner.State.LOG_LIMIT_REACHED
+        ) {
+            return MinionResult.idle(
+                    minion,
+                    LumberjackStatuses.TREE_TOO_LARGE
+            );
+        }
+
+        if (
+                tree.state()
+                        == TreeScanner.State.LEAF_LIMIT_REACHED
+        ) {
+            return MinionResult.idle(
+                    minion,
+                    LumberjackStatuses.CANOPY_TOO_LARGE
+            );
+        }
+
+        if (!tree.complete() || tree.logs().size() == 0) {
+            return MinionResult.idle(
+                    minion,
+                    LumberjackStatuses.INVALID_STATION
+            );
         }
 
         ItemStack tool = minion.equipment().tool();
-        List<ItemStack> drops = new ArrayList<>(expectedDropCapacity(tree.size()));
-        for (int treeIndex = 0; treeIndex < tree.size(); treeIndex++) {
-            Block log = context.world().getBlockAt(tree.x(treeIndex), tree.y(treeIndex), tree.z(treeIndex));
-            Collection<ItemStack> blockDrops = tool == null ? log.getDrops() : log.getDrops(tool);
-            drops.addAll(blockDrops);
-            log.setType(Material.AIR, false);
-        }
-        trunkBase.setType(this.saplingMaterial, false);
 
-        Minion updated = this.consumeTool(minion, tool, tree.size());
-        updated = context.deposit(updated, trunkBase.getLocation(), drops);
-        updated = updated.withProgress(updated.progress().advanced(this.config));
-        MinionResult result = MinionResult.worked(updated, LumberjackStatuses.CUTTING);
+        int expectedBlocks =
+                tree.logs().size() + tree.leaves().size();
+
+        List<ItemStack> drops = new ArrayList<>(
+                expectedDropCapacity(expectedBlocks)
+        );
+
+        this.collectDrops(
+                context,
+                tree.logs(),
+                tool,
+                drops
+        );
+
+        this.collectDrops(
+                context,
+                tree.leaves(),
+                tool,
+                drops
+        );
+
+        this.breakBlocks(
+                context,
+                tree.leaves()
+        );
+
+        this.breakBlocks(
+                context,
+                tree.logs()
+        );
+
+        this.replant(
+                context,
+                tree.logs(),
+                trunkBase.getY()
+        );
+
+        Minion updated = this.tools.consume(minion, tree.logs().size());
+
+        updated = this.transfers.deposit(
+                context,
+                updated,
+                trunkBase.getLocation(),
+                drops
+        );
+
+        updated = updated.withProgress(
+                updated.progress().advanced(this.config)
+        );
+
+        MinionResult result = MinionResult.worked(
+                updated,
+                LumberjackStatuses.CUTTING
+        );
+
         if (!this.config.respectSpeedEnchants) {
             return result;
         }
 
-        long baseInterval = this.config.workInterval(updated.upgrades());
-        return result.withDelay(SpeedEnchant.scaledInterval(baseInterval, tool));
+        long baseInterval = this.config.workInterval(
+                updated.upgrades()
+        );
+
+        return result.withDelay(
+                SpeedEnchant.scaledInterval(
+                        baseInterval,
+                        tool
+                )
+        );
     }
 
-    private Minion consumeTool(Minion minion, ItemStack tool, int uses) {
-        if (tool == null || uses < 1) {
-            return minion;
+    private void collectDrops(
+            MinionContext context,
+            TreeScanner.PositionBuffer blocks,
+            ItemStack tool,
+            List<ItemStack> destination
+    ) {
+        for (int index = 0; index < blocks.size(); index++) {
+            Block block = context.world().getBlockAt(
+                    blocks.x(index),
+                    blocks.y(index),
+                    blocks.z(index)
+            );
+
+            Collection<ItemStack> drops = tool == null
+                    ? block.getDrops()
+                    : block.getDrops(tool);
+
+            for (ItemStack drop : drops) {
+                if (
+                        drop == null
+                                || drop.getType().isAir()
+                                || drop.getAmount() <= 0
+                ) {
+                    continue;
+                }
+
+                destination.add(drop.clone());
+            }
         }
-        ItemStack damagedTool = this.toolDurability.consume(tool, uses);
-        if (tool.isSimilar(damagedTool)) {
-            return minion;
-        }
-        return minion.withEquipment(minion.equipment().withTool(damagedTool));
     }
 
-    private static Material requireMaterial(com.cryptomorin.xseries.XMaterial configuredMaterial) {
-        Material material = configuredMaterial.parseMaterial();
+    private void breakBlocks(
+            MinionContext context,
+            TreeScanner.PositionBuffer blocks
+    ) {
+        for (int index = 0; index < blocks.size(); index++) {
+            Block block = context.world().getBlockAt(
+                    blocks.x(index),
+                    blocks.y(index),
+                    blocks.z(index)
+            );
+
+            block.setType(
+                    Material.AIR,
+                    false
+            );
+        }
+    }
+
+    private void replant(
+            MinionContext context,
+            TreeScanner.PositionBuffer logs,
+            int baseY
+    ) {
+        if (!this.config.replantFullTrunkFootprint) {
+            Block base = context.world().getBlockAt(
+                    logs.x(0),
+                    baseY,
+                    logs.z(0)
+            );
+
+            base.setType(
+                    this.saplingMaterial,
+                    false
+            );
+
+            return;
+        }
+
+        LongPositionSet replanted =
+                new LongPositionSet();
+
+        for (int index = 0; index < logs.size(); index++) {
+            if (logs.y(index) != baseY) {
+                continue;
+            }
+
+            int x = logs.x(index);
+            int z = logs.z(index);
+
+            if (!replanted.add(x, z)) {
+                continue;
+            }
+
+            Block position = context.world().getBlockAt(
+                    x,
+                    baseY,
+                    z
+            );
+
+            if (!position.getType().isAir()) {
+                continue;
+            }
+
+            position.setType(
+                    this.saplingMaterial,
+                    false
+            );
+        }
+    }
+
+    private static Set<Material> parseMaterials(
+            List<XMaterial> configured,
+            String name
+    ) {
+        Set<Material> materials =
+                parseOptionalMaterials(configured);
+
+        if (materials.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Lumberjack " + name
+                            + " must contain at least one valid material"
+            );
+        }
+
+        return materials;
+    }
+
+    private static Set<Material> parseOptionalMaterials(
+            List<XMaterial> configured
+    ) {
+        if (configured == null || configured.isEmpty()) {
+            return Set.of();
+        }
+
+        EnumSet<Material> materials =
+                EnumSet.noneOf(Material.class);
+
+        for (XMaterial material : configured) {
+            if (material == null) {
+                continue;
+            }
+
+            Material parsed = material.parseMaterial();
+
+            if (parsed != null) {
+                materials.add(parsed);
+            }
+        }
+
+        if (materials.isEmpty()) {
+            return Set.of();
+        }
+
+        return Set.copyOf(materials);
+    }
+
+    private static Material requireMaterial(
+            XMaterial configured,
+            String name
+    ) {
+        Material material = configured == null
+                ? null
+                : configured.parseMaterial();
+
         if (material == null) {
-            throw new IllegalArgumentException("Lumberjack material is unavailable: " + configuredMaterial);
+            throw new IllegalArgumentException(
+                    "Lumberjack " + name
+                            + " material is unavailable: "
+                            + configured
+            );
         }
+
         return material;
     }
 
-    private static MinionStatus resolveIdleStatus(boolean foundSapling, boolean foundInvalidStation) {
+    private static MinionStatus resolveIdleStatus(
+            boolean foundSapling,
+            boolean foundInvalidStation
+    ) {
         if (foundSapling) {
             return LumberjackStatuses.WAITING_FOR_TREE;
         }
+
         if (foundInvalidStation) {
             return LumberjackStatuses.INVALID_STATION;
         }
+
         return LumberjackStatuses.NO_SAPLING;
     }
 
-    private static int expectedDropCapacity(int logCount) {
-        long expectedCapacity = (long) logCount * EXPECTED_DROPS_PER_LOG;
-        return (int) Math.min(expectedCapacity, Integer.MAX_VALUE - 8L);
+    private static int expectedDropCapacity(
+            int blockCount
+    ) {
+        long expectedCapacity =
+                (long) blockCount * EXPECTED_DROPS_PER_BLOCK;
+
+        return (int) Math.min(
+                expectedCapacity,
+                Integer.MAX_VALUE - 8L
+        );
     }
 
+    private static final class LongPositionSet {
+
+        private final it.unimi.dsi.fastutil.longs.LongOpenHashSet positions =
+                new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+
+        private boolean add(int x, int z) {
+            long position =
+                    ((long) x << 32)
+                            ^ (z & 0xFFFFFFFFL);
+
+            return this.positions.add(position);
+        }
+    }
 }

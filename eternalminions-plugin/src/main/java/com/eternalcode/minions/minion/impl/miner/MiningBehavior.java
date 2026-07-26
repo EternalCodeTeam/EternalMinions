@@ -1,21 +1,23 @@
 package com.eternalcode.minions.minion.impl.miner;
 
 import com.eternalcode.minions.config.AbstractMinionConfig;
+import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
+import com.eternalcode.minions.minion.MaterialFilter;
 import com.eternalcode.minions.minion.MinionPosition;
 import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.MiningMode;
+import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.tool.SpeedEnchant;
 import com.eternalcode.minions.minion.tool.ToolCheck;
-import com.eternalcode.minions.minion.tool.ToolDurabilityService;
-import com.eternalcode.minions.minion.tool.ToolInventoryLocator;
+import com.eternalcode.minions.minion.tool.MinionToolPreparation;
+import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import com.eternalcode.minions.minion.tool.ToolValidationService;
+import java.io.File;
 import java.util.Collection;
-import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
@@ -23,26 +25,34 @@ import org.bukkit.inventory.ItemStack;
 public final class MiningBehavior implements MinionBehavior {
 
     private final MinerConfig config;
-    private final ToolValidationService toolValidation;
-    private final ToolDurabilityService toolDurability;
-    private final ToolInventoryLocator toolLocator;
+    private final MinionToolService tools;
+    private final MinionItemTransferService transfers;
     private final ToolRequirement toolRequirement;
-    private final Set<Material> blockedMaterials;
-    private final Set<Material> allowedMaterials;
+    private final MaterialFilter materialFilter;
+
+    public static MiningBehavior create(
+        ConfigService configs,
+        File directory,
+        MinionToolService tools,
+        MinionItemTransferService transfers
+    ) {
+        MinerConfig config = configs.load(MinerConfig.class, new File(directory, "miner.yml"));
+        return new MiningBehavior(config, tools, transfers);
+    }
 
     public MiningBehavior(
         MinerConfig config,
-        ToolValidationService toolValidation,
-        ToolDurabilityService toolDurability,
-        ToolInventoryLocator toolLocator
+        MinionToolService tools,
+        MinionItemTransferService transfers
     ) {
         this.config = config;
-        this.toolValidation = toolValidation;
-        this.toolDurability = toolDurability;
-        this.toolLocator = toolLocator;
+        this.tools = tools;
+        this.transfers = transfers;
         this.toolRequirement = config.toolRequirement();
-        this.blockedMaterials = config.materials(config.blockedMaterials);
-        this.allowedMaterials = config.materials(config.allowedMaterials);
+        this.materialFilter = new MaterialFilter(
+                config.materials(config.allowedMaterials),
+                config.materials(config.blockedMaterials)
+        );
     }
 
     @Override
@@ -57,21 +67,15 @@ public final class MiningBehavior implements MinionBehavior {
 
     @Override
     public MinionResult execute(MinionContext context) {
-        Minion minion = context.retireWornTool(
-            context.minion(),
+        MinionToolPreparation preparation = this.tools.prepare(
+            context,
             this.toolRequirement,
-            this.toolValidation,
-            this.toolLocator
-        );
-
-        ToolCheck toolCheck = this.toolValidation.validate(
-            this.toolRequirement,
-            minion.equipment().tool(),
             MinerStatuses.NO_PICKAXE
         );
-        if (toolCheck instanceof ToolCheck.Stopped stopped) {
-            return MinionResult.idle(minion, stopped.reason());
+        if (preparation.check() instanceof ToolCheck.Stopped stopped) {
+            return MinionResult.idle(preparation.minion(), stopped.reason());
         }
+        Minion minion = preparation.minion();
 
         MinionResult result = minion.settings().miningMode() == MiningMode.LINEAR
             ? this.executeLinear(context, minion)
@@ -147,7 +151,7 @@ public final class MiningBehavior implements MinionBehavior {
         }
 
         ItemStack tool = minion.equipment().tool();
-        ToolCheck toolCheck = this.toolValidation.validateAgainstBlock(
+        ToolCheck toolCheck = this.tools.validateAgainstBlock(
             this.toolRequirement,
             tool,
             block,
@@ -159,20 +163,11 @@ public final class MiningBehavior implements MinionBehavior {
 
         Collection<ItemStack> drops = tool == null ? block.getDrops() : block.getDrops(tool);
         block.setType(Material.AIR, true);
-        Minion updated = this.consumeTool(minion, tool);
-        updated = context.deposit(updated, block.getLocation(), drops);
+        Minion updated = this.tools.consume(minion, 1);
+        updated = this.transfers.deposit(context, updated, block.getLocation(), drops);
         updated = updated.withProgress(updated.progress().advanced(this.config));
         context.scheduledMinion().face(targetYaw);
         return MinionResult.worked(updated, MinerStatuses.MINING);
-    }
-
-    private Minion consumeTool(Minion minion, ItemStack tool) {
-        if (tool == null) {
-            return minion;
-        }
-
-        ItemStack damagedTool = this.toolDurability.consume(tool, 1);
-        return minion.withEquipment(minion.equipment().withTool(damagedTool));
     }
 
     private boolean canMine(Minion minion, Block block) {
@@ -180,10 +175,7 @@ public final class MiningBehavior implements MinionBehavior {
         if (block.isEmpty() || block.isLiquid() || material == Material.BEDROCK) {
             return false;
         }
-        if (this.blockedMaterials.contains(material)) {
-            return false;
-        }
-        if (!this.allowedMaterials.isEmpty() && !this.allowedMaterials.contains(material)) {
+        if (!this.materialFilter.allows(material)) {
             return false;
         }
 

@@ -1,10 +1,15 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.access.MinionAccessGuard;
+import com.eternalcode.minions.database.MinionData;
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.item.MinionItemFactory;
+import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.eternalcode.minions.render.MinionRenderService;
+import java.util.List;
 import java.util.Optional;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -16,19 +21,42 @@ public final class MinionLifecycleService {
     private final MinionRenderService renders;
     private final MinionPersistenceService persistence;
     private final MinionItemFactory items;
+    private final MinionBehaviorRegistry behaviors;
+    private final MinionAccessGuard access;
+    private final MinionItemTransferService transfers;
 
     public MinionLifecycleService(
         MinionRegistry minions,
         MinionActionEngine actions,
         MinionRenderService renders,
         MinionPersistenceService persistence,
-        MinionItemFactory items
+        MinionItemFactory items,
+        MinionBehaviorRegistry behaviors,
+        MinionAccessGuard access,
+        MinionItemTransferService transfers
     ) {
         this.minions = minions;
         this.actions = actions;
         this.renders = renders;
         this.persistence = persistence;
         this.items = items;
+        this.behaviors = behaviors;
+        this.access = access;
+        this.transfers = transfers;
+    }
+
+    public int restoreAll(List<MinionData> loaded) {
+        for (MinionData data : loaded) {
+            Minion minion = data.restore();
+            MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
+            if (behavior != null && behavior.storageCapacity(minion) > minion.storage().capacity()) {
+                minion = minion.withStorage(minion.storage().resized(behavior.storageCapacity(minion)));
+            }
+            this.minions.register(minion);
+            this.actions.add(minion);
+            this.renders.showToNearby(minion);
+        }
+        return loaded.size();
     }
 
     public void add(Minion minion) {
@@ -79,10 +107,20 @@ public final class MinionLifecycleService {
         this.persistence.saveChestLink(minion);
     }
 
-    public void pickup(Player player, Minion minion) {
-        Optional<Minion> removed = this.minions.remove(minion.id());
+    public boolean pickup(Player player, Minion minion) {
+        Minion accessibleMinion = this.access.findAccessible(
+                player,
+                minion.id(),
+                MinionAccessAction.PICK_UP
+        ).orElse(null);
+
+        if (accessibleMinion == null) {
+            return false;
+        }
+
+        Optional<Minion> removed = this.minions.remove(accessibleMinion.id());
         if (removed.isEmpty()) {
-            return;
+            return false;
         }
 
         Minion current = removed.get();
@@ -93,21 +131,17 @@ public final class MinionLifecycleService {
         for (int slot = 0; slot < storage.capacity(); slot++) {
             ItemStack item = storage.item(slot);
             if (item != null) {
-                this.giveOrDrop(player, item);
+                this.transfers.giveOrDrop(player, item);
             }
         }
 
         // Storage contents are handed out as loose items above, so the minion item itself
         // must carry an emptied storage — otherwise placing it again would duplicate them.
         Minion emptied = current.withStorage(new MinionStorage(storage.capacity()));
-        this.giveOrDrop(player, this.items.create(emptied));
+        this.transfers.giveOrDrop(player, this.items.create(emptied));
 
         this.persistence.delete(current.id());
+        return true;
     }
 
-    private void giveOrDrop(Player player, ItemStack item) {
-        for (ItemStack remaining : player.getInventory().addItem(item).values()) {
-            player.getWorld().dropItemNaturally(player.getLocation(), remaining);
-        }
-    }
 }

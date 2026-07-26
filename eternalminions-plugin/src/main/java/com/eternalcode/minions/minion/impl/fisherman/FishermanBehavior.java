@@ -1,49 +1,68 @@
 package com.eternalcode.minions.minion.impl.fisherman;
 
+import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
+import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
+import com.eternalcode.minions.minion.MinionRotation;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
+import com.eternalcode.minions.minion.status.MinionStatus;
+import com.eternalcode.minions.minion.tool.MinionToolPreparation;
+import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
-import com.eternalcode.minions.minion.tool.ToolDurabilityService;
-import com.eternalcode.minions.minion.tool.ToolInventoryLocator;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import com.eternalcode.minions.minion.tool.ToolValidationService;
-import java.util.Collection;
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Material;
-import org.bukkit.Server;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.loot.LootContext;
-import org.bukkit.loot.LootTable;
-import org.bukkit.loot.LootTables;
 
 public final class FishermanBehavior implements MinionBehavior {
 
     private final FishermanConfig config;
-    private final Server server;
-    private final ToolValidationService toolValidation;
-    private final ToolDurabilityService toolDurability;
-    private final ToolInventoryLocator toolLocator;
+
+    private final MinionToolService tools;
+    private final MinionItemTransferService transfers;
     private final ToolRequirement toolRequirement;
-    private final WaterBodyScanner scanner = new WaterBodyScanner();
+
+    private final WaterBodyScanner scanner =
+            new WaterBodyScanner();
+
+    public static FishermanBehavior create(
+            ConfigService configs,
+            File directory,
+            MinionToolService tools,
+            MinionItemTransferService transfers
+    ) {
+        FishermanConfig config = configs.load(
+                FishermanConfig.class,
+                new File(directory, "fisherman.yml")
+        );
+
+        return new FishermanBehavior(
+                config,
+                tools,
+                transfers
+        );
+    }
 
     public FishermanBehavior(
-        FishermanConfig config,
-        Server server,
-        ToolValidationService toolValidation,
-        ToolDurabilityService toolDurability,
-        ToolInventoryLocator toolLocator
+            FishermanConfig config,
+            MinionToolService tools,
+            MinionItemTransferService transfers
     ) {
         this.config = config;
-        this.server = server;
-        this.toolValidation = toolValidation;
-        this.toolDurability = toolDurability;
-        this.toolLocator = toolLocator;
+
+        this.tools = tools;
+        this.transfers = transfers;
         this.toolRequirement = config.toolRequirement();
     }
 
@@ -59,108 +78,235 @@ public final class FishermanBehavior implements MinionBehavior {
 
     @Override
     public MinionResult execute(MinionContext context) {
-        Minion minion = context.retireWornTool(
-            context.minion(),
-            this.toolRequirement,
-            this.toolValidation,
-            this.toolLocator
+        MinionToolPreparation preparation = this.tools.prepare(
+                context,
+                this.toolRequirement,
+                FisherStatuses.NO_ROD
         );
-        ToolCheck toolCheck = this.toolValidation.validate(
-            this.toolRequirement,
-            minion.equipment().tool(),
-            FisherStatuses.NO_ROD
-        );
-        if (toolCheck instanceof ToolCheck.Stopped stopped) {
+        if (preparation.check() instanceof ToolCheck.Stopped stopped) {
             context.scheduledMinion().clearBusyTimer();
-            return MinionResult.idle(minion, stopped.reason());
+
+            return MinionResult.idle(
+                    preparation.minion(),
+                    stopped.reason()
+            );
         }
+        Minion minion = preparation.minion();
+
         if (!context.hasStorageRoom()) {
             context.scheduledMinion().clearBusyTimer();
-            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+
+            return MinionResult.idle(
+                    minion,
+                    CoreMinionStatuses.STORAGE_FULL
+            );
         }
 
-        Block waterBlock = this.findWaterNearby(context);
-        if (waterBlock == null) {
+        WaterBodyScanner.ScanResult waterResult =
+                this.findFishingWater(context);
+
+        if (!waterResult.valid()) {
             context.scheduledMinion().clearBusyTimer();
-            return MinionResult.idle(minion, FisherStatuses.NO_WATER_NEARBY);
+
+            return MinionResult.idle(
+                    minion,
+                    status(waterResult.failure())
+            );
         }
-        int connectedWaterBlocks = this.scanner.countConnected(
-            waterBlock.getX(),
-            waterBlock.getY(),
-            waterBlock.getZ(),
-            (blockX, blockY, blockZ) ->
-                context.world().getBlockAt(blockX, blockY, blockZ).getType() == Material.WATER,
-            this.config.minWaterBlocks
+
+        Block water = waterResult.water();
+
+        context.scheduledMinion().face(
+                MinionRotation.yawTowards(
+                        minion.position().blockX(),
+                        minion.position().blockZ(),
+                        water.getX(),
+                        water.getZ()
+                )
         );
-        if (connectedWaterBlocks < this.config.minWaterBlocks) {
-            context.scheduledMinion().clearBusyTimer();
-            return MinionResult.idle(minion, FisherStatuses.WATER_TOO_SMALL);
-        }
 
-        ItemStack tool = minion.equipment().tool();
-        long worldTime = context.world().getFullTime();
-        if (context.scheduledMinion().isBusyUntil(worldTime)) {
-            long remainingTicks = context.scheduledMinion().remainingBusyTicks(worldTime);
-            return MinionResult.idle(minion, FisherStatuses.FISHING).withDelay(remainingTicks);
-        }
-        if (!context.scheduledMinion().hasBusyTimer()) {
-            long waitTicks = this.fishingWait(tool);
-            context.scheduledMinion().busyUntil(worldTime + waitTicks);
-            return MinionResult.worked(minion, FisherStatuses.FISHING).withDelay(waitTicks);
-        }
+        ItemStack rod = minion.equipment().tool();
 
-        context.scheduledMinion().clearBusyTimer();
-        int luck = tool == null ? 0 : tool.getEnchantmentLevel(Enchantment.LUCK_OF_THE_SEA);
-        LootContext lootContext = new LootContext.Builder(waterBlock.getLocation()).luck(luck).build();
-        LootTable lootTable = this.server.getLootTable(LootTables.FISHING.getKey());
-        if (lootTable == null) {
-            return MinionResult.idle(minion, FisherStatuses.NO_WATER_NEARBY);
-        }
-
-        Collection<ItemStack> drops = lootTable.populateLoot(ThreadLocalRandom.current(), lootContext);
-        Minion updated = this.consumeTool(minion, tool);
-        updated = context.deposit(updated, waterBlock.getLocation(), drops);
-        updated = updated.withProgress(updated.progress().advanced(this.config));
-        return MinionResult.worked(updated, CoreMinionStatuses.WORKING);
-    }
-
-    private long fishingWait(ItemStack tool) {
-        int lureLevel = tool == null ? 0 : tool.getEnchantmentLevel(Enchantment.LURE);
-        return Math.max(
-            1L,
-            this.config.baseWaitTicks - (long) this.config.lureTicksReductionPerLevel * lureLevel
+        return this.catchFish(
+                context,
+                minion,
+                rod,
+                water
         );
     }
 
-    private Block findWaterNearby(MinionContext context) {
-        int baseX = context.minion().position().blockX();
-        int baseY = context.minion().position().blockY();
-        int baseZ = context.minion().position().blockZ();
-        if (!context.world().isChunkLoaded(baseX >> 4, baseZ >> 4)) {
-            return null;
+    private MinionResult catchFish(
+            MinionContext context,
+            Minion minion,
+            ItemStack rod,
+            Block water
+    ) {
+        Optional<ItemStack> caughtItem = this.randomCatch(rod);
+
+        Minion updated = this.tools.consume(minion, 1);
+
+        if (caughtItem.isPresent()) {
+            updated = this.transfers.deposit(
+                    context,
+                    updated,
+                    water.getLocation(),
+                    List.of(caughtItem.get())
+            );
         }
 
-        for (int offsetX = -1; offsetX <= 1; offsetX++) {
-            for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
-                Block sameLevel = context.world().getBlockAt(baseX + offsetX, baseY, baseZ + offsetZ);
-                if (sameLevel.getType() == Material.WATER) {
-                    return sameLevel;
-                }
-                Block below = context.world().getBlockAt(baseX + offsetX, baseY - 1, baseZ + offsetZ);
-                if (below.getType() == Material.WATER) {
-                    return below;
-                }
+        updated = updated.withProgress(
+                updated.progress().advanced(this.config)
+        );
+
+        int lureLevel = enchantmentLevel(rod, Enchantment.LURE);
+        MinionStatus status = caughtItem.isPresent()
+                ? FisherStatuses.CATCHING
+                : FisherStatuses.NOTHING_CAUGHT;
+
+        return MinionResult
+                .worked(updated, status)
+                .withDelay(this.config.fishingWaitTicks(
+                        lureLevel,
+                        updated.upgrades()
+                ));
+    }
+
+    private Optional<ItemStack> randomCatch(ItemStack rod) {
+        double emptyCatchChance = Math.clamp(
+                this.config.emptyCatchChance,
+                0.0,
+                100.0
+        );
+
+        if (ThreadLocalRandom.current().nextDouble(100.0) < emptyCatchChance) {
+            return Optional.empty();
+        }
+
+        int luckLevel = enchantmentLevel(
+                rod,
+                Enchantment.LUCK_OF_THE_SEA
+        );
+
+        double fishWeight = Math.max(0.0, this.config.fishCategoryWeight);
+        double junkWeight = Math.max(
+                0.0,
+                this.config.junkCategoryWeight
+                        - (luckLevel * this.config.luckJunkWeightReductionPerLevel)
+        );
+        double treasureWeight = Math.max(
+                0.0,
+                this.config.treasureCategoryWeight
+                        + (luckLevel * this.config.luckTreasureWeightPerLevel)
+        );
+        double totalWeight = fishWeight + junkWeight + treasureWeight;
+
+        if (totalWeight <= 0.0) {
+            return Optional.of(new ItemStack(Material.COD));
+        }
+
+        double categoryRoll = ThreadLocalRandom.current().nextDouble(totalWeight);
+
+        if (categoryRoll < fishWeight) {
+            return Optional.of(randomItem(this.config.fishLoot));
+        }
+
+        if (categoryRoll < fishWeight + junkWeight) {
+            return Optional.of(randomItem(this.config.junkLoot));
+        }
+
+        return Optional.of(randomItem(this.config.treasureLoot));
+    }
+
+    private static ItemStack randomItem(
+            Map<XMaterial, Integer> configuredLoot
+    ) {
+        if (configuredLoot == null || configuredLoot.isEmpty()) {
+            return new ItemStack(Material.COD);
+        }
+
+        long totalWeight = 0L;
+
+        for (Integer weight : configuredLoot.values()) {
+            if (weight != null && weight > 0) {
+                totalWeight += weight;
             }
         }
-        return null;
+
+        if (totalWeight <= 0L) {
+            return new ItemStack(Material.COD);
+        }
+
+        long materialRoll = ThreadLocalRandom.current().nextLong(totalWeight);
+
+        for (Map.Entry<XMaterial, Integer> entry : configuredLoot.entrySet()) {
+            Integer weight = entry.getValue();
+
+            if (weight == null || weight <= 0) {
+                continue;
+            }
+
+            if (materialRoll >= weight) {
+                materialRoll -= weight;
+                continue;
+            }
+
+            Material material = entry.getKey().parseMaterial();
+
+            if (material != null) {
+                return new ItemStack(material);
+            }
+
+            break;
+        }
+
+        return new ItemStack(Material.COD);
     }
 
-    private Minion consumeTool(Minion minion, ItemStack tool) {
-        if (tool == null) {
-            return minion;
+    private WaterBodyScanner.ScanResult findFishingWater(
+            MinionContext context
+    ) {
+        Minion minion = context.minion();
+
+        return this.scanner.scan(
+                context.world(),
+                minion.position().blockX(),
+                minion.position().blockY(),
+                minion.position().blockZ(),
+                this.config.searchRange(),
+                this.config.searchDepth(),
+                this.config.requiredWaterBlocks(),
+                this.config.requiredWaterDepth(),
+                this.config.requireOpenSurface
+        );
+    }
+
+    private static int enchantmentLevel(
+            ItemStack item,
+            Enchantment enchantment
+    ) {
+        if (item == null) {
+            return 0;
         }
-        ItemStack damagedTool = this.toolDurability.consume(tool, 1);
-        return minion.withEquipment(minion.equipment().withTool(damagedTool));
+
+        return item.getEnchantmentLevel(enchantment);
+    }
+
+    private static MinionStatus status(
+            WaterBodyScanner.Failure failure
+    ) {
+        return switch (failure) {
+            case NO_WATER ->
+                    FisherStatuses.NO_WATER_NEARBY;
+
+            case TOO_SMALL ->
+                    FisherStatuses.WATER_TOO_SMALL;
+
+            case TOO_SHALLOW ->
+                    FisherStatuses.WATER_TOO_SHALLOW;
+
+            case SURFACE_BLOCKED ->
+                    FisherStatuses.WATER_SURFACE_BLOCKED;
+        };
     }
 
 }

@@ -1,11 +1,12 @@
 package com.eternalcode.minions.minion.storage;
 
+import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.access.MinionAccessGuard;
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionPosition;
-import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.notice.NoticeService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -24,7 +25,7 @@ import org.bukkit.inventory.EquipmentSlot;
 
 public final class ChestLinkService implements Listener {
 
-    private final MinionRegistry minions;
+    private final MinionAccessGuard access;
     private final MinionsConfig config;
     private final Consumer<Minion> update;
     private final MessagesConfig messages;
@@ -32,13 +33,13 @@ public final class ChestLinkService implements Listener {
     private final Cache<UUID, MinionId> pendingLinks;
 
     public ChestLinkService(
-            MinionRegistry minions,
+            MinionAccessGuard access,
             MinionsConfig config,
             Consumer<Minion> update,
             MessagesConfig messages,
             NoticeService notices
     ) {
-        this.minions = minions;
+        this.access = access;
         this.config = config;
         this.update = update;
         this.messages = messages;
@@ -49,6 +50,17 @@ public final class ChestLinkService implements Listener {
     }
 
     public void toggle(Player player, Minion minion) {
+        Minion current = this.access.findAccessible(
+                player,
+                minion.id(),
+                MinionAccessAction.MANAGE
+        ).orElse(null);
+
+        if (current == null) {
+            return;
+        }
+
+        minion = current;
         UUID playerId = player.getUniqueId();
 
         if (minion.chestPosition() != null) {
@@ -99,14 +111,13 @@ public final class ChestLinkService implements Listener {
         this.pendingLinks.invalidate(player.getUniqueId());
         event.setCancelled(true);
 
-        Minion minion = this.minions.findMinion(minionId).orElse(null);
+        Minion minion = this.access.findAccessible(
+                player,
+                minionId,
+                MinionAccessAction.MANAGE
+        ).orElse(null);
 
         if (minion == null) {
-            this.notices.create()
-                    .viewer(player)
-                    .notice(this.messages.minionNotFound)
-                    .send();
-
             return;
         }
 

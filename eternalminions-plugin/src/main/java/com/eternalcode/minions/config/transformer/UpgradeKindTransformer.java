@@ -1,4 +1,4 @@
-package com.eternalcode.minions.config;
+package com.eternalcode.minions.config.transformer;
 
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import eu.okaeri.configs.schema.GenericsPair;

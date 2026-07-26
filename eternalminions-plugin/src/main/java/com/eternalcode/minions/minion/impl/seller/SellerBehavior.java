@@ -1,11 +1,13 @@
 package com.eternalcode.minions.minion.impl.seller;
 
 import com.eternalcode.minions.config.AbstractMinionConfig;
+import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.storage.MinionStorage;
+import java.io.File;
 import org.bukkit.block.Container;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -14,6 +16,11 @@ public final class SellerBehavior implements MinionBehavior {
 
     private final SellerConfig config;
     private final ShopIntegration shop;
+
+    public static SellerBehavior create(ConfigService configs, File directory, ShopIntegration shop) {
+        SellerConfig config = configs.load(SellerConfig.class, new File(directory, "seller.yml"));
+        return new SellerBehavior(config, shop);
+    }
 
     public SellerBehavior(SellerConfig config, ShopIntegration shop) {
         this.config = config;

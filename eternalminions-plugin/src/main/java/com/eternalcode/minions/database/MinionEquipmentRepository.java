@@ -2,11 +2,9 @@ package com.eternalcode.minions.database;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
-import com.j256.ormlite.stmt.DeleteBuilder;
-import com.j256.ormlite.stmt.UpdateBuilder;
 import java.util.concurrent.CompletableFuture;
 
-public final class MinionEquipmentRepository extends AbstractRepositoryOrmLite {
+public final class MinionEquipmentRepository extends MinionComponentRepository {
 
     public MinionEquipmentRepository(DatabaseManager databaseManager, Scheduler scheduler) {
         super(databaseManager, scheduler);
@@ -24,19 +22,16 @@ public final class MinionEquipmentRepository extends AbstractRepositoryOrmLite {
     public CompletableFuture<Void> saveSlot(MinionId minionId, MinionEquipmentSlot slot, byte[] serializedItem) {
         validate(minionId, slot, serializedItem);
         byte[] itemSnapshot = serializedItem.clone();
-        return this.action(
-                MinionEquipmentTable.class, equipment -> {
-                    UpdateBuilder<MinionEquipmentTable, Object> update = equipment.updateBuilder();
-                    update.updateColumnValue("serialized_item", itemSnapshot);
-                    update.where()
-                            .eq(MinionEquipmentTable.MINION_ID_COLUMN, minionId.value())
-                            .and()
-                            .eq("slot", slot.name());
-                    if (update.update() == 0) {
-                        equipment.create(new MinionEquipmentTable(minionId.value(), slot.name(), itemSnapshot));
-                    }
-                    return null;
-                });
+        return this.saveComponent(
+                MinionEquipmentTable.class,
+                MinionEquipmentTable.MINION_ID_COLUMN,
+                minionId,
+                MinionEquipmentTable.SLOT_COLUMN,
+                slot.name(),
+                MinionEquipmentTable.ITEM_COLUMN,
+                itemSnapshot,
+                () -> new MinionEquipmentTable(minionId.value(), slot.name(), itemSnapshot)
+        );
     }
 
     public CompletableFuture<Void> deleteSlot(MinionId minionId, MinionEquipmentSlot slot) {
@@ -44,15 +39,12 @@ public final class MinionEquipmentRepository extends AbstractRepositoryOrmLite {
             throw new IllegalArgumentException("Minion id and equipment slot are required");
         }
 
-        return this.action(
-                MinionEquipmentTable.class, equipment -> {
-                    DeleteBuilder<MinionEquipmentTable, Object> delete = equipment.deleteBuilder();
-                    delete.where()
-                            .eq(MinionEquipmentTable.MINION_ID_COLUMN, minionId.value())
-                            .and()
-                            .eq("slot", slot.name());
-                    delete.delete();
-                    return null;
-                });
+        return this.deleteComponent(
+                MinionEquipmentTable.class,
+                MinionEquipmentTable.MINION_ID_COLUMN,
+                minionId,
+                MinionEquipmentTable.SLOT_COLUMN,
+                slot.name()
+        );
     }
 }

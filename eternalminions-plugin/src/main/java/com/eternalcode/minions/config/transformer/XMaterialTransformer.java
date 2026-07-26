@@ -1,4 +1,4 @@
-package com.eternalcode.minions.config;
+package com.eternalcode.minions.config.transformer;
 
 import com.cryptomorin.xseries.XMaterial;
 import eu.okaeri.configs.schema.GenericsPair;

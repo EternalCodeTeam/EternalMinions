@@ -1,5 +1,7 @@
 package com.eternalcode.minions.minion.impl.miner;
 
+import com.eternalcode.minions.minion.MinionRotation;
+
 final class MinionMiningTargets {
 
     static final int MAX_RADIUS = 3;
@@ -26,7 +28,7 @@ final class MinionMiningTargets {
                     }
                     xOffsets[index] = offsetX;
                     zOffsets[index] = offsetZ;
-                    yaws[index] = (float) Math.toDegrees(Math.atan2(-offsetX, offsetZ));
+                    yaws[index] = MinionRotation.yawTowards(0, 0, offsetX, offsetZ);
                     index++;
                 }
             }

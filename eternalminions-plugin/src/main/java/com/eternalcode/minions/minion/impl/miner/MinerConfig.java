@@ -6,11 +6,13 @@ import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import com.eternalcode.minions.config.MinionUpgradeTierConfig;
 import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
 import com.eternalcode.minions.minion.tool.ToolCategory;
+import eu.okaeri.configs.annotation.Include;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
 import org.bukkit.Color;
 
+@Include(AbstractMinionConfig.class)
 public final class MinerConfig extends AbstractMinionConfig {
 
     public MinerConfig() {
@@ -19,10 +21,14 @@ public final class MinerConfig extends AbstractMinionConfig {
         this.tool.required = true;
         this.items.helmet.texture = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzk2MjdiZTYyY2VkNzE0MTEzOWQzZjE1NTc5MGE1ZDQzNTZlYjdiOWVlOTVlNTA0YjMzMjI5NzRjYmM1MTVlYSJ9fX0=";
         this.npcSkin = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vcy5uYW1lbWMuY29tL2kvOGM3NmQ3N2Y2NTAzMDAwMy5wbmcifX19";
-        this.items.chestplate.color = Color.fromRGB(200, 200, 200);
-        this.items.leggings.color = Color.fromRGB(200, 200, 200);
-        this.items.boots.color = Color.fromRGB(200, 200, 200);
+        this.items.setLeatherArmorColor(Color.fromRGB(200, 200, 200));
         this.statuses = defaultStatuses();
+        this.usageInstructions.lore = List.of(
+            "<gray>1. Włóż kilof do slotu narzędzia.",
+            "<gray>2. Wybierz tryb kopania i ustaw kierunek.",
+            "<gray>3. Minion kopie bloki poziom niżej.",
+            "<gray>4. Odbieraj bloki z magazynu lub podpiętej skrzyni."
+        );
     }
 
     private static Map<MinionStatus, String> defaultStatuses() {

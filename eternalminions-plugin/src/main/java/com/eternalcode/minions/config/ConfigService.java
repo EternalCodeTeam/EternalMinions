@@ -4,8 +4,6 @@ import com.eternalcode.multification.notice.resolver.NoticeResolverDefaults;
 import com.eternalcode.multification.okaeri.MultificationSerdesPack;
 import eu.okaeri.configs.ConfigManager;
 import eu.okaeri.configs.OkaeriConfig;
-import eu.okaeri.configs.serdes.OkaeriSerdesPack;
-import eu.okaeri.configs.serdes.SerdesRegistry;
 import eu.okaeri.configs.serdes.commons.SerdesCommons;
 import eu.okaeri.configs.yaml.bukkit.serdes.SerdesBukkit;
 import eu.okaeri.configs.yaml.snakeyaml.YamlSnakeYamlConfigurer;
@@ -76,16 +74,6 @@ public final class ConfigService {
     private void validate(OkaeriConfig config) {
         if (config instanceof MinionPanelConfig panelConfig) {
             MinionPanelLayout.from(panelConfig);
-        }
-    }
-
-    private static final class EternalMinionsSerdesPack implements OkaeriSerdesPack {
-
-        @Override
-        public void register(SerdesRegistry registry) {
-            registry.register(new XMaterialTransformer());
-            registry.register(new MinionStatusTransformer());
-            registry.register(new UpgradeKindTransformer());
         }
     }
 

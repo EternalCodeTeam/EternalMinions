@@ -2,22 +2,27 @@ package com.eternalcode.minions.minion.impl.farmer;
 
 import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
+import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
+import com.eternalcode.minions.minion.MinionRotation;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
+import com.eternalcode.minions.minion.tool.MinionToolPreparation;
+import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
-import com.eternalcode.minions.minion.tool.ToolDurabilityService;
-import com.eternalcode.minions.minion.tool.ToolInventoryLocator;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import com.eternalcode.minions.minion.tool.ToolValidationService;
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -27,27 +32,142 @@ import org.bukkit.inventory.ItemStack;
 public final class FarmerBehavior implements MinionBehavior {
 
     private final FarmerConfig config;
-    private final ToolValidationService toolValidation;
-    private final ToolDurabilityService toolDurability;
-    private final ToolInventoryLocator toolLocator;
+
+    private final MinionToolService tools;
+    private final MinionItemTransferService transfers;
     private final ToolRequirement toolRequirement;
-    private final Set<Material> cropMaterials;
-    private final Map<Material, Material> seedByCrop;
+
+    private final Map<Material, CropShape> crops;
+    private final Map<Material, Material> seeds;
 
     public FarmerBehavior(
-        FarmerConfig config,
-        ToolValidationService toolValidation,
-        ToolDurabilityService toolDurability,
-        ToolInventoryLocator toolLocator
+            FarmerConfig config,
+            MinionToolService tools,
+            MinionItemTransferService transfers
     ) {
         this.config = config;
-        this.toolValidation = toolValidation;
-        this.toolDurability = toolDurability;
-        this.toolLocator = toolLocator;
+
+        this.tools = tools;
+        this.transfers = transfers;
         this.toolRequirement = config.toolRequirement();
-        Set<Material> configuredCrops = config.materials(config.cropMaterials);
-        this.cropMaterials = configuredCrops.isEmpty() ? Set.of(Material.WHEAT) : configuredCrops;
-        this.seedByCrop = mapSeeds(config.seedByCrop);
+
+        this.crops = parseCrops(config.crops);
+        this.seeds = parseMaterials(config.seeds);
+    }
+
+    public static FarmerBehavior create(
+            ConfigService configs,
+            File directory,
+            MinionToolService tools,
+            MinionItemTransferService transfers
+    ) {
+        FarmerConfig config = configs.load(
+                FarmerConfig.class,
+                new File(directory, "farmer.yml")
+        );
+
+        return new FarmerBehavior(
+                config,
+                tools,
+                transfers
+        );
+    }
+
+    private static List<ItemStack> mutableDrops(
+            Block block,
+            ItemStack tool
+    ) {
+        Collection<ItemStack> drops = tool == null
+                ? block.getDrops()
+                : block.getDrops(tool);
+
+        List<ItemStack> result = new ArrayList<>(drops.size());
+
+        for (ItemStack drop : drops) {
+            if (drop == null) {
+                continue;
+            }
+
+            if (drop.getType().isAir() || drop.getAmount() <= 0) {
+                continue;
+            }
+
+            result.add(drop.clone());
+        }
+
+        return result;
+    }
+
+    private static boolean consumeOne(
+            List<ItemStack> drops,
+            Material material
+    ) {
+        Iterator<ItemStack> iterator = drops.iterator();
+
+        while (iterator.hasNext()) {
+            ItemStack drop = iterator.next();
+
+            if (drop.getType() != material) {
+                continue;
+            }
+
+            if (drop.getAmount() <= 1) {
+                iterator.remove();
+            }
+            else {
+                drop.setAmount(drop.getAmount() - 1);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static Map<Material, CropShape> parseCrops(
+            Map<XMaterial, CropShape> configuredCrops
+    ) {
+        Map<Material, CropShape> crops =
+                new EnumMap<>(Material.class);
+
+        for (
+                Map.Entry<XMaterial, CropShape> entry
+                : configuredCrops.entrySet()
+        ) {
+            Material material = entry.getKey().parseMaterial();
+            CropShape shape = entry.getValue();
+
+            if (material == null || shape == null) {
+                continue;
+            }
+
+            crops.put(material, shape);
+        }
+
+        return Map.copyOf(crops);
+    }
+
+    private static Map<Material, Material> parseMaterials(
+            Map<XMaterial, XMaterial> configuredMaterials
+    ) {
+        Map<Material, Material> materials =
+                new EnumMap<>(Material.class);
+
+        for (
+                Map.Entry<XMaterial, XMaterial> entry
+                : configuredMaterials.entrySet()
+        ) {
+            Material key = entry.getKey().parseMaterial();
+            Material value = entry.getValue().parseMaterial();
+
+            if (key == null || value == null) {
+                continue;
+            }
+
+            materials.put(key, value);
+        }
+
+        return Map.copyOf(materials);
     }
 
     @Override
@@ -62,141 +182,280 @@ public final class FarmerBehavior implements MinionBehavior {
 
     @Override
     public MinionResult execute(MinionContext context) {
-        Minion minion = context.retireWornTool(
-            context.minion(),
-            this.toolRequirement,
-            this.toolValidation,
-            this.toolLocator
+        MinionToolPreparation preparation = this.tools.prepare(
+                context,
+                this.toolRequirement,
+                FarmerStatuses.NO_HOE
         );
-        ToolCheck toolCheck = this.toolValidation.validate(
-            this.toolRequirement,
-            minion.equipment().tool(),
-            FarmerStatuses.NO_HOE
-        );
-        if (toolCheck instanceof ToolCheck.Stopped stopped) {
-            return MinionResult.idle(minion, stopped.reason());
+        if (preparation.check() instanceof ToolCheck.Stopped(MinionStatus reason)) {
+            return MinionResult.idle(preparation.minion(), reason);
         }
+        Minion minion = preparation.minion();
+
+        if (this.crops.isEmpty()) {
+            return MinionResult.idle(
+                    minion,
+                    FarmerStatuses.NO_CONFIGURED_CROPS
+            );
+        }
+
         if (!context.hasStorageRoom()) {
-            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+            return MinionResult.idle(
+                    minion,
+                    CoreMinionStatuses.STORAGE_FULL
+            );
         }
 
-        int stationCount = this.config.stationCount(minion.upgrades());
-        MinionDirection direction = minion.settings().direction();
-        for (int checkedStations = 0; checkedStations < stationCount; checkedStations++) {
-            int stationIndex = context.scheduledMinion().miningTargetIndex(stationCount);
-            context.scheduledMinion().advanceMiningTarget(stationCount);
-            int distance = stationIndex + 1;
-            int stationX = minion.position().blockX() + direction.offsetX() * distance;
-            int stationZ = minion.position().blockZ() + direction.offsetZ() * distance;
-            int stationY = minion.position().blockY();
-            if (!context.world().isChunkLoaded(stationX >> 4, stationZ >> 4)) {
+        int range = this.config.range(minion.upgrades());
+        int targetCount = this.targetCount(range);
+
+        for (int checked = 0; checked < targetCount; checked++) {
+            int targetIndex = context.scheduledMinion()
+                    .miningTargetIndex(targetCount);
+
+            context.scheduledMinion()
+                    .advanceMiningTarget(targetCount);
+
+            Target target = this.target(
+                    minion,
+                    range,
+                    targetIndex
+            );
+
+            int blockX =
+                    minion.position().blockX() + target.offsetX();
+
+            int blockY =
+                    minion.position().blockY() + this.config.cropYOffset;
+
+            int blockZ =
+                    minion.position().blockZ() + target.offsetZ();
+
+            if (!context.world().isChunkLoaded(blockX >> 4, blockZ >> 4)) {
                 continue;
             }
 
-            Block station = context.world().getBlockAt(stationX, stationY, stationZ);
-            if (!this.cropMaterials.contains(station.getType())) {
+            Block crop = context.world().getBlockAt(
+                    blockX,
+                    blockY,
+                    blockZ
+            );
+
+            CropShape shape = this.crops.get(crop.getType());
+
+            if (shape == null) {
                 continue;
             }
 
-            MinionResult result = this.tryHarvest(context, minion, station);
-            if (result != null) {
-                context.scheduledMinion().face(direction.yaw());
-                return result;
+            MinionResult result = this.tryHarvest(
+                    context,
+                    minion,
+                    crop,
+                    shape
+            );
+
+            if (result == null) {
+                continue;
             }
+
+            context.scheduledMinion().face(
+                    MinionRotation.yawTowards(0, 0, target.offsetX(), target.offsetZ())
+            );
+
+            return result;
         }
-        return MinionResult.idle(minion, FarmerStatuses.NO_MATURE_CROPS);
+
+        return MinionResult.idle(
+                minion,
+                FarmerStatuses.NO_MATURE_CROPS
+        );
     }
 
-    private MinionResult tryHarvest(MinionContext context, Minion minion, Block station) {
-        return switch (CropShape.of(station.getType())) {
-            case ADJACENT_STEM_FRUIT -> this.harvestFruit(context, minion, station);
-            case STACKING_COLUMN -> this.harvestColumn(context, minion, station);
-            case AGEABLE_REPLANT -> this.harvestAgeable(context, minion, station);
+    private MinionResult tryHarvest(
+            MinionContext context,
+            Minion minion,
+            Block crop,
+            CropShape shape
+    ) {
+        return switch (shape) {
+            case AGEABLE_REPLANT -> this.harvestAgeable(context, minion, crop);
+
+            case STACKING_COLUMN -> this.harvestColumn(context, minion, crop);
+
+            case STEM_FRUIT -> this.harvestFruit(context, minion, crop);
         };
     }
 
-    private MinionResult harvestFruit(MinionContext context, Minion minion, Block station) {
-        ItemStack tool = minion.equipment().tool();
-        Collection<ItemStack> drops = tool == null ? station.getDrops() : station.getDrops(tool);
-        station.setType(Material.AIR, false);
-        return this.finishHarvest(context, minion, station, drops, tool, FarmerStatuses.HARVESTING);
-    }
+    private MinionResult harvestAgeable(
+            MinionContext context,
+            Minion minion,
+            Block crop
+    ) {
+        if (!(crop.getBlockData() instanceof Ageable ageable)) {
+            return null;
+        }
 
-    private MinionResult harvestColumn(MinionContext context, Minion minion, Block station) {
-        Block above = station.getRelative(BlockFace.UP);
-        if (above.getType() != station.getType()) {
+        if (ageable.getAge() < ageable.getMaximumAge()) {
             return null;
         }
 
         ItemStack tool = minion.equipment().tool();
-        Collection<ItemStack> drops = tool == null ? above.getDrops() : above.getDrops(tool);
-        above.setType(Material.AIR, false);
-        return this.finishHarvest(context, minion, station, drops, tool, FarmerStatuses.HARVESTING);
-    }
+        List<ItemStack> drops = mutableDrops(crop, tool);
 
-    private MinionResult harvestAgeable(MinionContext context, Minion minion, Block station) {
-        if (!(station.getBlockData() instanceof Ageable ageable) || ageable.getAge() < ageable.getMaximumAge()) {
-            return null;
+        Material seed = this.seeds.get(crop.getType());
+
+        if (seed != null && !consumeOne(drops, seed)) {
+            return MinionResult.idle(
+                    minion,
+                    FarmerStatuses.NO_SEEDS
+            );
         }
 
-        ItemStack tool = minion.equipment().tool();
-        Collection<ItemStack> drops = tool == null ? station.getDrops() : station.getDrops(tool);
-        Material seedMaterial = this.seedByCrop.get(station.getType());
-        ItemStack seed = seedMaterial == null ? null : findSeed(drops, seedMaterial);
-        if (seedMaterial != null && seed == null) {
-            station.setType(Material.AIR, false);
-            return this.finishHarvest(context, minion, station, drops, tool, FarmerStatuses.NO_SEEDS);
-        }
-
-        if (seed != null) {
-            seed.setAmount(seed.getAmount() - 1);
-        }
         ageable.setAge(0);
-        station.setBlockData(ageable, false);
-        return this.finishHarvest(context, minion, station, drops, tool, FarmerStatuses.HARVESTING);
+        crop.setBlockData(ageable, false);
+
+        return this.finishHarvest(
+                context,
+                minion,
+                crop,
+                drops,
+                FarmerStatuses.HARVESTING
+        );
+    }
+
+    private MinionResult harvestColumn(
+            MinionContext context,
+            Minion minion,
+            Block crop
+    ) {
+        Block harvested = this.findTopColumnBlock(crop);
+
+        if (harvested == null) {
+            return null;
+        }
+
+        ItemStack tool = minion.equipment().tool();
+        List<ItemStack> drops = mutableDrops(harvested, tool);
+
+        harvested.setType(Material.AIR, false);
+
+        return this.finishHarvest(
+                context,
+                minion,
+                harvested,
+                drops,
+                FarmerStatuses.HARVESTING
+        );
+    }
+
+    private MinionResult harvestFruit(
+            MinionContext context,
+            Minion minion,
+            Block fruit
+    ) {
+        ItemStack tool = minion.equipment().tool();
+        List<ItemStack> drops = mutableDrops(fruit, tool);
+
+        fruit.setType(Material.AIR, false);
+
+        return this.finishHarvest(
+                context,
+                minion,
+                fruit,
+                drops,
+                FarmerStatuses.HARVESTING
+        );
     }
 
     private MinionResult finishHarvest(
-        MinionContext context,
-        Minion minion,
-        Block station,
-        Collection<ItemStack> drops,
-        ItemStack tool,
-        MinionStatus status
+            MinionContext context,
+            Minion minion,
+            Block harvested,
+            Collection<ItemStack> drops,
+            MinionStatus status
     ) {
-        Minion updated = this.consumeTool(minion, tool);
-        updated = context.deposit(updated, station.getLocation(), drops);
-        updated = updated.withProgress(updated.progress().advanced(this.config));
+        Minion updated = this.tools.consume(minion, 1);
+
+        updated = this.transfers.deposit(
+                context,
+                updated,
+                harvested.getLocation(),
+                drops
+        );
+
+        updated = updated.withProgress(
+                updated.progress().advanced(this.config)
+        );
+
         return MinionResult.worked(updated, status);
     }
 
-    private Minion consumeTool(Minion minion, ItemStack tool) {
-        if (tool == null) {
-            return minion;
-        }
-        ItemStack damagedTool = this.toolDurability.consume(tool, 1);
-        return minion.withEquipment(minion.equipment().withTool(damagedTool));
-    }
+    private Block findTopColumnBlock(Block base) {
+        Material material = base.getType();
+        Block above = base.getRelative(BlockFace.UP);
 
-    private static ItemStack findSeed(Collection<ItemStack> drops, Material seedMaterial) {
-        for (ItemStack drop : drops) {
-            if (drop.getType() == seedMaterial) {
-                return drop;
+        if (above.getType() != material) {
+            return null;
+        }
+
+        Block highest = above;
+        int maximumY = highest.getWorld().getMaxHeight() - 1;
+
+        while (highest.getY() < maximumY) {
+            Block next = highest.getRelative(BlockFace.UP);
+
+            if (next.getType() != material) {
+                break;
             }
+
+            highest = next;
         }
-        return null;
+
+        return highest;
     }
 
-    private static Map<Material, Material> mapSeeds(Map<XMaterial, XMaterial> configuredSeeds) {
-        Map<Material, Material> seeds = new EnumMap<>(Material.class);
-        for (Map.Entry<XMaterial, XMaterial> entry : configuredSeeds.entrySet()) {
-            Material crop = entry.getKey().parseMaterial();
-            Material seed = entry.getValue().parseMaterial();
-            if (crop != null && seed != null) {
-                seeds.put(crop, seed);
-            }
+    private int targetCount(int range) {
+        if (this.config.workMode == FarmerConfig.WorkMode.LINE) {
+            return range;
         }
-        return Map.copyOf(seeds);
+
+        int sideLength = range * 2 + 1;
+
+        return sideLength * sideLength - 1;
     }
 
+    private Target target(
+            Minion minion,
+            int range,
+            int targetIndex
+    ) {
+        MinionDirection direction = minion.settings().direction();
+
+        if (this.config.workMode == FarmerConfig.WorkMode.LINE) {
+            int distance = targetIndex + 1;
+
+            return new Target(
+                    direction.offsetX() * distance,
+                    direction.offsetZ() * distance
+            );
+        }
+
+        int sideLength = range * 2 + 1;
+        int centerIndex = range * sideLength + range;
+
+        int rawIndex = targetIndex >= centerIndex
+                ? targetIndex + 1
+                : targetIndex;
+
+        int offsetX = rawIndex % sideLength - range;
+        int offsetZ = rawIndex / sideLength - range;
+
+        return new Target(offsetX, offsetZ);
+    }
+
+    private record Target(
+            int offsetX,
+            int offsetZ
+    ) {
+    }
 }

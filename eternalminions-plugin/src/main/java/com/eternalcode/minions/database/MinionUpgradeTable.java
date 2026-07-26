@@ -7,10 +7,12 @@ import com.j256.ormlite.table.DatabaseTable;
 final class MinionUpgradeTable {
 
     static final String MINION_ID_COLUMN = "minion_id";
+    static final String TYPE_COLUMN = "upgrade_type";
+    static final String TIER_COLUMN = "tier";
 
     @DatabaseField(columnName = MINION_ID_COLUMN) private long minionId;
-    @DatabaseField(columnName = "upgrade_type", canBeNull = false) private String upgradeType;
-    @DatabaseField(columnName = "tier") private int tier;
+    @DatabaseField(columnName = TYPE_COLUMN, canBeNull = false) private String upgradeType;
+    @DatabaseField(columnName = TIER_COLUMN) private int tier;
 
     MinionUpgradeTable() {
     }

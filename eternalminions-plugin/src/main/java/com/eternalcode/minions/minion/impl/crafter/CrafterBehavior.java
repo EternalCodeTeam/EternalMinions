@@ -1,29 +1,55 @@
 package com.eternalcode.minions.minion.impl.crafter;
 
-import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
-import com.eternalcode.minions.config.MinionRecipeConfig;
+import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionResult;
+import java.io.File;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
-import org.bukkit.Material;
+import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Container;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.RecipeChoice;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
 
 public final class CrafterBehavior implements MinionBehavior {
 
     private final CrafterConfig config;
     private final RecipeMatcher matcher = new RecipeMatcher();
-    private final List<MinionRecipe> recipes;
 
     public CrafterBehavior(CrafterConfig config) {
         this.config = config;
-        this.recipes = mapRecipes(config.recipes);
+    }
+
+    public static CrafterBehavior create(
+            ConfigService configs,
+            File directory
+    ) {
+        CrafterConfig config = configs.load(
+                CrafterConfig.class,
+                new File(directory, "crafter.yml")
+        );
+
+        return new CrafterBehavior(config);
+    }
+
+    private static String recipeId(Recipe recipe) {
+        if (recipe instanceof ShapedRecipe shapedRecipe) {
+            return shapedRecipe.getKey().toString();
+        }
+
+        if (recipe instanceof ShapelessRecipe shapelessRecipe) {
+            return shapelessRecipe.getKey().toString();
+        }
+
+        return NamespacedKey.MINECRAFT
+                + ":unknown";
     }
 
     @Override
@@ -40,107 +66,164 @@ public final class CrafterBehavior implements MinionBehavior {
     public MinionResult execute(MinionContext context) {
         Minion minion = context.minion();
         ItemStack selectedResult = minion.equipment().tool();
-        if (selectedResult == null || selectedResult.getType().isAir()) {
-            return MinionResult.idle(minion, CrafterStatuses.NO_RECIPE_SELECTED);
+
+        if (
+                selectedResult == null
+                        || selectedResult.getType().isAir()
+        ) {
+            return MinionResult.idle(
+                    minion,
+                    CrafterStatuses.NO_RECIPE_SELECTED
+            );
         }
 
-        MinionRecipe recipe = this.findRecipe(selectedResult.getType());
-        if (recipe == null) {
-            return MinionResult.idle(minion, CrafterStatuses.NO_RECIPE_SELECTED);
-        }
         Container chest = context.linkedChest();
+
         if (chest == null) {
-            return MinionResult.idle(minion, CrafterStatuses.NO_CHEST);
-        }
-        if (!this.matcher.canCraft(recipe, this.countAvailable(chest, recipe))) {
-            return MinionResult.idle(minion, CrafterStatuses.NO_INGREDIENTS);
-        }
-
-        ItemStack craftedItem = new ItemStack(recipe.resultMaterial(), recipe.resultAmount());
-        Map<Integer, ItemStack> leftover = chest.getInventory().addItem(craftedItem);
-        if (!leftover.isEmpty()) {
-            return MinionResult.idle(minion, CrafterStatuses.NO_ROOM_FOR_RESULT);
+            return MinionResult.idle(
+                    minion,
+                    CrafterStatuses.NO_CHEST
+            );
         }
 
-        this.removeIngredients(chest, recipe);
-        Minion updated = minion.withProgress(minion.progress().advanced(this.config));
-        return MinionResult.worked(updated, CrafterStatuses.CRAFTING);
-    }
+        List<MinionRecipe> recipes = this.findRecipes(
+                selectedResult
+        );
 
-    private MinionRecipe findRecipe(Material resultMaterial) {
-        for (MinionRecipe recipe : this.recipes) {
-            if (recipe.resultMaterial() == resultMaterial) {
-                return recipe;
-            }
+        if (recipes.isEmpty()) {
+            return MinionResult.idle(
+                    minion,
+                    CrafterStatuses.NO_RECIPE_SELECTED
+            );
         }
-        return null;
-    }
 
-    private Map<Material, Integer> countAvailable(Container chest, MinionRecipe recipe) {
-        Map<Material, Integer> counts = new EnumMap<>(Material.class);
-        for (ItemStack item : chest.getInventory().getContents()) {
-            if (item != null && recipe.ingredients().containsKey(item.getType())) {
-                counts.merge(item.getType(), item.getAmount(), Integer::sum);
-            }
-        }
-        return counts;
-    }
-
-    private void removeIngredients(Container chest, MinionRecipe recipe) {
-        Map<Material, Integer> remaining = new EnumMap<>(recipe.ingredients());
+        boolean hadIngredients = false;
         ItemStack[] contents = chest.getInventory().getContents();
-        for (int slot = 0; slot < contents.length && !remaining.isEmpty(); slot++) {
-            ItemStack item = contents[slot];
-            if (item == null) {
-                continue;
-            }
-            Integer needed = remaining.get(item.getType());
-            if (needed == null) {
+
+        for (MinionRecipe recipe : recipes) {
+            RecipeMatcher.CraftResult result =
+                    this.matcher.craft(recipe, contents);
+
+            if (
+                    result.state()
+                            == RecipeMatcher.CraftResult.State.MISSING_INGREDIENTS
+            ) {
                 continue;
             }
 
-            int takenAmount = Math.min(needed, item.getAmount());
-            int remainingInSlot = item.getAmount() - takenAmount;
-            chest.getInventory().setItem(slot, remainingInSlot <= 0 ? null : withAmount(item, remainingInSlot));
-            int stillNeeded = needed - takenAmount;
-            if (stillNeeded <= 0) {
-                remaining.remove(item.getType());
+            hadIngredients = true;
+
+            if (
+                    result.state()
+                            == RecipeMatcher.CraftResult.State.NO_SPACE
+            ) {
+                continue;
             }
-            else {
-                remaining.put(item.getType(), stillNeeded);
-            }
+
+            chest.getInventory().setContents(
+                    result.contents()
+            );
+
+            Minion updated = minion.withProgress(
+                    minion.progress().advanced(this.config)
+            );
+
+            return MinionResult.worked(
+                    updated,
+                    CrafterStatuses.CRAFTING
+            );
         }
+
+        if (hadIngredients) {
+            return MinionResult.idle(
+                    minion,
+                    CrafterStatuses.NO_ROOM_FOR_RESULT
+            );
+        }
+
+        return MinionResult.idle(
+                minion,
+                CrafterStatuses.NO_INGREDIENTS
+        );
     }
 
-    private static List<MinionRecipe> mapRecipes(List<MinionRecipeConfig> configuredRecipes) {
+    private List<MinionRecipe> findRecipes(
+            ItemStack selectedResult
+    ) {
+        ItemStack lookup = selectedResult.clone();
+        lookup.setAmount(1);
+
         List<MinionRecipe> recipes = new ArrayList<>();
-        for (MinionRecipeConfig configuredRecipe : configuredRecipes) {
-            Map<Material, Integer> ingredients = new EnumMap<>(Material.class);
-            for (Map.Entry<XMaterial, Integer> entry : configuredRecipe.ingredients.entrySet()) {
-                Material material = entry.getKey().parseMaterial();
-                if (material != null) {
-                    ingredients.put(material, entry.getValue());
-                }
+
+        for (Recipe recipe : Bukkit.getRecipesFor(lookup)) {
+            MinionRecipe mapped = this.mapRecipe(
+                    recipe,
+                    selectedResult
+            );
+
+            if (mapped != null) {
+                recipes.add(mapped);
             }
-            Material resultMaterial = configuredRecipe.resultMaterial.parseMaterial();
-            if (resultMaterial == null || ingredients.isEmpty()) {
-                continue;
-            }
-            recipes.add(new MinionRecipe(
-                configuredRecipe.id,
-                configuredRecipe.displayName,
-                ingredients,
-                resultMaterial,
-                configuredRecipe.resultAmount
-            ));
         }
+
         return List.copyOf(recipes);
     }
 
-    private static ItemStack withAmount(ItemStack item, int amount) {
-        ItemStack copy = item.clone();
-        copy.setAmount(amount);
-        return copy;
+    private MinionRecipe mapRecipe(
+            Recipe recipe,
+            ItemStack selectedResult
+    ) {
+        ItemStack result = recipe.getResult();
+
+        if (
+                result.getType() != selectedResult.getType()
+                        || result.getType().isAir()
+        ) {
+            return null;
+        }
+
+        List<RecipeChoice> ingredients =
+                this.ingredients(recipe);
+
+        if (ingredients.isEmpty()) {
+            return null;
+        }
+
+        return new MinionRecipe(
+                recipeId(recipe),
+                ingredients,
+                result
+        );
     }
 
+    private List<RecipeChoice> ingredients(
+            Recipe recipe
+    ) {
+        List<RecipeChoice> ingredients = new ArrayList<>();
+
+        if (recipe instanceof ShapedRecipe shapedRecipe) {
+            for (RecipeChoice choice : shapedRecipe.getChoiceMap().values()) {
+                if (choice != null) {
+                    ingredients.add(choice);
+                }
+            }
+
+            return ingredients;
+        }
+
+        if (recipe instanceof ShapelessRecipe shapelessRecipe) {
+            for (
+                    RecipeChoice choice
+                    : shapelessRecipe.getChoiceList()
+            ) {
+                if (choice != null) {
+                    ingredients.add(choice);
+                }
+            }
+
+            return ingredients;
+        }
+
+        return List.of();
+    }
 }

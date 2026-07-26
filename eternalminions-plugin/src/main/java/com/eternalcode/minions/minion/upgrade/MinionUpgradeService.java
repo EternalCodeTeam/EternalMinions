@@ -1,5 +1,7 @@
 package com.eternalcode.minions.minion.upgrade;
 
+import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.access.MinionAccessGuard;
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
@@ -14,23 +16,37 @@ import org.bukkit.inventory.ItemStack;
 public final class MinionUpgradeService {
 
     private final MinionBehaviorRegistry behaviors;
+    private final MinionAccessGuard access;
     private final BiConsumer<Minion, UpgradeKind> update;
     private final MessagesConfig messages;
     private final NoticeService notices;
 
     public MinionUpgradeService(
         MinionBehaviorRegistry behaviors,
+        MinionAccessGuard access,
         BiConsumer<Minion, UpgradeKind> update,
         MessagesConfig messages,
         NoticeService notices
     ) {
         this.behaviors = behaviors;
+        this.access = access;
         this.update = update;
         this.messages = messages;
         this.notices = notices;
     }
 
     public Optional<Minion> purchase(Player player, Minion minion, UpgradeKind kind) {
+        Minion current = this.access.findAccessible(
+                player,
+                minion.id(),
+                MinionAccessAction.MANAGE
+        ).orElse(null);
+
+        if (current == null) {
+            return Optional.empty();
+        }
+
+        minion = current;
         MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
         if (behavior == null) {
             this.send(player, this.messages.minionTypeUnknown);

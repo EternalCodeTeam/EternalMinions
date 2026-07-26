@@ -86,6 +86,17 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
     @Comment("Status text shown in the hologram, keyed by status name. Supports MiniMessage.")
     public Map<MinionStatus, String> statuses = Map.of();
 
+    @Comment("Instruction item displayed in the minion panel.")
+    public MinionPanelElementConfig usageInstructions = defaultUsageInstructions();
+
+    private static MinionPanelElementConfig defaultUsageInstructions() {
+        MinionPanelElementConfig instructions = new MinionPanelElementConfig();
+        instructions.material = XMaterial.KNOWLEDGE_BOOK;
+        instructions.displayName = "<yellow>Jak używać?";
+        instructions.lore = List.of("<gray>Instrukcja nie została skonfigurowana.");
+        return instructions;
+    }
+
     private static Map<UpgradeKind, List<MinionUpgradeTierConfig>> defaultUpgrades() {
         Map<UpgradeKind, List<MinionUpgradeTierConfig>> upgrades = new LinkedHashMap<>();
         upgrades.put(CoreUpgradeKinds.SPEED, List.of(

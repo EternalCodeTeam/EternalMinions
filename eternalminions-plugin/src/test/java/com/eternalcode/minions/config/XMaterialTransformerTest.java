@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 import com.cryptomorin.xseries.XMaterial;
+import com.eternalcode.minions.config.transformer.XMaterialTransformer;
 import org.junit.jupiter.api.Test;
 
 class XMaterialTransformerTest {
