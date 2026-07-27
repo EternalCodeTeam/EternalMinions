@@ -15,7 +15,7 @@ import org.bukkit.Color;
 public final class CollectorConfig extends AbstractMinionConfig {
 
     public CollectorConfig() {
-        this.displayName = "<yellow>Zbieracz";
+        this.displayName = "<color:#FCD05C:#FFDE87:#FCD05C>ᴄᴏʟʟᴇᴄᴛᴏʀ";
         this.tool.category = ToolCategory.SHOVEL;
         this.tool.required = true;
         this.items.helmet.texture = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UzZDM2MzVjZTQxMWFiZjFlNGYzNzNkMTYxZDA3YjhjNDdlMzU5YjZjNTZmNzRiNDEzY2I0OTRhYzc0NmUyZCJ9fX0=";

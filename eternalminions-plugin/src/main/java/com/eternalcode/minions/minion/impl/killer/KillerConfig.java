@@ -1,7 +1,6 @@
 package com.eternalcode.minions.minion.impl.killer;
 
 import com.eternalcode.minions.config.AbstractMinionConfig;
-import com.eternalcode.minions.config.MinionUpgradeTierConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
@@ -58,7 +57,7 @@ public final class KillerConfig extends AbstractMinionConfig {
     public double knockbackVerticalStrength = 0.15D;
 
     public KillerConfig() {
-        this.displayName = "<red>Zabójca";
+        this.displayName = "<color:#F11919:#FF3F3F:#F11919>ᴋɪʟʟᴇʀ";
 
         this.tool.category = ToolCategory.WEAPON;
         this.tool.required = true;
@@ -91,19 +90,7 @@ public final class KillerConfig extends AbstractMinionConfig {
 
     public int attackRange(MinionUpgrades upgrades) {
         int baseRange = Math.max(1, this.attackRangeBlocks);
-        int purchasedTier = upgrades.tier(CoreUpgradeKinds.RANGE);
-
-        List<MinionUpgradeTierConfig> tiers =
-                this.upgrades.get(CoreUpgradeKinds.RANGE);
-
-        if (purchasedTier < 1 || tiers == null || tiers.isEmpty()) {
-            return baseRange;
-        }
-
-        int tierIndex = Math.min(purchasedTier, tiers.size()) - 1;
-        int upgradedRange = tiers.get(tierIndex).value;
-
-        return Math.max(baseRange, upgradedRange);
+        return this.upgradeTierValueOrHigher(upgrades, CoreUpgradeKinds.RANGE, baseRange);
     }
 
     public int attackCooldown() {

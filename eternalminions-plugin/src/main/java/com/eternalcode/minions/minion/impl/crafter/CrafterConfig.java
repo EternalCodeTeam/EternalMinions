@@ -13,7 +13,7 @@ import org.bukkit.Color;
 public final class CrafterConfig extends AbstractMinionConfig {
 
     public CrafterConfig() {
-        this.displayName = "<gold>Crafter";
+        this.displayName = "<color:#FFB900:#FFD158:#FFB900>ᴄʀᴀꜰᴛᴇʀ";
 
         this.tool.category = ToolCategory.ANY;
         this.tool.required = false;

@@ -1,7 +1,7 @@
 package com.eternalcode.minions.gui;
 
 import com.eternalcode.minions.access.MinionAccessAction;
-import com.eternalcode.minions.access.MinionAccessGuard;
+import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.config.MinionPanelAction;
 import com.eternalcode.minions.config.MinionPanelConfig;

@@ -2,6 +2,8 @@ package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.item.MinionItemFactory;
+import com.eternalcode.minions.minion.limit.MinionLimitStatus;
+import com.eternalcode.minions.minion.limit.PlayerMinionLimitService;
 import com.eternalcode.minions.minion.storage.MinionSettings;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
@@ -24,6 +26,7 @@ public final class MinionPlacementListener implements Listener {
     private final MinionBehaviorRegistry behaviors;
     private final MessagesConfig messages;
     private final NoticeService notices;
+    private final PlayerMinionLimitService playerLimits;
 
     public MinionPlacementListener(
         MinionItemFactory items,
@@ -31,7 +34,8 @@ public final class MinionPlacementListener implements Listener {
         MinionLifecycleService lifecycle,
         MinionBehaviorRegistry behaviors,
         MessagesConfig messages,
-        NoticeService notices
+        NoticeService notices,
+        PlayerMinionLimitService playerLimits
     ) {
         this.items = items;
         this.ids = ids;
@@ -39,6 +43,7 @@ public final class MinionPlacementListener implements Listener {
         this.behaviors = behaviors;
         this.messages = messages;
         this.notices = notices;
+        this.playerLimits = playerLimits;
     }
 
     @EventHandler
@@ -57,6 +62,15 @@ public final class MinionPlacementListener implements Listener {
         Player player = event.getPlayer();
         if (!target.isEmpty() || !target.getRelative(0, 1, 0).isEmpty()) {
             this.notices.create().viewer(player).notice(this.messages.minionPlacementBlocked).send();
+            return;
+        }
+
+        MinionLimitStatus playerLimit = this.playerLimits.statusFor(player);
+        if (playerLimit.reached()) {
+            this.notices.create().viewer(player).notice(this.messages.minionLimitReached)
+                .placeholder("{MINION_LIMIT_CURRENT}", Integer.toString(playerLimit.current()))
+                .placeholder("{MINION_LIMIT_MAX}", playerLimit.maxDisplay())
+                .send();
             return;
         }
 
@@ -90,7 +104,11 @@ public final class MinionPlacementListener implements Listener {
         this.lifecycle.add(minion);
 
         item.subtract(1);
-        this.notices.create().viewer(player).notice(this.messages.minionPlaced).send();
+        MinionLimitStatus updatedLimit = this.playerLimits.statusFor(player);
+        this.notices.create().viewer(player).notice(this.messages.minionPlaced)
+            .placeholder("{MINION_LIMIT_CURRENT}", Integer.toString(updatedLimit.current()))
+            .placeholder("{MINION_LIMIT_MAX}", updatedLimit.maxDisplay())
+            .send();
     }
 
     private MinionStorage createStorage(

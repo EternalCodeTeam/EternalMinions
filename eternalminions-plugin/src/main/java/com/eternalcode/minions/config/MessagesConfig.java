@@ -15,13 +15,20 @@ public final class MessagesConfig extends OkaeriConfig {
 
     public Notice minionToolUpdated = Notice.chat(prefix() + "<white>Narzędzie miniona zostało zaktualizowane.");
     public Notice minionStorageCollected = Notice.chat(prefix() + "<white>Odebrano przedmioty z magazynu miniona.");
-    public Notice minionPickedUp = Notice.chat(prefix() + "<white>Minion został podniesiony.");
+    public Notice minionPickedUp = Notice.chat(
+        prefix() + "<white>Minion został podniesiony. <gray>({MINION_LIMIT_CURRENT}/{MINION_LIMIT_MAX})"
+    );
     public Notice minionOwnerRequired = Notice.chat(prefix() + "<red>Tylko właściciel może zarządzać tym minionem.");
     public Notice minionNotFound = Notice.chat(prefix() + "<red>Ten minion już nie istnieje.");
-    public Notice minionPlaced = Notice.chat(prefix() + "<white>Postawiono miniona.");
+    public Notice minionPlaced = Notice.chat(
+        prefix() + "<white>Postawiono miniona. <gray>({MINION_LIMIT_CURRENT}/{MINION_LIMIT_MAX})"
+    );
     public Notice minionItemReceived = Notice.chat(prefix() + "<white>Otrzymano przedmiot miniona.");
     public Notice minionPlacementBlocked = Notice.chat(prefix() + "<red>W tym miejscu nie można postawić miniona.");
     public Notice minionTypeUnknown = Notice.chat(prefix() + "<red>Nieznany typ miniona.");
+    public Notice minionLimitReached = Notice.chat(
+        prefix() + "<red>Osiągnięto limit minionów ({MINION_LIMIT_CURRENT}/{MINION_LIMIT_MAX})."
+    );
     public Notice minionPaused = Notice.chat(prefix() + "<white>Minion został wstrzymany.");
     public Notice minionResumed = Notice.chat(prefix() + "<white>Minion wznowił pracę.");
 

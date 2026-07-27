@@ -1,8 +1,8 @@
 package com.eternalcode.minions;
 
-import com.eternalcode.minions.access.MinionAccessGuard;
+import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.access.MinionAccessService;
-import com.eternalcode.minions.access.MinionAccessServiceImpl;
+import com.eternalcode.minions.minion.access.MinionAccessServiceImpl;
 import com.eternalcode.minions.command.InvalidUsageHandler;
 import com.eternalcode.minions.command.MinionGiveCommand;
 import com.eternalcode.minions.command.MissingPermissionHandler;
@@ -12,7 +12,6 @@ import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.config.MinionPanelConfig;
 import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.database.DatabaseConfig;
-import com.eternalcode.minions.database.MinionData;
 import com.eternalcode.minions.database.MinionDatabase;
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.gui.MinionPanel;
@@ -58,6 +57,8 @@ import com.eternalcode.minions.render.MinionViewerListener;
 import com.eternalcode.minions.bridge.BridgeManager;
 import com.eternalcode.minions.bridge.shop.MinionShopServiceImpl;
 import com.eternalcode.minions.bridge.shop.ShopBridges;
+import com.eternalcode.minions.minion.limit.MinionLimitStatus;
+import com.eternalcode.minions.minion.limit.PlayerMinionLimitService;
 import com.eternalcode.minions.shop.MinionShopProvider;
 import com.eternalcode.minions.shop.MinionShopService;
 import com.eternalcode.multification.notice.Notice;
@@ -134,6 +135,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         MinionAppearanceItems appearance = new MinionAppearanceItems(this.getServer());
 
         this.minionRegistry = new MinionRegistry();
+        PlayerMinionLimitService playerLimits = new PlayerMinionLimitService(this.minionRegistry, minionsConfig.limits);
         this.minionAccess = new MinionAccessServiceImpl(this.getLogger());
         MinionAccessGuard access = new MinionAccessGuard(
                 this.minionRegistry,
@@ -188,7 +190,11 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 return;
             }
 
-            notices.create().viewer(player).notice(messages.minionPickedUp).send();
+            MinionLimitStatus limitStatus = playerLimits.statusFor(player);
+            notices.create().viewer(player).notice(messages.minionPickedUp)
+                    .placeholder("{MINION_LIMIT_CURRENT}", Integer.toString(limitStatus.current()))
+                    .placeholder("{MINION_LIMIT_MAX}", limitStatus.maxDisplay())
+                    .send();
             player.closeInventory();
         };
         MinionUpgradeService upgradeService =
@@ -253,7 +259,8 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                         lifecycle,
                         behaviors,
                         messages,
-                        notices),
+                        notices,
+                        playerLimits),
                 this
         );
 

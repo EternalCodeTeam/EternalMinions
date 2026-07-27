@@ -110,6 +110,16 @@ public final class MinionRegistry implements MinionService {
         return minion == null ? Optional.empty() : Optional.of(minion.details());
     }
 
+    public int countByOwner(UUID ownerId) {
+        int count = 0;
+        for (Minion minion : this.minions.values()) {
+            if (minion.ownerId().equals(ownerId)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     @Override
     public Collection<MinionDetails> findByOwner(UUID ownerId) {
         List<MinionDetails> details = new ArrayList<>();

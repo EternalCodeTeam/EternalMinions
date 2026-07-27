@@ -2,7 +2,6 @@ package com.eternalcode.minions.minion.impl.lumberjack;
 
 import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
-import com.eternalcode.minions.config.MinionUpgradeTierConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
@@ -73,7 +72,7 @@ public final class LumberjackConfig extends AbstractMinionConfig {
     public int leafSearchRadius = 6;
 
     public LumberjackConfig() {
-        this.displayName = "<aqua>Drwal";
+        this.displayName = "<color:#BE7B00:#E09712:#BE7B00>ʟᴜᴍʙᴇʀᴊᴀᴄᴋ";
 
         this.tool.category = ToolCategory.AXE;
         this.tool.required = true;
@@ -98,7 +97,6 @@ public final class LumberjackConfig extends AbstractMinionConfig {
                 "<aqua>• Drwal ścina również duże drzewa.",
                 "<aqua>• Naturalne liście są usuwane automatycznie.",
                 "<aqua>• Pnie 2x2 są ponownie sadzone jako 2x2.",
-                "<aqua>• Efficiency przyspiesza pracę.",
                 "<aqua>• Fortune i Silk Touch wpływają na drop.",
                 "",
                 "<yellow>Liście postawione przez gracza są chronione."
@@ -106,26 +104,7 @@ public final class LumberjackConfig extends AbstractMinionConfig {
     }
 
     public int stationCount(MinionUpgrades upgrades) {
-        int purchasedTier = upgrades.tier(
-                CoreUpgradeKinds.RANGE
-        );
-
-        List<MinionUpgradeTierConfig> tiers =
-                this.upgrades.get(CoreUpgradeKinds.RANGE);
-
-        if (purchasedTier < 1 || tiers == null || tiers.isEmpty()) {
-            return 1;
-        }
-
-        int tierIndex = Math.min(
-                purchasedTier,
-                tiers.size()
-        ) - 1;
-
-        return Math.max(
-                1,
-                tiers.get(tierIndex).value
-        );
+        return this.upgradeTierValueOrHigher(upgrades, CoreUpgradeKinds.RANGE, 1);
     }
 
     public int maximumLogs() {

@@ -5,6 +5,7 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
+import com.eternalcode.minions.minion.MinionBlockDrops;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionResult;
@@ -13,12 +14,10 @@ import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
-import com.eternalcode.minions.minion.tool.SpeedEnchant;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -301,24 +300,9 @@ public final class LumberjackBehavior implements MinionBehavior {
                 updated.progress().advanced(this.config)
         );
 
-        MinionResult result = MinionResult.worked(
+        return MinionResult.worked(
                 updated,
                 LumberjackStatuses.CUTTING
-        );
-
-        if (!this.config.respectSpeedEnchants) {
-            return result;
-        }
-
-        long baseInterval = this.config.workInterval(
-                updated.upgrades()
-        );
-
-        return result.withDelay(
-                SpeedEnchant.scaledInterval(
-                        baseInterval,
-                        tool
-                )
         );
     }
 
@@ -335,21 +319,7 @@ public final class LumberjackBehavior implements MinionBehavior {
                     blocks.z(index)
             );
 
-            Collection<ItemStack> drops = tool == null
-                    ? block.getDrops()
-                    : block.getDrops(tool);
-
-            for (ItemStack drop : drops) {
-                if (
-                        drop == null
-                                || drop.getType().isAir()
-                                || drop.getAmount() <= 0
-                ) {
-                    continue;
-                }
-
-                destination.add(drop.clone());
-            }
+            MinionBlockDrops.collectInto(block, tool, destination);
         }
     }
 

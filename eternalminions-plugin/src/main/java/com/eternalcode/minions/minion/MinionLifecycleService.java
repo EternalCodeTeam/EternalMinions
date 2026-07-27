@@ -1,7 +1,7 @@
 package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.access.MinionAccessAction;
-import com.eternalcode.minions.access.MinionAccessGuard;
+import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.database.MinionData;
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.item.MinionItemFactory;

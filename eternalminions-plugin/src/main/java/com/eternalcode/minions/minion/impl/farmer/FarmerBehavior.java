@@ -5,6 +5,7 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
+import com.eternalcode.minions.minion.MinionBlockDrops;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionRotation;
@@ -17,7 +18,6 @@ import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -71,31 +71,6 @@ public final class FarmerBehavior implements MinionBehavior {
                 tools,
                 transfers
         );
-    }
-
-    private static List<ItemStack> mutableDrops(
-            Block block,
-            ItemStack tool
-    ) {
-        Collection<ItemStack> drops = tool == null
-                ? block.getDrops()
-                : block.getDrops(tool);
-
-        List<ItemStack> result = new ArrayList<>(drops.size());
-
-        for (ItemStack drop : drops) {
-            if (drop == null) {
-                continue;
-            }
-
-            if (drop.getType().isAir() || drop.getAmount() <= 0) {
-                continue;
-            }
-
-            result.add(drop.clone());
-        }
-
-        return result;
     }
 
     private static boolean consumeOne(
@@ -300,7 +275,7 @@ public final class FarmerBehavior implements MinionBehavior {
         }
 
         ItemStack tool = minion.equipment().tool();
-        List<ItemStack> drops = mutableDrops(crop, tool);
+        List<ItemStack> drops = MinionBlockDrops.collect(crop, tool);
 
         Material seed = this.seeds.get(crop.getType());
 
@@ -335,7 +310,7 @@ public final class FarmerBehavior implements MinionBehavior {
         }
 
         ItemStack tool = minion.equipment().tool();
-        List<ItemStack> drops = mutableDrops(harvested, tool);
+        List<ItemStack> drops = MinionBlockDrops.collect(harvested, tool);
 
         harvested.setType(Material.AIR, false);
 
@@ -354,7 +329,7 @@ public final class FarmerBehavior implements MinionBehavior {
             Block fruit
     ) {
         ItemStack tool = minion.equipment().tool();
-        List<ItemStack> drops = mutableDrops(fruit, tool);
+        List<ItemStack> drops = MinionBlockDrops.collect(fruit, tool);
 
         fruit.setType(Material.AIR, false);
 

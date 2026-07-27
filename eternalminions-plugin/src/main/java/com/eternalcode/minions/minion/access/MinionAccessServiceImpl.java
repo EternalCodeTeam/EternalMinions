@@ -1,5 +1,9 @@
-package com.eternalcode.minions.access;
+package com.eternalcode.minions.minion.access;
 
+import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.access.MinionAccessPolicy;
+import com.eternalcode.minions.access.MinionAccessRegistration;
+import com.eternalcode.minions.access.MinionAccessService;
 import com.eternalcode.minions.minion.MinionDetails;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;

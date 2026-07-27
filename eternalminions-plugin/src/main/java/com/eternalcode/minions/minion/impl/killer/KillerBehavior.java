@@ -7,6 +7,7 @@ import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionRotation;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.tool.EnchantmentLevels;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
@@ -153,7 +154,7 @@ public final class KillerBehavior implements MinionBehavior {
                 target
         );
 
-        int lootingLevel = enchantmentLevel(
+        int lootingLevel = EnchantmentLevels.level(
                 weapon,
                 Enchantment.LOOTING
         );
@@ -265,7 +266,7 @@ public final class KillerBehavior implements MinionBehavior {
             ItemStack weapon,
             LivingEntity target
     ) {
-        int level = enchantmentLevel(
+        int level = EnchantmentLevels.level(
                 weapon,
                 Enchantment.FIRE_ASPECT
         );
@@ -286,7 +287,7 @@ public final class KillerBehavior implements MinionBehavior {
             Location origin,
             LivingEntity target
     ) {
-        int level = enchantmentLevel(
+        int level = EnchantmentLevels.level(
                 weapon,
                 Enchantment.KNOCKBACK
         );
@@ -345,17 +346,6 @@ public final class KillerBehavior implements MinionBehavior {
         value += value * multipliedBase;
 
         return value * multipliedTotal;
-    }
-
-    private static int enchantmentLevel(
-            ItemStack item,
-            Enchantment enchantment
-    ) {
-        if (item == null) {
-            return 0;
-        }
-
-        return item.getEnchantmentLevel(enchantment);
     }
 
     private static void faceTarget(

@@ -15,7 +15,7 @@ import org.bukkit.Color;
 public final class SellerConfig extends AbstractMinionConfig {
 
     public SellerConfig() {
-        this.displayName = "<light_purple>Sprzedawca";
+        this.displayName = "<color:#DD00FF:#FF55FF:#DD00FF>ꜱᴇʟʟᴇʀ";
         this.tool.category = ToolCategory.ANY;
         this.tool.required = false;
         this.items.helmet.texture = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDI0YmE3NjBhNjFkZDI1NmM1MmIzMjUxMjlmNDYwMTZhZTg5MjIzMmEwZGVhMTcxNWY5OTdmN2M0ZDYyMmJlZiJ9fX0=";

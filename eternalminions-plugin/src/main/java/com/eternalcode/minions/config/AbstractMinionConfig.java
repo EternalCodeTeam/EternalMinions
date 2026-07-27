@@ -77,13 +77,6 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
     @Comment("If not empty, the minion only interacts with these materials (whitelist).")
     public List<XMaterial> allowedMaterials = List.of();
 
-    @Comment({
-        "When true, the equipped tool's Efficiency level shortens the minion's action interval",
-        "(each level cuts it by ~25%, floor 10% of the base interval). When false, Efficiency has",
-        "no effect on speed. Fortune/Silk Touch/Unbreaking are always respected regardless."
-    })
-    public boolean respectSpeedEnchants = true;
-
     @Comment("Tool this minion type requires before it can perform profession work.")
     public MinionToolConfig tool = new MinionToolConfig();
 
@@ -135,25 +128,29 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
     }
 
     public long workInterval(MinionUpgrades minionUpgrades) {
-        int purchasedTier = minionUpgrades.tier(CoreUpgradeKinds.SPEED);
-        List<MinionUpgradeTierConfig> speedTiers = this.upgrades.get(CoreUpgradeKinds.SPEED);
-        if (purchasedTier < 1 || speedTiers == null || speedTiers.isEmpty()) {
-            return this.workIntervalTicks;
-        }
-
-        int tierIndex = Math.min(purchasedTier, speedTiers.size()) - 1;
-        return speedTiers.get(tierIndex).value;
+        return this.upgradeTierValue(minionUpgrades, CoreUpgradeKinds.SPEED, this.workIntervalTicks);
     }
 
     public int storageCapacity(MinionUpgrades minionUpgrades) {
-        int purchasedTier = minionUpgrades.tier(CoreUpgradeKinds.CAPACITY);
-        List<MinionUpgradeTierConfig> capacityTiers = this.upgrades.get(CoreUpgradeKinds.CAPACITY);
-        if (purchasedTier < 1 || capacityTiers == null || capacityTiers.isEmpty()) {
-            return this.storageCapacity;
+        return this.upgradeTierValue(minionUpgrades, CoreUpgradeKinds.CAPACITY, this.storageCapacity);
+    }
+
+    // Shared by every profession config's radius/range/cooldown-style getters: reads the tier
+    // unlocked by the minion's purchased upgrade level, falling back when nothing was purchased.
+    public int upgradeTierValue(MinionUpgrades minionUpgrades, UpgradeKind kind, int fallback) {
+        int purchasedTier = minionUpgrades.tier(kind);
+        List<MinionUpgradeTierConfig> tiers = this.upgrades.get(kind);
+        if (purchasedTier < 1 || tiers == null || tiers.isEmpty()) {
+            return fallback;
         }
 
-        int tierIndex = Math.min(purchasedTier, capacityTiers.size()) - 1;
-        return capacityTiers.get(tierIndex).value;
+        int tierIndex = Math.min(purchasedTier, tiers.size()) - 1;
+        return tiers.get(tierIndex).value;
+    }
+
+    // Same as upgradeTierValue, but never lets the upgrade drop the value below the configured base.
+    public int upgradeTierValueOrHigher(MinionUpgrades minionUpgrades, UpgradeKind kind, int baseValue) {
+        return Math.max(baseValue, this.upgradeTierValue(minionUpgrades, kind, baseValue));
     }
 
     public int maxLevel() {

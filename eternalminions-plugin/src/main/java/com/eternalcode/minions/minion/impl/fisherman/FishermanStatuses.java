@@ -2,7 +2,7 @@ package com.eternalcode.minions.minion.impl.fisherman;
 
 import com.eternalcode.minions.minion.status.MinionStatus;
 
-public final class FisherStatuses {
+public final class FishermanStatuses {
 
     public static final MinionStatus FISHING =
             new MinionStatus("FISHING");
@@ -27,6 +27,6 @@ public final class FisherStatuses {
     public static final MinionStatus NO_ROD =
             new MinionStatus("NO_ROD");
 
-    private FisherStatuses() {
+    private FishermanStatuses() {
     }
 }

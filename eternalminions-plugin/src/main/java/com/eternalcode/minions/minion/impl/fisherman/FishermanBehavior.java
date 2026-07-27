@@ -11,6 +11,7 @@ import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
+import com.eternalcode.minions.minion.tool.EnchantmentLevels;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
@@ -81,7 +82,7 @@ public final class FishermanBehavior implements MinionBehavior {
         MinionToolPreparation preparation = this.tools.prepare(
                 context,
                 this.toolRequirement,
-                FisherStatuses.NO_ROD
+                FishermanStatuses.NO_ROD
         );
         if (preparation.check() instanceof ToolCheck.Stopped stopped) {
             context.scheduledMinion().clearBusyTimer();
@@ -158,10 +159,10 @@ public final class FishermanBehavior implements MinionBehavior {
                 updated.progress().advanced(this.config)
         );
 
-        int lureLevel = enchantmentLevel(rod, Enchantment.LURE);
+        int lureLevel = EnchantmentLevels.level(rod, Enchantment.LURE);
         MinionStatus status = caughtItem.isPresent()
-                ? FisherStatuses.CATCHING
-                : FisherStatuses.NOTHING_CAUGHT;
+                ? FishermanStatuses.CATCHING
+                : FishermanStatuses.NOTHING_CAUGHT;
 
         return MinionResult
                 .worked(updated, status)
@@ -182,7 +183,7 @@ public final class FishermanBehavior implements MinionBehavior {
             return Optional.empty();
         }
 
-        int luckLevel = enchantmentLevel(
+        int luckLevel = EnchantmentLevels.level(
                 rod,
                 Enchantment.LUCK_OF_THE_SEA
         );
@@ -280,32 +281,21 @@ public final class FishermanBehavior implements MinionBehavior {
         );
     }
 
-    private static int enchantmentLevel(
-            ItemStack item,
-            Enchantment enchantment
-    ) {
-        if (item == null) {
-            return 0;
-        }
-
-        return item.getEnchantmentLevel(enchantment);
-    }
-
     private static MinionStatus status(
             WaterBodyScanner.Failure failure
     ) {
         return switch (failure) {
             case NO_WATER ->
-                    FisherStatuses.NO_WATER_NEARBY;
+                    FishermanStatuses.NO_WATER_NEARBY;
 
             case TOO_SMALL ->
-                    FisherStatuses.WATER_TOO_SMALL;
+                    FishermanStatuses.WATER_TOO_SMALL;
 
             case TOO_SHALLOW ->
-                    FisherStatuses.WATER_TOO_SHALLOW;
+                    FishermanStatuses.WATER_TOO_SHALLOW;
 
             case SURFACE_BLOCKED ->
-                    FisherStatuses.WATER_SURFACE_BLOCKED;
+                    FishermanStatuses.WATER_SURFACE_BLOCKED;
         };
     }
 

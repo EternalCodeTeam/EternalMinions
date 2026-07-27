@@ -1,5 +1,7 @@
-package com.eternalcode.minions.access;
+package com.eternalcode.minions.minion.access;
 
+import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.access.MinionAccessService;
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;

@@ -2,7 +2,6 @@ package com.eternalcode.minions.minion.impl.farmer;
 
 import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
-import com.eternalcode.minions.config.MinionUpgradeTierConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
@@ -40,7 +39,7 @@ public final class FarmerConfig extends AbstractMinionConfig {
     public Map<XMaterial, XMaterial> seeds = defaultSeeds();
 
     public FarmerConfig() {
-        this.displayName = "<green>Rolnik";
+        this.displayName = "<color:#4CDD0A:#ACFF87:#4CDD0A>ꜰᴀʀᴍᴇʀ";
 
         this.tool.category = ToolCategory.HOE;
         this.tool.required = true;
@@ -127,19 +126,7 @@ public final class FarmerConfig extends AbstractMinionConfig {
 
     public int range(MinionUpgrades upgrades) {
         int baseRange = Math.max(1, this.baseRange);
-        int purchasedTier = upgrades.tier(CoreUpgradeKinds.RANGE);
-
-        List<MinionUpgradeTierConfig> tiers =
-                this.upgrades.get(CoreUpgradeKinds.RANGE);
-
-        if (purchasedTier < 1 || tiers == null || tiers.isEmpty()) {
-            return baseRange;
-        }
-
-        int tierIndex = Math.min(purchasedTier, tiers.size()) - 1;
-        int upgradedRange = tiers.get(tierIndex).value;
-
-        return Math.max(baseRange, upgradedRange);
+        return this.upgradeTierValueOrHigher(upgrades, CoreUpgradeKinds.RANGE, baseRange);
     }
 
     public enum WorkMode {

@@ -54,6 +54,20 @@ public final class MinionsConfig extends OkaeriConfig {
     @Comment("Hologram lines rendered above every minion. Supports MiniMessage.")
     public HologramConfig hologram = new HologramConfig();
 
+    @Comment("Limits on how many minions can be placed.")
+    public LimitsConfig limits = new LimitsConfig();
+
+    public static class LimitsConfig extends OkaeriConfig {
+
+        @Comment({
+            "Maximum number of minions a player can place, grantable through permissions.",
+            "Grant eternalminions.limit.<amount> (e.g. eternalminions.limit.20) to set a player's limit -",
+            "the highest granted number wins. Grant eternalminions.limit.* for no limit at all.",
+            "Players without any eternalminions.limit.<amount> permission fall back to this default."
+        })
+        public int defaultLimit = 5;
+    }
+
     public static class HologramConfig extends OkaeriConfig {
 
         @Comment({

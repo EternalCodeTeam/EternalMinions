@@ -1,7 +1,7 @@
 package com.eternalcode.minions.render;
 
 import com.eternalcode.minions.access.MinionAccessAction;
-import com.eternalcode.minions.access.MinionAccessGuard;
+import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.gui.MinionPanel;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.Minion;

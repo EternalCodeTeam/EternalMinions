@@ -57,7 +57,7 @@ public final class FishermanConfig extends AbstractMinionConfig {
     public Map<XMaterial, Integer> treasureLoot = defaultTreasureLoot();
 
     public FishermanConfig() {
-        this.displayName = "<dark_aqua>Rybak";
+        this.displayName = "<color:#4498DB:#5CB6FF:#4498DB>ꜰɪꜱʜᴇʀᴍᴀɴ";
         this.workIntervalTicks = 200;
 
         this.tool.category = ToolCategory.FISHING_ROD;
@@ -138,42 +138,42 @@ public final class FishermanConfig extends AbstractMinionConfig {
                 new LinkedHashMap<>();
 
         statuses.put(
-                FisherStatuses.FISHING,
+                FishermanStatuses.FISHING,
                 "<aqua>Łowienie..."
         );
 
         statuses.put(
-                FisherStatuses.CATCHING,
+                FishermanStatuses.CATCHING,
                 "<green>Wyławianie zdobyczy..."
         );
 
         statuses.put(
-                FisherStatuses.NOTHING_CAUGHT,
+                FishermanStatuses.NOTHING_CAUGHT,
                 "<gray>Tym razem nic nie złowiono"
         );
 
         statuses.put(
-                FisherStatuses.NO_WATER_NEARBY,
+                FishermanStatuses.NO_WATER_NEARBY,
                 "<red>Brak wody w pobliżu"
         );
 
         statuses.put(
-                FisherStatuses.WATER_TOO_SMALL,
+                FishermanStatuses.WATER_TOO_SMALL,
                 "<yellow>Zbiornik jest zbyt mały"
         );
 
         statuses.put(
-                FisherStatuses.WATER_TOO_SHALLOW,
+                FishermanStatuses.WATER_TOO_SHALLOW,
                 "<yellow>Zbiornik jest zbyt płytki"
         );
 
         statuses.put(
-                FisherStatuses.WATER_SURFACE_BLOCKED,
+                FishermanStatuses.WATER_SURFACE_BLOCKED,
                 "<yellow>Powierzchnia wody jest zablokowana"
         );
 
         statuses.put(
-                FisherStatuses.NO_ROD,
+                FishermanStatuses.NO_ROD,
                 "<red>Brak wędki"
         );
 

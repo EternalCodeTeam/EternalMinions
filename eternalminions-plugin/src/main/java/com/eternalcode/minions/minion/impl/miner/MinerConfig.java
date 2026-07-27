@@ -3,7 +3,6 @@ package com.eternalcode.minions.minion.impl.miner;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
-import com.eternalcode.minions.config.MinionUpgradeTierConfig;
 import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import eu.okaeri.configs.annotation.Include;
@@ -16,7 +15,7 @@ import org.bukkit.Color;
 public final class MinerConfig extends AbstractMinionConfig {
 
     public MinerConfig() {
-        this.displayName = "<gray>Górnik";
+        this.displayName = "<color:#B7B7B7:#D9D9D9:#B7B7B7>ᴍɪɴᴇʀ";
         this.tool.category = ToolCategory.PICKAXE;
         this.tool.required = true;
         this.items.helmet.texture = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzk2MjdiZTYyY2VkNzE0MTEzOWQzZjE1NTc5MGE1ZDQzNTZlYjdiOWVlOTVlNTA0YjMzMjI5NzRjYmM1MTVlYSJ9fX0=";
@@ -41,11 +40,6 @@ public final class MinerConfig extends AbstractMinionConfig {
     }
 
     public int radius(MinionUpgrades upgrades) {
-        int purchasedTier = upgrades.tier(CoreUpgradeKinds.RANGE);
-        List<MinionUpgradeTierConfig> radiusTiers = this.upgrades.get(CoreUpgradeKinds.RANGE);
-        if (purchasedTier < 1 || radiusTiers == null || radiusTiers.isEmpty()) {
-            return 1;
-        }
-        return radiusTiers.get(Math.min(purchasedTier, radiusTiers.size()) - 1).value;
+        return this.upgradeTierValue(upgrades, CoreUpgradeKinds.RANGE, 1);
     }
 }

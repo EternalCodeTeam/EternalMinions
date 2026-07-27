@@ -11,7 +11,6 @@ import com.eternalcode.minions.minion.MinionPosition;
 import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.MiningMode;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
-import com.eternalcode.minions.minion.tool.SpeedEnchant;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
@@ -83,13 +82,7 @@ public final class MiningBehavior implements MinionBehavior {
         if (result == null) {
             return MinionResult.idle(minion, MinerStatuses.NO_BLOCKS_IN_RANGE);
         }
-        if (!result.worked() || !this.config.respectSpeedEnchants) {
-            return result;
-        }
-
-        long baseInterval = this.config.workInterval(result.minion().upgrades());
-        long delay = SpeedEnchant.scaledInterval(baseInterval, result.minion().equipment().tool());
-        return result.withDelay(delay);
+        return result;
     }
 
     private MinionResult executeSquare(MinionContext context, Minion minion) {
