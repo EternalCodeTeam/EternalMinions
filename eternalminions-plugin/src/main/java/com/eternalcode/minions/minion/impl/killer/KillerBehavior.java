@@ -5,8 +5,8 @@ import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
-import com.eternalcode.minions.minion.MinionRotation;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.MinionRotation;
 import com.eternalcode.minions.minion.tool.EnchantmentLevels;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
@@ -15,9 +15,11 @@ import com.eternalcode.minions.minion.tool.ToolRequirement;
 import java.io.File;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.bukkit.Location;
+import org.bukkit.Tag;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
@@ -29,18 +31,16 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 
+// TODO: need more logic in scaling damange/loot based on enchantments, currently this is "prowizorka"
 public final class KillerBehavior implements MinionBehavior {
 
     private final KillerConfig config;
-
     private final MinionToolService tools;
     private final ToolRequirement toolRequirement;
-
-    private final NearestMobFinder finder =
-            new NearestMobFinder();
-
     private final KillerLootingListener looting;
     private final Set<EntityType> allowedMobs;
+
+    private final NearestMobFinder finder = new NearestMobFinder();
 
     public static KillerBehavior create(
             ConfigService configs,
@@ -53,11 +53,7 @@ public final class KillerBehavior implements MinionBehavior {
                 new File(directory, "killer.yml")
         );
 
-        return new KillerBehavior(
-                config,
-                tools,
-                looting
-        );
+        return new KillerBehavior(config, tools, looting);
     }
 
     public KillerBehavior(
@@ -66,10 +62,8 @@ public final class KillerBehavior implements MinionBehavior {
             KillerLootingListener looting
     ) {
         this.config = config;
-
         this.tools = tools;
         this.toolRequirement = config.toolRequirement();
-
         this.looting = looting;
 
         this.allowedMobs = config.allowedMobs.isEmpty()
@@ -94,44 +88,40 @@ public final class KillerBehavior implements MinionBehavior {
                 this.toolRequirement,
                 KillerStatuses.NO_WEAPON
         );
+
         if (preparation.check() instanceof ToolCheck.Stopped stopped) {
             return MinionResult.idle(
                     preparation.minion(),
                     stopped.reason()
             );
         }
-        Minion minion = preparation.minion();
-        ToolCheck toolCheck = preparation.check();
 
-        ItemStack weapon = toolCheck instanceof ToolCheck.Ready ready
+        Minion minion = preparation.minion();
+
+        ItemStack weapon = preparation.check() instanceof ToolCheck.Ready ready
                 ? ready.tool()
                 : null;
 
         Location origin = context.location();
-        int range = this.config.attackRange(minion.upgrades());
+        int attackRange = this.config.attackRange(minion.upgrades());
 
-        Collection<Entity> nearbyEntities =
-                context.world().getNearbyEntities(
-                        origin,
-                        range,
-                        range,
-                        range
-                );
+        Collection<Entity> nearbyEntities = context.world().getNearbyEntities(
+                origin,
+                attackRange,
+                attackRange,
+                attackRange
+        );
 
-        NearestMobFinder.SearchResult searchResult =
-                this.finder.find(
-                        origin,
-                        nearbyEntities,
-                        this.allowedMobs,
-                        this.config.attackAllMonstersWhenEmpty,
-                        this.config.ignoreNamedMobs,
-                        this.config.ignoreInvulnerableMobs
-                );
+        NearestMobFinder.SearchResult searchResult = this.finder.find(
+                origin,
+                nearbyEntities,
+                this.allowedMobs,
+                this.config.attackAllMonstersWhenEmpty,
+                this.config.ignoreNamedMobs,
+                this.config.ignoreInvulnerableMobs
+        );
 
-        if (
-                searchResult.state()
-                        == NearestMobFinder.SearchResult.State.PROTECTED_MOBS
-        ) {
+        if (searchResult.state() == NearestMobFinder.SearchResult.State.PROTECTED_MOBS) {
             return MinionResult.idle(
                     minion,
                     KillerStatuses.PROTECTED_MOBS_NEARBY
@@ -149,15 +139,104 @@ public final class KillerBehavior implements MinionBehavior {
 
         this.faceTarget(context, origin, target);
 
-        double damage = this.calculateDamage(
-                weapon,
-                target
-        );
-
         int lootingLevel = EnchantmentLevels.level(
                 weapon,
                 Enchantment.LOOTING
         );
+
+        int sweepingLevel = Math.min(
+                Math.max(
+                        0,
+                        EnchantmentLevels.level(
+                                weapon,
+                                Enchantment.SWEEPING_EDGE
+                        )
+                ),
+                Enchantment.SWEEPING_EDGE.getMaxLevel()
+        );
+
+        List<LivingEntity> sweepingTargets = this.findSweepingTargets(
+                context,
+                target,
+                sweepingLevel
+        );
+
+        this.attack(
+                weapon,
+                origin,
+                target,
+                1.0D,
+                lootingLevel
+        );
+
+        double sweepingDamageMultiplier =
+                this.config.sweepingDamageMultiplier(sweepingLevel);
+
+        for (LivingEntity sweepingTarget : sweepingTargets) {
+            if (!sweepingTarget.isValid() || sweepingTarget.isDead()) {
+                continue;
+            }
+
+            this.attack(
+                    weapon,
+                    origin,
+                    sweepingTarget,
+                    sweepingDamageMultiplier,
+                    lootingLevel
+            );
+        }
+
+        Minion updated = this.tools.consume(minion, 1);
+
+        updated = updated.withProgress(
+                updated.progress().advanced(this.config)
+        );
+
+        return MinionResult
+                .worked(updated, KillerStatuses.ATTACKING)
+                .withDelay(this.config.attackCooldown());
+    }
+
+    private List<LivingEntity> findSweepingTargets(
+            MinionContext context,
+            LivingEntity primaryTarget,
+            int sweepingLevel
+    ) {
+        if (sweepingLevel <= 0) {
+            return List.of();
+        }
+
+        double range = this.config.sweepingRange();
+
+        Collection<Entity> nearbyEntities = context.world().getNearbyEntities(
+                primaryTarget.getLocation(),
+                range,
+                range,
+                range
+        );
+
+        return this.finder.findAdditional(
+                primaryTarget.getLocation(),
+                nearbyEntities,
+                primaryTarget,
+                sweepingLevel,
+                range,
+                this.allowedMobs,
+                this.config.attackAllMonstersWhenEmpty,
+                this.config.ignoreNamedMobs,
+                this.config.ignoreInvulnerableMobs
+        );
+    }
+
+    private void attack(
+            ItemStack weapon,
+            Location origin,
+            LivingEntity target,
+            double damageMultiplier,
+            int lootingLevel
+    ) {
+        double damage =
+                this.calculateDamage(weapon, target) * damageMultiplier;
 
         this.looting.trackHit(
                 target.getUniqueId(),
@@ -175,35 +254,21 @@ public final class KillerBehavior implements MinionBehavior {
                     target
             );
         }
-
-        Minion updated = this.tools.consume(minion, 1);
-
-        updated = updated.withProgress(
-                updated.progress().advanced(this.config)
-        );
-
-        return MinionResult
-                .worked(updated, KillerStatuses.ATTACKING)
-                .withDelay(this.config.attackCooldown());
     }
 
     private double calculateDamage(
             ItemStack weapon,
             LivingEntity target
     ) {
-        double baseDamage =
-                this.config.baseAttackDamage();
+        double baseDamage = this.config.baseAttackDamage();
 
         if (weapon == null || weapon.getType().isAir()) {
             return baseDamage;
         }
 
-        Collection<AttributeModifier> modifiers =
-                this.attackDamageModifiers(weapon);
-
         double weaponDamage = applyModifiers(
                 baseDamage,
-                modifiers
+                this.attackDamageModifiers(weapon)
         );
 
         double enchantmentDamage =
@@ -222,14 +287,9 @@ public final class KillerBehavior implements MinionBehavior {
 
         if (meta != null) {
             Collection<AttributeModifier> customModifiers =
-                    meta.getAttributeModifiers(
-                            Attribute.ATTACK_DAMAGE
-                    );
+                    meta.getAttributeModifiers(Attribute.ATTACK_DAMAGE);
 
-            if (
-                    customModifiers != null
-                            && !customModifiers.isEmpty()
-            ) {
+            if (customModifiers != null && !customModifiers.isEmpty()) {
                 return customModifiers;
             }
         }
@@ -240,23 +300,40 @@ public final class KillerBehavior implements MinionBehavior {
     }
 
     @SuppressWarnings("deprecation")
-    private double enchantmentDamage(
-            ItemStack weapon,
-            LivingEntity target
-    ) {
+    private double enchantmentDamage(ItemStack weapon, LivingEntity target) {
         double damage = 0.0D;
 
-        for (
-                Map.Entry<Enchantment, Integer> entry
-                : weapon.getEnchantments().entrySet()
-        ) {
-            Enchantment enchantment = entry.getKey();
-            int level = entry.getValue();
+        int sharpness = EnchantmentLevels.level(
+                weapon,
+                Enchantment.SHARPNESS
+        );
 
-            damage += enchantment.getDamageIncrease(
-                    level,
-                    target.getType()
-            );
+        if (sharpness > 0) {
+            damage += 0.5D * sharpness + 0.5D;
+        }
+
+        int smite = EnchantmentLevels.level(
+                weapon,
+                Enchantment.SMITE
+        );
+
+        if (
+                smite > 0
+                        && Tag.ENTITY_TYPES_SENSITIVE_TO_SMITE.isTagged(target.getType())
+        ) {
+            damage += 2.5D * smite;
+        }
+
+        int baneOfArthropods = EnchantmentLevels.level(
+                weapon,
+                Enchantment.BANE_OF_ARTHROPODS
+        );
+
+        if (
+                baneOfArthropods > 0
+                        && Tag.ENTITY_TYPES_SENSITIVE_TO_BANE_OF_ARTHROPODS.isTagged(target.getType())
+        ) {
+            damage += 2.5D * baneOfArthropods;
         }
 
         return damage;
@@ -278,7 +355,10 @@ public final class KillerBehavior implements MinionBehavior {
         int fireTicks = level * 80;
 
         target.setFireTicks(
-                Math.max(target.getFireTicks(), fireTicks)
+                Math.max(
+                        target.getFireTicks(),
+                        fireTicks
+                )
         );
     }
 
@@ -298,21 +378,25 @@ public final class KillerBehavior implements MinionBehavior {
 
         Vector direction = target.getLocation()
                 .toVector()
-                .subtract(origin.toVector());
-
-        direction.setY(0.0D);
+                .subtract(origin.toVector())
+                .setY(0.0D);
 
         if (direction.lengthSquared() <= 0.0001D) {
             return;
         }
 
         direction.normalize().multiply(
-                Math.max(0.0D, this.config.knockbackStrengthPerLevel)
-                        * level
+                Math.max(
+                        0.0D,
+                        this.config.knockbackStrengthPerLevel
+                ) * level
         );
 
         direction.setY(
-                Math.max(0.0D, this.config.knockbackVerticalStrength)
+                Math.max(
+                        0.0D,
+                        this.config.knockbackVerticalStrength
+                )
         );
 
         target.setVelocity(

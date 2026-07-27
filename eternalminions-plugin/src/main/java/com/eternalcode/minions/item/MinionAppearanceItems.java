@@ -23,7 +23,7 @@ public final class MinionAppearanceItems {
 
     public ItemStack head(AbstractMinionConfig config) {
         ItemStack head = XMaterial.PLAYER_HEAD.parseItem();
-        String texture = config.items.helmet.texture;
+        String texture = resolveHeadTexture(config);
         if (texture.isEmpty()) {
             return head;
         }
@@ -51,6 +51,14 @@ public final class MinionAppearanceItems {
 
     public ItemStack boots(AbstractMinionConfig config) {
         return this.armor(config.items.boots, null);
+    }
+
+    // The ARMOR_STAND renderer only ever shows this head texture (never npcSkin directly), so if an
+    // admin configures only npcSkin - the field meant for the NPC renderer - it still shows up here
+    // instead of silently falling back to a blank Steve head.
+    private static String resolveHeadTexture(AbstractMinionConfig config) {
+        String helmetTexture = config.items.helmet.texture;
+        return helmetTexture.isEmpty() ? config.npcSkin : helmetTexture;
     }
 
     private ItemStack armor(MinionArmorPieceConfig piece, ItemStack head) {

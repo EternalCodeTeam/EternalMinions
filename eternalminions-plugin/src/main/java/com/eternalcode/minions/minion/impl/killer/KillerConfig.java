@@ -50,6 +50,9 @@ public final class KillerConfig extends AbstractMinionConfig {
     })
     public double baseAttackDamage = 1.0D;
 
+    @Comment("Range around the primary target used by Sweeping Edge.")
+    public double sweepingRangeBlocks = 2.5D;
+
     @Comment("Horizontal knockback applied per Knockback enchantment level.")
     public double knockbackStrengthPerLevel = 0.4D;
 
@@ -57,48 +60,86 @@ public final class KillerConfig extends AbstractMinionConfig {
     public double knockbackVerticalStrength = 0.15D;
 
     public KillerConfig() {
-        this.displayName = "<color:#F11919:#FF3F3F:#F11919>ᴋɪʟʟᴇʀ";
+        this.displayName =
+                "<color:#F11919:#FF3F3F:#F11919>ᴋɪʟʟᴇʀ";
 
         this.tool.category = ToolCategory.WEAPON;
         this.tool.required = true;
 
         this.items.helmet.texture =
-                "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzE3NTMyZTkwYzU3M2EzOTRjNzgwMmFhNDE1ODMwNTgwMmI1OWU2N2YyYTJiN2UzZmQwMzYzYWE2ZWE0MmI4NDEifX19";
+                "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTc1MzJlOTBjNTczYTM5NGM3ODAyYWE0MTU4MzA1ODAyYjU5ZTY3ZjJhMmI3ZTNmZDAzNjNhYTZlYTQyYjg0MSJ9fX0=";
 
         this.npcSkin =
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vcy5uYW1lbWMuY29tL2kvOWMxOTM4MDVmMWY4OTQ2OC5wbmcifX19";
 
-        this.items.setLeatherArmorColor(Color.fromRGB(255, 0, 0));
+        this.items.setLeatherArmorColor(
+                Color.fromRGB(241, 25, 25)
+        );
 
         this.statuses = defaultStatuses();
 
         this.usageInstructions.lore = List.of(
                 "<gray>1. Postaw zabójcę przy miejscu pojawiania się mobów.",
                 "<gray>2. Włóż broń do slotu narzędzia.",
-                "<gray>3. Upewnij się, że mob znajduje się w zasięgu.",
-                "<gray>4. Odbieraj drop z magazynu lub podpiętej skrzyni.",
+                "<gray>3. Zabójca automatycznie zaatakuje najbliższy dozwolony cel.",
+                "<gray>4. Drop trafia do magazynu lub podpiętej skrzyni.",
                 "",
-                "<dark_gray>Obsługiwane właściwości broni:",
-                "<red>• Obrażenia zależne od rodzaju broni.",
-                "<red>• Sharpness, Smite i Bane of Arthropods.",
-                "<red>• Fire Aspect, Knockback i Looting.",
-                "<red>• Unbreaking obsługiwany przez system narzędzi.",
+                "<dark_gray>Obsługiwane enchanty:",
+                "<red>• Sharpness <gray>— zwiększa obrażenia przeciw wszystkim mobom.",
+                "<red>• Smite <gray>— zwiększa obrażenia przeciw nieumarłym.",
+                "<red>• Bane of Arthropods <gray>— zwiększa obrażenia przeciw stawonogom.",
+                "<red>• Fire Aspect <gray>— podpala cele; poziom wydłuża podpalenie.",
+                "<red>• Knockback <gray>— odrzuca cele; poziom zwiększa siłę.",
+                "<red>• Looting <gray>— zwiększa ilość przedmiotów z zabitych mobów.",
+                "<red>• Sweeping Edge I <gray>— trafia 1 dodatkowy cel za 50% obrażeń.",
+                "<red>• Sweeping Edge II <gray>— trafia 2 dodatkowe cele za 67% obrażeń.",
+                "<red>• Sweeping Edge III <gray>— trafia 3 dodatkowe cele za 75% obrażeń.",
+                "<red>• Unbreaking <gray>— zmniejsza zużycie wytrzymałości broni.",
                 "",
-                "<yellow>Moby z nametagiem są chronione."
+                "<yellow>Moby z nametagiem i niewrażliwe moby są chronione."
         );
     }
 
     public int attackRange(MinionUpgrades upgrades) {
-        int baseRange = Math.max(1, this.attackRangeBlocks);
-        return this.upgradeTierValueOrHigher(upgrades, CoreUpgradeKinds.RANGE, baseRange);
+        int baseRange = Math.max(
+                1,
+                this.attackRangeBlocks
+        );
+
+        return this.upgradeTierValueOrHigher(
+                upgrades,
+                CoreUpgradeKinds.RANGE,
+                baseRange
+        );
     }
 
     public int attackCooldown() {
-        return Math.max(1, this.attackCooldownTicks);
+        return Math.max(
+                1,
+                this.attackCooldownTicks
+        );
     }
 
     public double baseAttackDamage() {
-        return Math.max(0.0D, this.baseAttackDamage);
+        return Math.max(
+                0.0D,
+                this.baseAttackDamage
+        );
+    }
+
+    public double sweepingRange() {
+        return Math.max(
+                0.0D,
+                this.sweepingRangeBlocks
+        );
+    }
+
+    public double sweepingDamageMultiplier(int level) {
+        if (level <= 0) {
+            return 0.0D;
+        }
+
+        return (double) level / (level + 1.0D);
     }
 
     private static Map<MinionStatus, String> defaultStatuses() {

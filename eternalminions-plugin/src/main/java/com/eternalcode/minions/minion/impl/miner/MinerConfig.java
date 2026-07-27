@@ -20,7 +20,7 @@ public final class MinerConfig extends AbstractMinionConfig {
         this.tool.required = true;
         this.items.helmet.texture = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzk2MjdiZTYyY2VkNzE0MTEzOWQzZjE1NTc5MGE1ZDQzNTZlYjdiOWVlOTVlNTA0YjMzMjI5NzRjYmM1MTVlYSJ9fX0=";
         this.npcSkin = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vcy5uYW1lbWMuY29tL2kvOGM3NmQ3N2Y2NTAzMDAwMy5wbmcifX19";
-        this.items.setLeatherArmorColor(Color.fromRGB(200, 200, 200));
+        this.items.setLeatherArmorColor(Color.fromRGB(183, 183, 183));
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(
             "<gray>1. Włóż kilof do slotu narzędzia.",

@@ -73,7 +73,7 @@ public final class FishermanConfig extends AbstractMinionConfig {
         this.npcSkin =
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vcy5uYW1lbWMuY29tL2kvODRmMjljMTA5YjNiZjRiYS5wbmcifX19";
 
-        this.items.setLeatherArmorColor(Color.fromRGB(0, 255, 255));
+        this.items.setLeatherArmorColor(Color.fromRGB(68, 152, 219));
 
         this.statuses = defaultStatuses();
 

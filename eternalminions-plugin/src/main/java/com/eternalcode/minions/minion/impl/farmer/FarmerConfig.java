@@ -50,7 +50,7 @@ public final class FarmerConfig extends AbstractMinionConfig {
         this.npcSkin =
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vcy5uYW1lbWMuY29tL2kvOThkYmNkYmZiYmE3OTQ5My5wbmcifX19";
 
-        this.items.setLeatherArmorColor(Color.fromRGB(0, 255, 0));
+        this.items.setLeatherArmorColor(Color.fromRGB(76, 221, 10));
 
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(

@@ -112,17 +112,29 @@ public final class MiningBehavior implements MinionBehavior {
     private MinionResult executeLinear(MinionContext context, Minion minion) {
         MinionDirection direction = minion.settings().direction();
         int targetCount = 2 * this.config.radius(minion.upgrades()) + 1;
+
         for (int checkedTargets = 0; checkedTargets < targetCount; checkedTargets++) {
             int distance = context.scheduledMinion().miningTargetIndex(targetCount) + 1;
             context.scheduledMinion().advanceMiningTarget(targetCount);
+
             int targetX = minion.position().blockX() + direction.offsetX() * distance;
-            int targetY = minion.position().blockY() + MinionMiningTargets.offsetY();
+            int targetY = minion.position().blockY();
             int targetZ = minion.position().blockZ() + direction.offsetZ() * distance;
-            MinionResult result = this.tryMine(context, minion, targetX, targetY, targetZ, direction.yaw());
+
+            MinionResult result = this.tryMine(
+                    context,
+                    minion,
+                    targetX,
+                    targetY,
+                    targetZ,
+                    direction.yaw()
+            );
+
             if (result != null) {
                 return result;
             }
         }
+
         return null;
     }
 

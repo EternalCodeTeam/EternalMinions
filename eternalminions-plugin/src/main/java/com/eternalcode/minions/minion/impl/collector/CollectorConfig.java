@@ -20,7 +20,7 @@ public final class CollectorConfig extends AbstractMinionConfig {
         this.tool.required = true;
         this.items.helmet.texture = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UzZDM2MzVjZTQxMWFiZjFlNGYzNzNkMTYxZDA3YjhjNDdlMzU5YjZjNTZmNzRiNDEzY2I0OTRhYzc0NmUyZCJ9fX0=";
         this.npcSkin = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vcy5uYW1lbWMuY29tL2kvODNjZGI4NmI4ZjFjYWE4MS5wbmcifX19";
-        this.items.setLeatherArmorColor(Color.fromRGB(255, 255, 0));
+        this.items.setLeatherArmorColor(Color.fromRGB(252, 208, 92));
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(
             "<gray>1. Postaw miniona przy miejscu zbierania.",

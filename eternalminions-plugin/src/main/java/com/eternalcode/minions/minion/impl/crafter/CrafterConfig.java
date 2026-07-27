@@ -19,13 +19,13 @@ public final class CrafterConfig extends AbstractMinionConfig {
         this.tool.required = false;
 
         this.items.helmet.texture =
-                "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzJjZGMwZmViNzAwMWUyYzEwZmQ1MDY2ZTUwMWI4N2UzZDY0NzkzMDkyYjg1YTUwYzg1NmQ5NjJmOGJlOTJjNzgifX19";
+                "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmNkYzBmZWI3MDAxZTJjMTBmZDUwNjZlNTAxYjg3ZTNkNjQ3OTMwOTJiODVhNTBjODU2ZDk2MmY4YmU5MmM3OCJ9fX0=";
 
         this.npcSkin =
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vcy5uYW1lbWMuY29tL2kvMjEwNWZkZDUxMzNkZjI3Ni5wbmcifX19";
 
         this.items.setLeatherArmorColor(
-                Color.fromRGB(125, 75, 30)
+                Color.fromRGB(255, 185, 0)
         );
 
         this.statuses = defaultStatuses();

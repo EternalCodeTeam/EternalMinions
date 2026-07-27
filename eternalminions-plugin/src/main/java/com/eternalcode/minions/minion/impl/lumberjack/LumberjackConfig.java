@@ -83,7 +83,7 @@ public final class LumberjackConfig extends AbstractMinionConfig {
         this.npcSkin =
                 "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vcy5uYW1lbWMuY29tL2kvODkzNjFiMTYyMzIzYzYyYS5wbmcifX19";
 
-        this.items.setLeatherArmorColor(Color.fromRGB(0, 200, 255));
+        this.items.setLeatherArmorColor(Color.fromRGB(190, 123, 0));
 
         this.statuses = defaultStatuses();
 

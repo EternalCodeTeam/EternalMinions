@@ -1,6 +1,9 @@
 package com.eternalcode.minions.minion.impl.killer;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -30,38 +33,21 @@ public final class NearestMobFinder {
                 continue;
             }
 
-            if (livingEntity instanceof Player) {
-                continue;
-            }
-
-            if (!livingEntity.isValid() || livingEntity.isDead()) {
-                continue;
-            }
-
-            if (
-                    !isAllowed(
-                            livingEntity,
-                            allowedMobs,
-                            attackAllMonstersWhenEmpty
-                    )
-            ) {
+            if (!this.isAllowed(
+                    livingEntity,
+                    allowedMobs,
+                    attackAllMonstersWhenEmpty
+            )) {
                 continue;
             }
 
             foundAllowedMob = true;
 
-            if (
-                    ignoreNamedMobs
-                            && livingEntity.getCustomName() != null
-            ) {
-                foundProtectedMob = true;
-                continue;
-            }
-
-            if (
+            if (this.isProtected(
+                    livingEntity,
+                    ignoreNamedMobs,
                     ignoreInvulnerableMobs
-                            && livingEntity.isInvulnerable()
-            ) {
+            )) {
                 foundProtectedMob = true;
                 continue;
             }
@@ -88,17 +74,127 @@ public final class NearestMobFinder {
         return SearchResult.empty();
     }
 
-    private static boolean isAllowed(
+    public List<LivingEntity> findAdditional(
+            Location origin,
+            Collection<Entity> entities,
+            LivingEntity excluded,
+            int limit,
+            double range,
+            Set<EntityType> allowedMobs,
+            boolean attackAllMonstersWhenEmpty,
+            boolean ignoreNamedMobs,
+            boolean ignoreInvulnerableMobs
+    ) {
+        if (limit <= 0 || range <= 0.0D) {
+            return List.of();
+        }
+
+        double rangeSquared = range * range;
+
+        List<Candidate> candidates =
+                new ArrayList<>();
+
+        for (Entity entity : entities) {
+            if (!(entity instanceof LivingEntity livingEntity)) {
+                continue;
+            }
+
+            if (livingEntity.equals(excluded)) {
+                continue;
+            }
+
+            if (!this.isAllowed(
+                    livingEntity,
+                    allowedMobs,
+                    attackAllMonstersWhenEmpty
+            )) {
+                continue;
+            }
+
+            if (this.isProtected(
+                    livingEntity,
+                    ignoreNamedMobs,
+                    ignoreInvulnerableMobs
+            )) {
+                continue;
+            }
+
+            double distanceSquared =
+                    livingEntity.getLocation().distanceSquared(origin);
+
+            if (distanceSquared > rangeSquared) {
+                continue;
+            }
+
+            candidates.add(
+                    new Candidate(
+                            livingEntity,
+                            distanceSquared
+                    )
+            );
+        }
+
+        candidates.sort(
+                Comparator.comparingDouble(
+                        Candidate::distanceSquared
+                )
+        );
+
+        int resultSize = Math.min(
+                limit,
+                candidates.size()
+        );
+
+        List<LivingEntity> result =
+                new ArrayList<>(resultSize);
+
+        for (int index = 0; index < resultSize; index++) {
+            result.add(
+                    candidates.get(index).entity()
+            );
+        }
+
+        return result;
+    }
+
+    private boolean isAllowed(
             LivingEntity entity,
             Set<EntityType> allowedMobs,
             boolean attackAllMonstersWhenEmpty
     ) {
+        if (
+                entity instanceof Player
+                        || !entity.isValid()
+                        || entity.isDead()
+        ) {
+            return false;
+        }
+
         if (!allowedMobs.isEmpty()) {
-            return allowedMobs.contains(entity.getType());
+            return allowedMobs.contains(
+                    entity.getType()
+            );
         }
 
         return attackAllMonstersWhenEmpty
                 && entity instanceof Monster;
+    }
+
+    private boolean isProtected(
+            LivingEntity entity,
+            boolean ignoreNamedMobs,
+            boolean ignoreInvulnerableMobs
+    ) {
+        return ignoreNamedMobs
+                && entity.getCustomName() != null
+                || ignoreInvulnerableMobs
+                && entity.isInvulnerable();
+    }
+
+    private record Candidate(
+            LivingEntity entity,
+            double distanceSquared
+    ) {
     }
 
     public record SearchResult(
