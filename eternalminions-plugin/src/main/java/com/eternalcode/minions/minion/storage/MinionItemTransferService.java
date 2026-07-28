@@ -21,6 +21,10 @@ public final class MinionItemTransferService {
             throw new IllegalArgumentException("Context, storage and item are required");
         }
 
+        if (!context.policy().storageAllowed()) {
+            return new MinionStorageUpdate(storage, item.clone());
+        }
+
         ItemStack remaining = item.clone();
         Container chest = context.linkedChest();
         if (chest != null) {
@@ -52,7 +56,7 @@ public final class MinionItemTransferService {
             MinionStorageUpdate update = this.store(context, storage, item);
             storage = update.storage();
             ItemStack remaining = update.remaining();
-            if (remaining != null) {
+            if (remaining != null && context.policy().storageAllowed()) {
                 context.world().dropItemNaturally(overflowLocation, remaining);
             }
         }

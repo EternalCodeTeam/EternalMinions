@@ -1,15 +1,16 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.minion.activity.MinionExecutionPolicy;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 
-public record MinionContext(Minion minion, World world, ScheduledMinion scheduledMinion) {
+public record MinionContext(Minion minion, World world, ScheduledMinion scheduledMinion, MinionExecutionPolicy policy) {
 
     public MinionContext {
-        if (minion == null || world == null || scheduledMinion == null) {
-            throw new IllegalArgumentException("Minion execution context requires minion, world and schedule");
+        if (minion == null || world == null || scheduledMinion == null || policy == null) {
+            throw new IllegalArgumentException("Minion execution context requires minion, world, schedule and policy");
         }
     }
 

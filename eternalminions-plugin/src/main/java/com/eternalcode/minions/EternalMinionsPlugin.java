@@ -24,6 +24,12 @@ import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionActionEngine;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.activity.MinionActivityBypass;
+import com.eternalcode.minions.minion.activity.rule.MinionActivityRule;
+import com.eternalcode.minions.minion.activity.MinionActivityService;
+import com.eternalcode.minions.minion.activity.rule.loadedchunk.LoadedChunkActivityRule;
+import com.eternalcode.minions.minion.activity.rule.offline.OfflineActivityRule;
+import com.eternalcode.minions.minion.activity.rule.proximity.ProximityActivityRule;
 import com.eternalcode.minions.minion.MinionIdSequence;
 import com.eternalcode.minions.minion.MinionLifecycleService;
 import com.eternalcode.minions.minion.MinionPlacementListener;
@@ -164,6 +170,14 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
 
         this.database = MinionDatabase.open(this.getLogger(), dataFolder, databaseConfig);
         MinionPersistenceService persistence = this.database.persistence();
+        MinionActivityBypass activityBypass = new MinionActivityBypass(minionsConfig.activity.bypass);
+        List<MinionActivityRule> activityRules = List.of(
+                new LoadedChunkActivityRule(minionsConfig.activity.loadedChunk),
+                new OfflineActivityRule(minionsConfig.activity.offline),
+                new ProximityActivityRule(minionsConfig.activity.proximity)
+        );
+        MinionActivityService activityService =
+                new MinionActivityService(this.getServer(), activityBypass, activityRules);
         MinionActionEngine actions = new MinionActionEngine(
                 this.getServer(),
                 this.minionRegistry,
@@ -171,7 +185,8 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 behaviors,
                 persistence,
                 statusTracker,
-                this.renderer
+                this.renderer,
+                activityService
         );
 
         MinionItemFactory minionItems = new MinionItemFactory(this, behaviors, appearance, miniMessage);

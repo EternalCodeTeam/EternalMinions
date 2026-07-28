@@ -28,7 +28,7 @@ public final class MinionShopServiceImpl implements MinionShopService, MinionSho
     }
 
     @Override
-    public @NonNull MinionShopRegistration registerProvider(Plugin plugin, @NonNull MinionShopProvider provider) {
+    public @NonNull MinionShopRegistration registerProvider(@NonNull Plugin plugin, @NonNull MinionShopProvider provider) {
         if (!plugin.isEnabled()) {
             throw new IllegalStateException(
                     "Cannot register a shop provider for disabled plugin: " + plugin.getName()

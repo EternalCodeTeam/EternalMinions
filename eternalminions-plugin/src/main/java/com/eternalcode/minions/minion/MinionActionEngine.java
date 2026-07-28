@@ -2,6 +2,10 @@ package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.database.MinionPersistenceService;
+import com.eternalcode.minions.minion.activity.ActivityDecision;
+import com.eternalcode.minions.minion.activity.MinionActivityService;
+import com.eternalcode.minions.minion.activity.MinionExecutionPolicy;
+import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.eternalcode.minions.render.MinionRenderer;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -21,18 +25,20 @@ public final class MinionActionEngine implements Runnable {
     private final MinionPersistenceService persistence;
     private final MinionStatusTracker statuses;
     private final MinionRenderer renderer;
+    private final MinionActivityService activity;
     private final MinionSchedule schedule = new MinionSchedule(128);
     private final Long2ObjectOpenHashMap<ScheduledMinion> scheduled = new Long2ObjectOpenHashMap<>();
     private long currentTick;
 
     public MinionActionEngine(
-        Server server,
-        MinionRegistry minions,
-        MinionsConfig config,
-        MinionBehaviorRegistry behaviors,
-        MinionPersistenceService persistence,
-        MinionStatusTracker statuses,
-        MinionRenderer renderer
+            Server server,
+            MinionRegistry minions,
+            MinionsConfig config,
+            MinionBehaviorRegistry behaviors,
+            MinionPersistenceService persistence,
+            MinionStatusTracker statuses,
+            MinionRenderer renderer,
+            MinionActivityService activity
     ) {
         this.server = server;
         this.minions = minions;
@@ -41,6 +47,7 @@ public final class MinionActionEngine implements Runnable {
         this.persistence = persistence;
         this.statuses = statuses;
         this.renderer = renderer;
+        this.activity = activity;
     }
 
     public void add(Minion minion) {
@@ -93,12 +100,35 @@ public final class MinionActionEngine implements Runnable {
             return behavior.idleInterval();
         }
 
-        MinionResult result = behavior.execute(new MinionContext(minion, world, scheduledMinion));
-        this.apply(minion, result, scheduledMinion);
-        if (result.delayTicks() != null) {
-            return result.delayTicks();
+        ActivityDecision decision = this.activity.evaluate(minion, world);
+        if (decision.frozen()) {
+            this.applyStatusOnly(minion, decision.statusOverride());
+            return behavior.idleInterval();
         }
-        return result.worked() ? behavior.workInterval(result.minion()) : behavior.idleInterval();
+
+        MinionExecutionPolicy policy = new MinionExecutionPolicy(!decision.suppressStorageGain());
+        MinionResult result = behavior.execute(new MinionContext(minion, world, scheduledMinion, policy));
+        if (decision.statusOverride() != null && result.status() != decision.statusOverride()) {
+            result = new MinionResult(result.minion(), decision.statusOverride(), result.worked(), result.delayTicks());
+        }
+
+        this.apply(minion, result, scheduledMinion);
+
+        long baseDelay = result.delayTicks() != null
+                ? result.delayTicks()
+                : result.worked() ? behavior.workInterval(result.minion()) : behavior.idleInterval();
+
+        if (decision.speedMultiplier() < 1.0D) {
+            return Math.max(1L, Math.round(baseDelay / decision.speedMultiplier()));
+        }
+        return baseDelay;
+    }
+
+    private void applyStatusOnly(Minion minion, MinionStatus status) {
+        boolean statusChanged = this.statuses.setStatus(minion.id(), status);
+        if (statusChanged) {
+            this.renderer.refreshHologram(minion);
+        }
     }
 
     private void apply(Minion previous, MinionResult result, ScheduledMinion scheduledMinion) {

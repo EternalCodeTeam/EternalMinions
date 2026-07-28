@@ -1,5 +1,9 @@
 package com.eternalcode.minions.config;
 
+import com.eternalcode.minions.minion.activity.config.ActivityBypassConfig;
+import com.eternalcode.minions.minion.activity.rule.loadedchunk.LoadedChunkConfig;
+import com.eternalcode.minions.minion.activity.rule.offline.OfflineConfig;
+import com.eternalcode.minions.minion.activity.rule.proximity.ProximityConfig;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.render.MinionRendererType;
@@ -27,6 +31,8 @@ public final class MinionsConfig extends OkaeriConfig {
         statuses.put(CoreMinionStatuses.WORKING, "<green>Pracuje");
         statuses.put(CoreMinionStatuses.NO_TOOL, "<red>Brak narzędzia");
         statuses.put(CoreMinionStatuses.STORAGE_FULL, "<red>Magazyn pełny");
+        statuses.put(CoreMinionStatuses.OFFLINE, "<dark_gray>Właściciel offline");
+        statuses.put(CoreMinionStatuses.AWAY, "<dark_gray>Właściciel poza zasięgiem");
         return statuses;
     }
 
@@ -56,6 +62,9 @@ public final class MinionsConfig extends OkaeriConfig {
 
     @Comment("Limits on how many minions can be placed.")
     public LimitsConfig limits = new LimitsConfig();
+
+    @Comment("Rules that reduce or stop minion activity based on the owner's status.")
+    public ActivityConfig activity = new ActivityConfig();
 
     public static class LimitsConfig extends OkaeriConfig {
 
@@ -195,5 +204,20 @@ public final class MinionsConfig extends OkaeriConfig {
             })
             public String glowColor = "";
         }
+    }
+
+    public static class ActivityConfig extends OkaeriConfig {
+
+        @Comment("Nerf applied while the minion's owner is offline.")
+        public OfflineConfig offline = new OfflineConfig();
+
+        @Comment("Nerf applied while nobody required is standing near the minion.")
+        public ProximityConfig proximity = new ProximityConfig();
+
+        @Comment("Nerf applied while the chunk the minion stands in is not loaded.")
+        public LoadedChunkConfig loadedChunk = new LoadedChunkConfig();
+
+        @Comment("Ways a minion can be fully exempted from every activity rule.")
+        public ActivityBypassConfig bypass = new ActivityBypassConfig();
     }
 }
