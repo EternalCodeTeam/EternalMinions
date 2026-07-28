@@ -331,7 +331,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         KillerLootingListener killerLooting,
         MinionShopProvider shop
     ) {
-        return List.of(
+        List<MinionBehavior> behaviors = List.of(
             MiningBehavior.create(configs, directory, tools, transfers),
             LumberjackBehavior.create(configs, directory, tools, transfers),
             FarmerBehavior.create(configs, directory, tools, transfers),
@@ -341,6 +341,10 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
             CrafterBehavior.create(configs, directory),
             SellerBehavior.create(configs, directory, shop)
         );
+
+        return behaviors.stream()
+            .filter(behavior -> behavior.config().enabled)
+            .toList();
     }
 
     @Override

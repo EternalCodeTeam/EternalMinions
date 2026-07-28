@@ -21,6 +21,9 @@ import org.bukkit.Material;
 // FarmerConfig, MinerConfig) extends this and adds only the fields specific to it.
 public abstract class AbstractMinionConfig extends OkaeriConfig {
 
+    @Comment("Whether this minion type is enabled. Set to false to disable it entirely.")
+    public boolean enabled = true;
+
     @Comment("Display name used on the minion item and hologram. Supports MiniMessage.")
     public String displayName = "<green>Minion";
 
