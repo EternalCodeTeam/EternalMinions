@@ -4,11 +4,18 @@ import com.eternalcode.minions.item.MinionAppearanceItems;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.manager.protocol.ProtocolManager;
+import com.github.retrooper.packetevents.netty.channel.ChannelHelper;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.util.Vector3f;
+import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import me.tofaa.entitylib.meta.other.ArmorStandMeta;
 import me.tofaa.entitylib.wrapper.WrapperEntity;
 import me.tofaa.entitylib.wrapper.WrapperEntityEquipment;
@@ -47,6 +54,8 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
     private final MinionBehaviorRegistry behaviors;
     private final MinionAppearanceItems appearance;
     private final Long2LongOpenHashMap swingStates = new Long2LongOpenHashMap();
+    private final Set<Object> touchedChannels = new HashSet<>();
+    private final ProtocolManager protocolManager = PacketEvents.getAPI().getProtocolManager();
 
     private long currentTick;
 
@@ -176,6 +185,10 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
     public void tick(long currentTick) {
         this.currentTick = currentTick;
 
+        if (this.swingStates.isEmpty()) {
+            return;
+        }
+
         ObjectIterator<Long2LongMap.Entry> iterator =
                 this.swingStates.long2LongEntrySet().fastIterator();
 
@@ -201,7 +214,7 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
             }
 
             if (elapsedTicks >= SWING_DURATION_TICKS) {
-                armorStandMeta(minion).setRightArmRotation(RESTING_ARM_ROTATION);
+                this.queueArmRotation(minion, RESTING_ARM_ROTATION);
                 iterator.remove();
                 continue;
             }
@@ -218,8 +231,41 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
                 continue;
             }
 
-            armorStandMeta(minion).setRightArmRotation(SWING_FRAMES[frameIndex]);
+            this.queueArmRotation(minion, SWING_FRAMES[frameIndex]);
             entry.setValue(packState(startTick, frameIndex));
         }
+
+        this.flushTouchedChannels();
+    }
+
+    private void queueArmRotation(RenderedMinion minion, Vector3f rotation) {
+        ArmorStandMeta meta = armorStandMeta(minion);
+
+        meta.getMetadata().setNotifyAboutChanges(false);
+        meta.setRightArmRotation(rotation);
+
+        PacketWrapper<?> packet = meta.createPacket();
+
+        for (UUID viewer : minion.body().getViewers()) {
+            Object channel = this.protocolManager.getChannel(viewer);
+            if (channel == null) {
+                continue;
+            }
+
+            this.protocolManager.writePacket(channel, packet);
+            this.touchedChannels.add(channel);
+        }
+    }
+
+    private void flushTouchedChannels() {
+        if (this.touchedChannels.isEmpty()) {
+            return;
+        }
+
+        for (Object channel : this.touchedChannels) {
+            ChannelHelper.flush(channel);
+        }
+
+        this.touchedChannels.clear();
     }
 }

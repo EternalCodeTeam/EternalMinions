@@ -17,6 +17,7 @@ public final class MinionActionEngine implements Runnable {
 
     private static final long ACTIVE_INTERVAL_TICKS = 40L;
     private static final long IDLE_INTERVAL_TICKS = 100L;
+    private static final int DEADLINE_CHECK_INTERVAL = 8;
 
     private final Server server;
     private final MinionRegistry minions;
@@ -67,7 +68,11 @@ public final class MinionActionEngine implements Runnable {
         long deadlineNanos = System.nanoTime() + this.config.schedulerBudgetMicros * 1_000L;
         int actions = 0;
 
-        while (actions < this.config.physicalActionsPerTick && System.nanoTime() < deadlineNanos) {
+        while (actions < this.config.physicalActionsPerTick) {
+            if (actions % DEADLINE_CHECK_INTERVAL == 0 && System.nanoTime() >= deadlineNanos) {
+                return;
+            }
+
             ScheduledMinion scheduledMinion = this.schedule.pollDue(this.currentTick);
             if (scheduledMinion == null) {
                 return;
