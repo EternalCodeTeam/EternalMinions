@@ -1,15 +1,12 @@
 package com.eternalcode.minions.minion.upgrade;
 
-import org.bukkit.Material;
+import java.math.BigDecimal;
 
-public record MinionUpgradeTier(int requiredLevel, int value, Material costMaterial, int costAmount) {
+public record MinionUpgradeTier(int requiredLevel, int value, BigDecimal costAmount) {
 
     public MinionUpgradeTier {
-        if (requiredLevel < 1 || value < 1 || costAmount < 1) {
+        if (requiredLevel < 1 || value < 1 || costAmount == null || costAmount.signum() <= 0) {
             throw new IllegalArgumentException("Upgrade tier requires positive level, value and cost");
-        }
-        if (costMaterial == null) {
-            throw new IllegalArgumentException("Upgrade tier requires a cost material");
         }
     }
 }

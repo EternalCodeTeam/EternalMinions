@@ -35,7 +35,7 @@ public final class MessagesConfig extends OkaeriConfig {
     public Notice upgradePurchased = Notice.chat(prefix() + "<white>Ulepszenie zakupione!");
     public Notice upgradeMaxed = Notice.chat(prefix() + "<red>To ulepszenie ma już maksymalny poziom.");
     public Notice upgradeRequiresLevel = Notice.chat(prefix() + "<red>Minion ma za niski poziom na to ulepszenie.");
-    public Notice upgradeCannotAfford = Notice.chat(prefix() + "<red>Nie masz wystarczających przedmiotów na to ulepszenie.");
+    public Notice upgradeCannotAfford = Notice.chat(prefix() + "<red>Nie masz wystarczająco pieniędzy lub ekonomia jest niedostępna.");
 
     public Notice chestLinkStart = Notice.chat(prefix() + "<white>Kliknij PPM skrzynię, aby połączyć ją z minionem.");
     public Notice chestLinked = Notice.chat(prefix() + "<white>Skrzynia została połączona z minionem.");

@@ -56,7 +56,7 @@ public final class MinionPanelConfig extends OkaeriConfig {
     @Comment({
         "Icons of the upgrades panel, one per upgrade kind.",
         "Placeholders: {UPGRADE_TIER}, {UPGRADE_MAX_TIER}, {UPGRADE_VALUE}, {UPGRADE_NEXT_VALUE},",
-        "{UPGRADE_REQUIRED_LEVEL}, {UPGRADE_COST_AMOUNT}, {UPGRADE_COST_MATERIAL} (MAX gdy wykupione)."
+        "{UPGRADE_REQUIRED_LEVEL}, {UPGRADE_COST} (MAX gdy wykupione)."
     })
     public Map<UpgradeKind, MinionPanelElementConfig> upgradeElements = defaultUpgradeElements();
 
@@ -70,7 +70,7 @@ public final class MinionPanelConfig extends OkaeriConfig {
             "<white>{UPGRADE_VALUE} ticków <dark_gray>→ <green>{UPGRADE_NEXT_VALUE} ticków",
             "",
             "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Koszt: <white>{UPGRADE_COST_AMOUNT}x {UPGRADE_COST_MATERIAL}",
+            "<gray>Koszt: <green>{UPGRADE_COST}",
             "<green>Kliknij, aby ulepszyć."
         ));
         elements.put(CoreUpgradeKinds.RANGE, element(
@@ -81,7 +81,7 @@ public final class MinionPanelConfig extends OkaeriConfig {
             "<white>{UPGRADE_VALUE} <dark_gray>→ <green>{UPGRADE_NEXT_VALUE}",
             "",
             "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Koszt: <white>{UPGRADE_COST_AMOUNT}x {UPGRADE_COST_MATERIAL}",
+            "<gray>Koszt: <green>{UPGRADE_COST}",
             "<green>Kliknij, aby ulepszyć."
         ));
         elements.put(CoreUpgradeKinds.CAPACITY, element(
@@ -92,7 +92,7 @@ public final class MinionPanelConfig extends OkaeriConfig {
             "<white>{UPGRADE_VALUE} <dark_gray>→ <green>{UPGRADE_NEXT_VALUE}",
             "",
             "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Koszt: <white>{UPGRADE_COST_AMOUNT}x {UPGRADE_COST_MATERIAL}",
+            "<gray>Koszt: <green>{UPGRADE_COST}",
             "<green>Kliknij, aby ulepszyć."
         ));
         return elements;

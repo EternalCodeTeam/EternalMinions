@@ -7,11 +7,12 @@ import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.eternalcode.minions.notice.NoticeService;
+import com.eternalcode.minions.bridge.vault.EconomyService;
 import com.eternalcode.multification.notice.Notice;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 public final class MinionUpgradeService {
 
@@ -20,19 +21,22 @@ public final class MinionUpgradeService {
     private final BiConsumer<Minion, UpgradeKind> update;
     private final MessagesConfig messages;
     private final NoticeService notices;
+    private final UpgradePayment payment;
 
     public MinionUpgradeService(
         MinionBehaviorRegistry behaviors,
         MinionAccessGuard access,
         BiConsumer<Minion, UpgradeKind> update,
         MessagesConfig messages,
-        NoticeService notices
+        NoticeService notices,
+        Optional<? extends EconomyService> economy
     ) {
         this.behaviors = behaviors;
         this.access = access;
         this.update = update;
         this.messages = messages;
         this.notices = notices;
+        this.payment = new UpgradePayment(economy);
     }
 
     public Optional<Minion> purchase(Player player, Minion minion, UpgradeKind kind) {
@@ -65,12 +69,10 @@ public final class MinionUpgradeService {
             return Optional.empty();
         }
 
-        ItemStack cost = new ItemStack(nextTier.costMaterial(), nextTier.costAmount());
-        if (!player.getInventory().containsAtLeast(cost, nextTier.costAmount())) {
+        if (!this.payment.withdraw(player.getUniqueId(), nextTier.costAmount())) {
             this.send(player, this.messages.upgradeCannotAfford);
             return Optional.empty();
         }
-        player.getInventory().removeItem(cost);
 
         Minion updated = minion.withUpgrades(minion.upgrades().withTier(kind, currentTier + 1));
         if (kind.equals(CoreUpgradeKinds.CAPACITY)) {
@@ -79,6 +81,10 @@ public final class MinionUpgradeService {
         this.update.accept(updated, kind);
         this.send(player, this.messages.upgradePurchased);
         return Optional.of(updated);
+    }
+
+    public String formatCost(BigDecimal amount) {
+        return this.payment.format(amount);
     }
 
     private void send(Player player, Notice notice) {

@@ -4,7 +4,6 @@ import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.bridge.BridgeManager;
 import com.eternalcode.minions.bridge.shop.impl.shopguiplus.ShopGuiPlusShopIntegration;
 import com.eternalcode.minions.bridge.shop.impl.vault.VaultShopIntegration;
-import com.eternalcode.minions.bridge.vault.VaultBridge;
 import com.eternalcode.minions.bridge.vault.VaultEconomyHook;
 import com.eternalcode.minions.shop.MinionShopProvider;
 import java.util.ArrayList;
@@ -22,11 +21,11 @@ public final class ShopBridges {
     public static List<MinionShopProvider> discover(
             BridgeManager bridgeManager,
             JavaPlugin plugin,
-            Map<XMaterial, Double> sellPrices
+            Map<XMaterial, Double> sellPrices,
+            Optional<VaultEconomyHook> economy
     ) {
         List<MinionShopProvider> hooks = new ArrayList<>();
 
-        Optional<VaultEconomyHook> economy = VaultBridge.discover(bridgeManager, plugin);
         if (economy.isEmpty()) {
             return hooks;
         }

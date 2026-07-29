@@ -115,8 +115,10 @@ public final class MinionUpgradePanel {
         placeholders.put("{UPGRADE_VALUE}", Long.toString(this.effectiveValue(behavior, minionUpgrades, kind)));
         placeholders.put("{UPGRADE_NEXT_VALUE}", nextTier == null ? this.config.maximumValue : Integer.toString(nextTier.value()));
         placeholders.put("{UPGRADE_REQUIRED_LEVEL}", nextTier == null ? this.config.unavailableValue : Integer.toString(nextTier.requiredLevel()));
-        placeholders.put("{UPGRADE_COST_AMOUNT}", nextTier == null ? this.config.unavailableValue : Integer.toString(nextTier.costAmount()));
-        placeholders.put("{UPGRADE_COST_MATERIAL}", nextTier == null ? this.config.unavailableValue : nextTier.costMaterial().name());
+        placeholders.put(
+            "{UPGRADE_COST}",
+            nextTier == null ? this.config.unavailableValue : this.upgrades.formatCost(nextTier.costAmount())
+        );
         return placeholders;
     }
 

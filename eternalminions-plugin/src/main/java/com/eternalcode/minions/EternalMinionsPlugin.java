@@ -63,6 +63,8 @@ import com.eternalcode.minions.render.MinionViewerListener;
 import com.eternalcode.minions.bridge.BridgeManager;
 import com.eternalcode.minions.bridge.shop.MinionShopServiceImpl;
 import com.eternalcode.minions.bridge.shop.ShopBridges;
+import com.eternalcode.minions.bridge.vault.VaultBridge;
+import com.eternalcode.minions.bridge.vault.VaultEconomyHook;
 import com.eternalcode.minions.minion.limit.MinionLimitStatus;
 import com.eternalcode.minions.minion.limit.PlayerMinionLimitService;
 import com.eternalcode.minions.shop.MinionShopProvider;
@@ -77,6 +79,7 @@ import dev.rollczi.litecommands.bukkit.LiteBukkitMessages;
 import dev.rollczi.litecommands.suggestion.SuggestionResult;
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -126,7 +129,9 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         KillerLootingListener killerLooting = new KillerLootingListener();
         SellerConfig sellerConfig = configs.load(SellerConfig.class, new File(minionConfigDirectory, "seller.yml"));
         BridgeManager bridgeManager = new BridgeManager(this.getLogger());
-        List<MinionShopProvider> shopHooks = ShopBridges.discover(bridgeManager, this, sellerConfig.sellPrices);
+        Optional<VaultEconomyHook> economy = VaultBridge.discover(bridgeManager, this);
+        List<MinionShopProvider> shopHooks =
+                ShopBridges.discover(bridgeManager, this, sellerConfig.sellPrices, economy);
         this.shopService = new MinionShopServiceImpl(this.getLogger(), shopHooks);
         this.getServer().getPluginManager().registerEvents(this.shopService, this);
         this.getServer().getPluginManager().registerEvents(killerLooting, this);
@@ -218,7 +223,8 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                         access,
                         lifecycle::updateUpgrade,
                         messages,
-                        notices
+                        notices,
+                        economy
                 );
         MinionUpgradePanel upgradePanel =
                 new MinionUpgradePanel(

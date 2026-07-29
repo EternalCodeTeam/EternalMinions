@@ -9,6 +9,7 @@ import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +64,8 @@ public final class FishermanConfig extends AbstractMinionConfig {
         this.tool.category = ToolCategory.FISHING_ROD;
         this.tool.required = true;
         this.upgrades.put(CoreUpgradeKinds.SPEED, List.of(
-                new MinionUpgradeTierConfig(2, 170, XMaterial.DIAMOND, 8),
-                new MinionUpgradeTierConfig(3, 140, XMaterial.DIAMOND, 16)
+                new MinionUpgradeTierConfig(2, 170, new BigDecimal("8.00")),
+                new MinionUpgradeTierConfig(3, 140, new BigDecimal("16.00"))
         ));
 
         this.items.helmet.texture =

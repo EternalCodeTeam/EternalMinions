@@ -2,8 +2,6 @@ package com.eternalcode.minions.render;
 
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;
-import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityHeadLook;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityRotation;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
@@ -42,9 +40,8 @@ abstract class AbstractEntityLibMinionRenderer implements MinionRenderer {
             this.entityIndex.register(body.getEntityId(), minion.id());
         }
 
-        User user = PacketEvents.getAPI().getPlayerManager().getUser(player);
-        view.body().addViewer(user);
-        view.hologram().addViewer(user);
+        view.body().addViewer(player.getUniqueId());
+        view.hologram().addViewer(player.getUniqueId());
 
         if (!view.body().isSpawned()) {
             view.body().spawn(RenderLocation.of(minion, 0.0D));
@@ -59,9 +56,8 @@ abstract class AbstractEntityLibMinionRenderer implements MinionRenderer {
             return;
         }
 
-        User user = PacketEvents.getAPI().getPlayerManager().getUser(player);
-        view.body().removeViewer(user);
-        view.hologram().removeViewer(user);
+        view.body().removeViewer(player.getUniqueId());
+        view.hologram().removeViewer(player.getUniqueId());
     }
 
     @Override

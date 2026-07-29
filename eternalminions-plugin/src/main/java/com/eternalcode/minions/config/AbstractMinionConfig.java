@@ -10,6 +10,7 @@ import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -84,7 +85,7 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
     public MinionToolConfig tool = new MinionToolConfig();
 
     @Comment({
-        "Purchasable upgrades. Each tier: requiredLevel (minion level), value, costMaterial, costAmount.",
+        "Purchasable upgrades paid through Vault. Each tier: requiredLevel, value and costAmount.",
         "Value meaning: SPEED = work interval in ticks, RANGE = radius (1-3), CAPACITY = storage slots (max 54)."
     })
     public Map<UpgradeKind, List<MinionUpgradeTierConfig>> upgrades = defaultUpgrades();
@@ -116,16 +117,16 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
     private static Map<UpgradeKind, List<MinionUpgradeTierConfig>> defaultUpgrades() {
         Map<UpgradeKind, List<MinionUpgradeTierConfig>> upgrades = new LinkedHashMap<>();
         upgrades.put(CoreUpgradeKinds.SPEED, List.of(
-            new MinionUpgradeTierConfig(2, 30, XMaterial.DIAMOND, 8),
-            new MinionUpgradeTierConfig(3, 20, XMaterial.DIAMOND, 16)
+            new MinionUpgradeTierConfig(2, 30, new BigDecimal("8.00")),
+            new MinionUpgradeTierConfig(3, 20, new BigDecimal("16.00"))
         ));
         upgrades.put(CoreUpgradeKinds.RANGE, List.of(
-            new MinionUpgradeTierConfig(2, 2, XMaterial.DIAMOND, 16),
-            new MinionUpgradeTierConfig(4, 3, XMaterial.DIAMOND, 32)
+            new MinionUpgradeTierConfig(2, 2, new BigDecimal("16.00")),
+            new MinionUpgradeTierConfig(4, 3, new BigDecimal("32.00"))
         ));
         upgrades.put(CoreUpgradeKinds.CAPACITY, List.of(
-            new MinionUpgradeTierConfig(3, 18, XMaterial.DIAMOND, 8),
-            new MinionUpgradeTierConfig(4, 27, XMaterial.DIAMOND, 16)
+            new MinionUpgradeTierConfig(3, 18, new BigDecimal("8.00")),
+            new MinionUpgradeTierConfig(4, 27, new BigDecimal("16.00"))
         ));
         return upgrades;
     }
@@ -179,14 +180,9 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
         }
 
         MinionUpgradeTierConfig configuredTier = tiers.get(tier - 1);
-        Material costMaterial = configuredTier.costMaterial.parseMaterial();
-        if (costMaterial == null) {
-            throw new IllegalArgumentException("Upgrade " + kind + " uses an unavailable cost material");
-        }
         return new MinionUpgradeTier(
             configuredTier.requiredLevel,
             configuredTier.value,
-            costMaterial,
             configuredTier.costAmount
         );
     }
