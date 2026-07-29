@@ -66,8 +66,9 @@ public final class MinionPanelConfig extends OkaeriConfig {
             MinionPanelAction.NONE,
             XMaterial.SUGAR,
             "<yellow>Szybkość <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
-            "<gray>Cykl pracy: <white>{UPGRADE_VALUE} ticków",
-            "<gray>Następny poziom: <white>{UPGRADE_NEXT_VALUE}",
+            "<gray>Cykl pracy:",
+            "<white>{UPGRADE_VALUE} ticków <dark_gray>→ <green>{UPGRADE_NEXT_VALUE} ticków",
+            "",
             "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
             "<gray>Koszt: <white>{UPGRADE_COST_AMOUNT}x {UPGRADE_COST_MATERIAL}",
             "<green>Kliknij, aby ulepszyć."
@@ -76,8 +77,9 @@ public final class MinionPanelConfig extends OkaeriConfig {
             MinionPanelAction.NONE,
             XMaterial.SPYGLASS,
             "<yellow>Zasięg <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
-            "<gray>Promień kopania: <white>{UPGRADE_VALUE}",
-            "<gray>Następny poziom: <white>{UPGRADE_NEXT_VALUE}",
+            "<gray>Promień kopania:",
+            "<white>{UPGRADE_VALUE} <dark_gray>→ <green>{UPGRADE_NEXT_VALUE}",
+            "",
             "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
             "<gray>Koszt: <white>{UPGRADE_COST_AMOUNT}x {UPGRADE_COST_MATERIAL}",
             "<green>Kliknij, aby ulepszyć."
@@ -86,8 +88,9 @@ public final class MinionPanelConfig extends OkaeriConfig {
             MinionPanelAction.NONE,
             XMaterial.CHEST,
             "<yellow>Pojemność <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
-            "<gray>Sloty magazynu: <white>{UPGRADE_VALUE}",
-            "<gray>Następny poziom: <white>{UPGRADE_NEXT_VALUE}",
+            "<gray>Sloty magazynu:",
+            "<white>{UPGRADE_VALUE} <dark_gray>→ <green>{UPGRADE_NEXT_VALUE}",
+            "",
             "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
             "<gray>Koszt: <white>{UPGRADE_COST_AMOUNT}x {UPGRADE_COST_MATERIAL}",
             "<green>Kliknij, aby ulepszyć."
@@ -118,7 +121,8 @@ public final class MinionPanelConfig extends OkaeriConfig {
             "<green>Informacje o minionie",
             "<gray>Typ pracy: <white>{MINION_BEHAVIOR}",
             "<gray>Poziom: <white>{MINION_LEVEL}/{MINION_MAX_LEVEL}",
-            "<gray>Postęp: <white>{MINION_PROGRESS}/{MINION_PROGRESS_REQUIRED}",
+            "<gray>Postęp do następnego poziomu:",
+            "{MINION_PROGRESS_BAR} <white>{MINION_PROGRESS}<gray>/<white>{MINION_PROGRESS_REQUIRED}",
             "<gray>Magazyn: <white>{STORAGE_USED}/{STORAGE_CAPACITY}",
             "<gray>Status: <white>{MINION_STATUS}"
         ));

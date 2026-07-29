@@ -36,6 +36,8 @@ import org.bukkit.plugin.Plugin;
 
 public final class MinionPanel {
 
+    private static final int PROGRESS_BAR_SEGMENTS = 10;
+
     private final Plugin plugin;
     private final MinionPanelConfig config;
     private final MessagesConfig messages;
@@ -299,6 +301,10 @@ public final class MinionPanel {
         );
         placeholders.put("{MINION_PROGRESS}", Long.toString(minion.progress().progress()));
         placeholders.put(
+            "{MINION_PROGRESS_BAR}",
+            this.createProgressBar(minion, behavior, level)
+        );
+        placeholders.put(
             "{MINION_PROGRESS_REQUIRED}",
             behavior == null || level >= behavior.config().maxLevel()
                 ? this.config.maximumValue
@@ -322,6 +328,18 @@ public final class MinionPanel {
         placeholders.put("{STORAGE_USED}", Integer.toString(this.countStoredItems(minion)));
         placeholders.put("{STORAGE_CAPACITY}", Integer.toString(minion.storage().capacity()));
         return placeholders;
+    }
+
+    private String createProgressBar(Minion minion, MinionBehavior behavior, int level) {
+        if (behavior == null || level >= behavior.config().maxLevel()) {
+            return MinionProgressBar.renderMaximum(PROGRESS_BAR_SEGMENTS);
+        }
+
+        return MinionProgressBar.render(
+            minion.progress().progress(),
+            behavior.config().progressToReach(level + 1),
+            PROGRESS_BAR_SEGMENTS
+        );
     }
 
     private int countStoredItems(Minion minion) {
