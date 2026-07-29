@@ -18,8 +18,10 @@ import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -40,7 +42,9 @@ public final class LumberjackBehavior implements MinionBehavior {
 
     private final Set<Material> logMaterials;
     private final Set<Material> leafMaterials;
-    private final Material saplingMaterial;
+    private final Map<Material, Material> saplingByLog;
+    private final Set<Material> saplingMaterials;
+    private final Material defaultSapling;
 
     public static LumberjackBehavior create(
             ConfigService configs,
@@ -80,10 +84,15 @@ public final class LumberjackBehavior implements MinionBehavior {
                 config.leafMaterials
         );
 
-        this.saplingMaterial = requireMaterial(
-                config.saplingMaterial,
-                "sapling"
+        this.saplingByLog = parseSaplingByLog(
+                config.saplingByLog
         );
+
+        this.saplingMaterials = Set.copyOf(this.saplingByLog.values());
+
+        this.defaultSapling = this.saplingMaterials.isEmpty()
+                ? requireMaterial(XMaterial.OAK_SAPLING, "sapling")
+                : this.saplingMaterials.iterator().next();
     }
 
     @Override
@@ -180,7 +189,7 @@ public final class LumberjackBehavior implements MinionBehavior {
                 );
             }
 
-            if (material == this.saplingMaterial) {
+            if (this.saplingMaterials.contains(material)) {
                 foundSapling = true;
                 continue;
             }
@@ -248,6 +257,11 @@ public final class LumberjackBehavior implements MinionBehavior {
             );
         }
 
+        Material sapling = this.saplingByLog.getOrDefault(
+                trunkBase.getType(),
+                this.defaultSapling
+        );
+
         ItemStack tool = minion.equipment().tool();
 
         int expectedBlocks =
@@ -284,7 +298,8 @@ public final class LumberjackBehavior implements MinionBehavior {
         this.replant(
                 context,
                 tree.logs(),
-                trunkBase.getY()
+                trunkBase.getY(),
+                sapling
         );
 
         Minion updated = this.tools.consume(minion, tree.logs().size());
@@ -344,7 +359,8 @@ public final class LumberjackBehavior implements MinionBehavior {
     private void replant(
             MinionContext context,
             TreeScanner.PositionBuffer logs,
-            int baseY
+            int baseY,
+            Material sapling
     ) {
         if (!this.config.replantFullTrunkFootprint) {
             Block base = context.world().getBlockAt(
@@ -354,7 +370,7 @@ public final class LumberjackBehavior implements MinionBehavior {
             );
 
             base.setType(
-                    this.saplingMaterial,
+                    sapling,
                     false
             );
 
@@ -387,7 +403,7 @@ public final class LumberjackBehavior implements MinionBehavior {
             }
 
             position.setType(
-                    this.saplingMaterial,
+                    sapling,
                     false
             );
         }
@@ -437,6 +453,32 @@ public final class LumberjackBehavior implements MinionBehavior {
         }
 
         return Set.copyOf(materials);
+    }
+
+    private static Map<Material, Material> parseSaplingByLog(
+            Map<XMaterial, XMaterial> configured
+    ) {
+        if (configured == null || configured.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Material, Material> saplingByLog =
+                new EnumMap<>(Material.class);
+
+        for (Map.Entry<XMaterial, XMaterial> entry : configured.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+
+            Material log = entry.getKey().parseMaterial();
+            Material sapling = entry.getValue().parseMaterial();
+
+            if (log != null && sapling != null) {
+                saplingByLog.put(log, sapling);
+            }
+        }
+
+        return Map.copyOf(saplingByLog);
     }
 
     private static Material requireMaterial(

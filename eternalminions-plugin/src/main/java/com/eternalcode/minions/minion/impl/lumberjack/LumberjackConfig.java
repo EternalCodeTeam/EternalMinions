@@ -17,14 +17,18 @@ import org.bukkit.Color;
 public final class LumberjackConfig extends AbstractMinionConfig {
 
     @Comment({
-            "Log materials treated as parts of this tree.",
-            "Multiple materials may be configured for custom trees."
+            "Log materials treated as parts of a tree.",
+            "Covers every vanilla tree species so the minion is not limited to oak.",
+            "Add more materials here to support custom or modded trees."
     })
     public List<XMaterial> logMaterials = List.of(
-            XMaterial.OAK_LOG,
-            XMaterial.STRIPPED_OAK_LOG,
-            XMaterial.OAK_WOOD,
-            XMaterial.STRIPPED_OAK_WOOD
+            XMaterial.OAK_LOG, XMaterial.STRIPPED_OAK_LOG, XMaterial.OAK_WOOD, XMaterial.STRIPPED_OAK_WOOD,
+            XMaterial.SPRUCE_LOG, XMaterial.STRIPPED_SPRUCE_LOG, XMaterial.SPRUCE_WOOD, XMaterial.STRIPPED_SPRUCE_WOOD,
+            XMaterial.BIRCH_LOG, XMaterial.STRIPPED_BIRCH_LOG, XMaterial.BIRCH_WOOD, XMaterial.STRIPPED_BIRCH_WOOD,
+            XMaterial.JUNGLE_LOG, XMaterial.STRIPPED_JUNGLE_LOG, XMaterial.JUNGLE_WOOD, XMaterial.STRIPPED_JUNGLE_WOOD,
+            XMaterial.ACACIA_LOG, XMaterial.STRIPPED_ACACIA_LOG, XMaterial.ACACIA_WOOD, XMaterial.STRIPPED_ACACIA_WOOD,
+            XMaterial.DARK_OAK_LOG, XMaterial.STRIPPED_DARK_OAK_LOG, XMaterial.DARK_OAK_WOOD, XMaterial.STRIPPED_DARK_OAK_WOOD,
+            XMaterial.CHERRY_LOG, XMaterial.STRIPPED_CHERRY_LOG, XMaterial.CHERRY_WOOD, XMaterial.STRIPPED_CHERRY_WOOD
     );
 
     @Comment({
@@ -32,11 +36,20 @@ public final class LumberjackConfig extends AbstractMinionConfig {
             "The list is ignored when breakLeaves is disabled."
     })
     public List<XMaterial> leafMaterials = List.of(
-            XMaterial.OAK_LEAVES
+            XMaterial.OAK_LEAVES,
+            XMaterial.SPRUCE_LEAVES,
+            XMaterial.BIRCH_LEAVES,
+            XMaterial.JUNGLE_LEAVES,
+            XMaterial.ACACIA_LEAVES,
+            XMaterial.DARK_OAK_LEAVES,
+            XMaterial.CHERRY_LEAVES
     );
 
-    @Comment("Sapling planted after the tree has been cut.")
-    public XMaterial saplingMaterial = XMaterial.OAK_SAPLING;
+    @Comment({
+            "Sapling replanted for each log/wood variant, matching the species that was cut.",
+            "A log material without an entry here falls back to the first sapling below."
+    })
+    public Map<XMaterial, XMaterial> saplingByLog = defaultSaplingByLog();
 
     @Comment({
             "Whether natural leaves should be removed immediately.",
@@ -140,6 +153,37 @@ public final class LumberjackConfig extends AbstractMinionConfig {
                 1,
                 Math.min(this.leafSearchRadius, 16)
         );
+    }
+
+    private static Map<XMaterial, XMaterial> defaultSaplingByLog() {
+        Map<XMaterial, XMaterial> saplingByLog = new LinkedHashMap<>();
+
+        putSpecies(saplingByLog, XMaterial.OAK_SAPLING,
+                XMaterial.OAK_LOG, XMaterial.STRIPPED_OAK_LOG, XMaterial.OAK_WOOD, XMaterial.STRIPPED_OAK_WOOD);
+        putSpecies(saplingByLog, XMaterial.SPRUCE_SAPLING,
+                XMaterial.SPRUCE_LOG, XMaterial.STRIPPED_SPRUCE_LOG, XMaterial.SPRUCE_WOOD, XMaterial.STRIPPED_SPRUCE_WOOD);
+        putSpecies(saplingByLog, XMaterial.BIRCH_SAPLING,
+                XMaterial.BIRCH_LOG, XMaterial.STRIPPED_BIRCH_LOG, XMaterial.BIRCH_WOOD, XMaterial.STRIPPED_BIRCH_WOOD);
+        putSpecies(saplingByLog, XMaterial.JUNGLE_SAPLING,
+                XMaterial.JUNGLE_LOG, XMaterial.STRIPPED_JUNGLE_LOG, XMaterial.JUNGLE_WOOD, XMaterial.STRIPPED_JUNGLE_WOOD);
+        putSpecies(saplingByLog, XMaterial.ACACIA_SAPLING,
+                XMaterial.ACACIA_LOG, XMaterial.STRIPPED_ACACIA_LOG, XMaterial.ACACIA_WOOD, XMaterial.STRIPPED_ACACIA_WOOD);
+        putSpecies(saplingByLog, XMaterial.DARK_OAK_SAPLING,
+                XMaterial.DARK_OAK_LOG, XMaterial.STRIPPED_DARK_OAK_LOG, XMaterial.DARK_OAK_WOOD, XMaterial.STRIPPED_DARK_OAK_WOOD);
+        putSpecies(saplingByLog, XMaterial.CHERRY_SAPLING,
+                XMaterial.CHERRY_LOG, XMaterial.STRIPPED_CHERRY_LOG, XMaterial.CHERRY_WOOD, XMaterial.STRIPPED_CHERRY_WOOD);
+
+        return saplingByLog;
+    }
+
+    private static void putSpecies(
+            Map<XMaterial, XMaterial> saplingByLog,
+            XMaterial sapling,
+            XMaterial... logs
+    ) {
+        for (XMaterial log : logs) {
+            saplingByLog.put(log, sapling);
+        }
     }
 
     private static Map<MinionStatus, String> defaultStatuses() {
