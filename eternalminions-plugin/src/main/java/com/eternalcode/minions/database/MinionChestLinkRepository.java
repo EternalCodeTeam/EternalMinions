@@ -11,6 +11,10 @@ public final class MinionChestLinkRepository extends AbstractRepositoryOrmLite {
         super(databaseManager, scheduler);
     }
 
+    CompletableFuture<Void> initialize() {
+        return this.createTable(MinionChestLinkTable.class);
+    }
+
     public CompletableFuture<Void> saveLink(MinionId minionId, MinionPosition position) {
         if (minionId == null || position == null) {
             throw new IllegalArgumentException("Minion id and chest position are required");

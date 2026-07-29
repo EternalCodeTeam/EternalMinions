@@ -54,6 +54,12 @@ public final class MinionsConfig extends OkaeriConfig {
     @Comment("Maximum distance between a minion and its linked chest, in blocks.")
     public int chestLinkDistanceBlocks = 10;
 
+    @Comment({
+            "Drops items on the ground when the linked chest and internal storage cannot hold them.",
+            "When disabled, the minion waits with the STORAGE_FULL status until space is available."
+    })
+    public boolean dropOverflowItems = true;
+
     @Comment("Seconds the player has to click a chest after starting link mode.")
     public int chestLinkTimeoutSeconds = 10;
 

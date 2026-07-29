@@ -99,15 +99,6 @@ public final class FishermanBehavior implements MinionBehavior {
         }
         Minion minion = preparation.minion();
 
-        if (!context.hasStorageRoom()) {
-            context.scheduledMinion().clearBusyTimer();
-
-            return MinionResult.idle(
-                    minion,
-                    CoreMinionStatuses.STORAGE_FULL
-            );
-        }
-
         WaterBodyScanner.ScanResult waterResult =
                 this.findFishingWater(context);
 
@@ -139,6 +130,10 @@ public final class FishermanBehavior implements MinionBehavior {
                 break;
             }
             catchResult = this.catchFish(context, updated, rod, water);
+            if (!catchResult.worked()) {
+                context.scheduledMinion().clearBusyTimer();
+                return catchResult;
+            }
             updated = catchResult.minion();
         }
         if (catchResult == null) {
@@ -159,6 +154,10 @@ public final class FishermanBehavior implements MinionBehavior {
             Block water
     ) {
         Optional<ItemStack> caughtItem = this.randomCatch(rod);
+        if (caughtItem.isPresent()
+                && !this.transfers.canStoreAll(context, minion.storage(), List.of(caughtItem.get()))) {
+            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+        }
 
         Minion updated = this.tools.consume(minion, 1);
 

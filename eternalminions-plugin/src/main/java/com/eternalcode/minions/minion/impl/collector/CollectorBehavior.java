@@ -153,7 +153,12 @@ public final class CollectorBehavior implements MinionBehavior {
             return MinionResult.idle(minion, CollectorStatuses.NO_ITEMS_ON_GROUND);
         }
         if (!movedItem) {
-            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+            return MinionResult.idle(
+                    minion,
+                    this.transfers.dropsOverflowItems()
+                            ? CollectorStatuses.COLLECTING
+                            : CoreMinionStatuses.STORAGE_FULL
+            );
         }
 
         Minion updated = minion.withStorage(storage);
@@ -163,7 +168,9 @@ public final class CollectorBehavior implements MinionBehavior {
         }
         return MinionResult.worked(
             updated,
-            destinationBlocked ? CoreMinionStatuses.STORAGE_FULL : CollectorStatuses.COLLECTING
+            destinationBlocked && !this.transfers.dropsOverflowItems()
+                    ? CoreMinionStatuses.STORAGE_FULL
+                    : CollectorStatuses.COLLECTING
         );
     }
 

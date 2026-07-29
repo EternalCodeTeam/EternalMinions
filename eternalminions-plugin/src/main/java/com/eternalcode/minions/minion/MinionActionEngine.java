@@ -91,10 +91,6 @@ public final class MinionActionEngine implements Runnable {
     }
 
     private long execute(Minion minion, ScheduledMinion scheduledMinion) {
-        if (!minion.active()) {
-            return this.idleInterval(minion);
-        }
-
         MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
         if (behavior == null) {
             return IDLE_INTERVAL_TICKS;
@@ -176,8 +172,4 @@ public final class MinionActionEngine implements Runnable {
         return behavior == null ? ACTIVE_INTERVAL_TICKS : behavior.workInterval(minion);
     }
 
-    private long idleInterval(Minion minion) {
-        MinionBehavior behavior = this.behaviors.find(minion.behaviorId()).orElse(null);
-        return behavior == null ? IDLE_INTERVAL_TICKS : behavior.idleInterval();
-    }
 }

@@ -7,6 +7,10 @@ import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.WorkLimit;
+import com.eternalcode.minions.minion.storage.MinionItemTransferService;
+import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.storage.MinionStorageUpdate;
+import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,10 +26,15 @@ import org.bukkit.inventory.ShapelessRecipe;
 public final class CrafterBehavior implements MinionBehavior {
 
     private final CrafterConfig config;
+    private final MinionItemTransferService transfers;
     private final RecipeMatcher matcher = new RecipeMatcher();
 
-    public CrafterBehavior(CrafterConfig config) {
+    public CrafterBehavior(CrafterConfig config, MinionItemTransferService transfers) {
+        if (config == null || transfers == null) {
+            throw new IllegalArgumentException("Crafter config and item transfers are required");
+        }
         this.config = config;
+        this.transfers = transfers;
         WorkLimit.validate("crafter.maxCraftsPerCycle", config.maxCraftsPerCycle);
         if (config.maximumCraftsSafetyCap < 1) {
             throw new IllegalArgumentException(
@@ -37,14 +46,15 @@ public final class CrafterBehavior implements MinionBehavior {
 
     public static CrafterBehavior create(
             ConfigService configs,
-            File directory
+            File directory,
+            MinionItemTransferService transfers
     ) {
         CrafterConfig config = configs.load(
                 CrafterConfig.class,
                 new File(directory, "crafter.yml")
         );
 
-        return new CrafterBehavior(config);
+        return new CrafterBehavior(config, transfers);
     }
 
     private static String recipeId(Recipe recipe) {
@@ -111,6 +121,7 @@ public final class CrafterBehavior implements MinionBehavior {
                 : Math.min(this.config.maxCraftsPerCycle, this.config.maximumCraftsSafetyCap);
         int craftedItems = 0;
         boolean hadIngredients = false;
+        MinionStorage storage = minion.storage();
 
         while (craftedItems < craftLimit) {
             RecipeMatcher.CraftResult craft = this.findCraft(recipes, contents);
@@ -119,7 +130,18 @@ public final class CrafterBehavior implements MinionBehavior {
             }
             if (craft.state() == RecipeMatcher.CraftResult.State.NO_SPACE) {
                 hadIngredients = true;
-                break;
+                MinionStorageUpdate storedResult = storage.add(craft.overflow());
+                ItemStack overflow = storedResult.remaining();
+                if (overflow != null && !this.transfers.dropsOverflowItems()) {
+                    break;
+                }
+                contents = craft.contents();
+                storage = storedResult.storage();
+                if (overflow != null) {
+                    context.world().dropItemNaturally(context.location(), overflow);
+                }
+                craftedItems++;
+                continue;
             }
             if (craft.state() == RecipeMatcher.CraftResult.State.MISSING_INGREDIENTS) {
                 break;
@@ -130,7 +152,7 @@ public final class CrafterBehavior implements MinionBehavior {
 
         if (craftedItems > 0) {
             chest.getInventory().setContents(contents);
-            Minion updated = minion;
+            Minion updated = minion.withStorage(storage);
             for (int craftedItem = 0; craftedItem < craftedItems; craftedItem++) {
                 updated = updated.withProgress(updated.progress().advanced(this.config));
             }
@@ -139,7 +161,7 @@ public final class CrafterBehavior implements MinionBehavior {
         if (hadIngredients) {
             return MinionResult.idle(
                     minion,
-                    CrafterStatuses.NO_ROOM_FOR_RESULT
+                    CoreMinionStatuses.STORAGE_FULL
             );
         }
 

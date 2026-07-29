@@ -27,7 +27,7 @@ public final class RecipeMatcher {
         }
 
         if (!addItem(contents, recipe.result())) {
-            return CraftResult.noSpace();
+            return CraftResult.noSpace(contents, recipe.result());
         }
 
         return CraftResult.success(contents);
@@ -199,28 +199,37 @@ public final class RecipeMatcher {
 
     public record CraftResult(
             State state,
-            ItemStack[] contents
+            ItemStack[] contents,
+            ItemStack overflow
     ) {
 
         public static CraftResult success(ItemStack[] contents) {
             return new CraftResult(
                     State.SUCCESS,
-                    contents
+                    contents,
+                    null
             );
         }
 
         public static CraftResult missingIngredients() {
             return new CraftResult(
                     State.MISSING_INGREDIENTS,
+                    null,
                     null
             );
         }
 
-        public static CraftResult noSpace() {
+        public static CraftResult noSpace(ItemStack[] contents, ItemStack overflow) {
             return new CraftResult(
                     State.NO_SPACE,
-                    null
+                    contents,
+                    overflow.clone()
             );
+        }
+
+        @Override
+        public ItemStack overflow() {
+            return this.overflow == null ? null : this.overflow.clone();
         }
 
         public enum State {

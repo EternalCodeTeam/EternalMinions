@@ -176,13 +176,6 @@ public final class FarmerBehavior implements MinionBehavior {
             );
         }
 
-        if (!context.hasStorageRoom()) {
-            return MinionResult.idle(
-                    minion,
-                    CoreMinionStatuses.STORAGE_FULL
-            );
-        }
-
         int range = this.config.range(minion.upgrades());
         int targetCount = this.targetCount(range);
         int workLimit = WorkLimit.resolve(this.config.maxCropsPerCycle, targetCount);
@@ -299,6 +292,9 @@ public final class FarmerBehavior implements MinionBehavior {
                     FarmerStatuses.NO_SEEDS
             );
         }
+        if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
+            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+        }
 
         ageable.setAge(0);
         crop.setBlockData(ageable, false);
@@ -325,6 +321,9 @@ public final class FarmerBehavior implements MinionBehavior {
 
         ItemStack tool = minion.equipment().tool();
         List<ItemStack> drops = MinionBlockDrops.collect(harvested, tool);
+        if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
+            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+        }
 
         harvested.setType(Material.AIR, false);
 
@@ -344,6 +343,9 @@ public final class FarmerBehavior implements MinionBehavior {
     ) {
         ItemStack tool = minion.equipment().tool();
         List<ItemStack> drops = MinionBlockDrops.collect(fruit, tool);
+        if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
+            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+        }
 
         fruit.setType(Material.AIR, false);
 

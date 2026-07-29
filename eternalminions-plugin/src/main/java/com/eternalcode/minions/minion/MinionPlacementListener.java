@@ -91,7 +91,6 @@ public final class MinionPlacementListener implements Listener {
             player.getUniqueId(),
             behaviorId,
             new MinionPosition(target.getWorld().getKey().asString(), target.getX(), target.getY(), target.getZ()),
-            true,
             state.map(stored -> new MinionProgress(stored.level(), stored.progress()))
                 .orElseGet(MinionProgress::start),
             new MinionEquipment(state.map(MinionItemFactory.StoredMinionState::tool).orElse(null)),

@@ -233,7 +233,6 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
                 minion.blockX(),
                 minion.blockY(),
                 minion.blockZ(),
-                state.active(),
                 state.level(),
                 state.progress(),
                 tools.getOrDefault(minion.id(), new byte[0]),

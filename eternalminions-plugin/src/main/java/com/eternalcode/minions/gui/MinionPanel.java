@@ -167,10 +167,6 @@ public final class MinionPanel {
                     player, minion, MinionAccessAction.PICK_UP, element, placeholders,
                     current -> this.pickup.accept(player, current)
             );
-            case TOGGLE_ACTIVE -> this.createAccessibleElement(
-                    player, minion, MinionAccessAction.MANAGE, element, placeholders,
-                    current -> this.toggleActive(player, current)
-            );
             case UPGRADES -> this.createAccessibleElement(
                     player, minion, MinionAccessAction.OPEN_PANEL, element, placeholders,
                     current -> this.openUpgrades.accept(player, current)
@@ -241,13 +237,6 @@ public final class MinionPanel {
         );
     }
 
-    private void toggleActive(Player player, Minion minion) {
-        Minion updated = minion.withActive(!minion.active());
-        this.lifecycle.updateState(updated);
-        this.send(player, updated.active() ? this.messages.minionResumed : this.messages.minionPaused);
-        this.refresh(player, updated);
-    }
-
     private void rotate(Player player, Minion minion) {
         Minion updated = minion.withSettings(minion.settings().withDirection(minion.settings().direction().rotated()));
         this.lifecycle.updateSettings(updated);
@@ -297,7 +286,6 @@ public final class MinionPanel {
                 ? this.config.maximumValue
                 : Long.toString(behavior.config().progressToReach(level + 1))
         );
-        placeholders.put("{MINION_STATUS}", minion.active() ? this.config.statusWorking : this.config.statusPaused);
         placeholders.put(
             "{MINION_CHEST}",
             minion.chestPosition() == null ? this.config.chestNotLinkedStatus : this.config.chestLinkedStatus

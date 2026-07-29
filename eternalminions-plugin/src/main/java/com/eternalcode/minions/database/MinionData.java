@@ -24,7 +24,6 @@ public record MinionData(
         int blockX,
         int blockY,
         int blockZ,
-        boolean active,
         int level,
         long progress,
         byte[] serializedTool,
@@ -68,7 +67,6 @@ public record MinionData(
             int blockX,
             int blockY,
             int blockZ,
-            boolean active,
             int level,
             long progress,
             byte[] serializedTool,
@@ -78,7 +76,7 @@ public record MinionData(
             MinionSettings settings
     ) {
         this(
-                id, ownerId, behaviorId, worldKey, blockX, blockY, blockZ, active, level, progress,
+                id, ownerId, behaviorId, worldKey, blockX, blockY, blockZ, level, progress,
                 serializedTool, storageItems, upgrades, chestPosition, settings, System.currentTimeMillis()
         );
     }
@@ -105,7 +103,7 @@ public record MinionData(
 
         return new MinionData(
                 minion.id().value(), minion.ownerId(), minion.behaviorId(), position.worldKey(),
-                position.blockX(), position.blockY(), position.blockZ(), minion.active(), minion.progress().level(),
+                position.blockX(), position.blockY(), position.blockZ(), minion.progress().level(),
                 minion.progress().progress(), ItemDataCodec.encode(minion.equipment().tool()), storageItems,
                 upgrades, chestPosition, minion.settings(), System.currentTimeMillis()
         );
@@ -138,7 +136,7 @@ public record MinionData(
 
         return new Minion(
                 new MinionId(this.id), this.ownerId, this.behaviorId,
-                new MinionPosition(this.worldKey, this.blockX, this.blockY, this.blockZ), this.active,
+                new MinionPosition(this.worldKey, this.blockX, this.blockY, this.blockZ),
                 new MinionProgress(this.level, this.progress),
                 new MinionEquipment(ItemDataCodec.decode(this.serializedTool)), storage, minionUpgrades,
                 this.chestPosition == null ? null : new MinionPosition(

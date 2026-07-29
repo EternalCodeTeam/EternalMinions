@@ -1,5 +1,6 @@
 package com.eternalcode.minions.minion.storage;
 
+import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionContext;
 import java.util.ArrayList;
@@ -13,6 +14,61 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public final class MinionItemTransferService {
+
+    private final MinionsConfig config;
+
+    public MinionItemTransferService(MinionsConfig config) {
+        if (config == null) {
+            throw new IllegalArgumentException("Minions config is required");
+        }
+        this.config = config;
+    }
+
+    public boolean canStoreAll(
+            MinionContext context,
+            MinionStorage storage,
+            Collection<ItemStack> items
+    ) {
+        if (context == null || storage == null || items == null) {
+            throw new IllegalArgumentException("Context, storage and items are required");
+        }
+        if (this.config.dropOverflowItems || !context.policy().storageAllowed()) {
+            return true;
+        }
+
+        Container chest = context.linkedChest();
+        Inventory chestInventory = chest == null ? null : chest.getInventory();
+        ItemStack[] chestContents = chestInventory == null ? null : chestInventory.getStorageContents();
+        MinionStorage simulatedStorage = storage;
+        Collection<ItemStack> combinedItems = MinionItemStacks.requiresCombine(items)
+                ? MinionItemStacks.combine(items)
+                : items;
+
+        for (ItemStack item : combinedItems) {
+            if (item == null || item.getType().isAir() || item.getAmount() <= 0) {
+                continue;
+            }
+
+            ItemStack remaining = item.clone();
+            if (chestContents != null) {
+                remaining = addToContents(chestContents, chestInventory.getMaxStackSize(), remaining);
+            }
+            if (remaining == null) {
+                continue;
+            }
+
+            MinionStorageUpdate update = simulatedStorage.add(remaining);
+            simulatedStorage = update.storage();
+            if (update.remaining() != null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean dropsOverflowItems() {
+        return this.config.dropOverflowItems;
+    }
 
     public MinionStorageUpdate store(
             MinionContext context,
@@ -72,8 +128,54 @@ public final class MinionItemTransferService {
             }
         }
 
-        this.dropOverflow(context, overflowLocation, overflow);
+        if (this.config.dropOverflowItems) {
+            this.dropOverflow(context, overflowLocation, overflow);
+        }
         return minion.withStorage(storage);
+    }
+
+    private static ItemStack addToContents(
+            ItemStack[] contents,
+            int inventoryMaximumStackSize,
+            ItemStack input
+    ) {
+        ItemStack remaining = input.clone();
+
+        for (int slot = 0; slot < contents.length; slot++) {
+            ItemStack stored = contents[slot];
+            if (stored == null || !stored.isSimilar(remaining)) {
+                continue;
+            }
+            int maximumStackSize = Math.min(stored.getMaxStackSize(), inventoryMaximumStackSize);
+            int freeSpace = maximumStackSize - stored.getAmount();
+            if (freeSpace <= 0) {
+                continue;
+            }
+            int moved = Math.min(freeSpace, remaining.getAmount());
+            ItemStack updated = stored.clone();
+            updated.setAmount(stored.getAmount() + moved);
+            contents[slot] = updated;
+            remaining.setAmount(remaining.getAmount() - moved);
+            if (remaining.getAmount() == 0) {
+                return null;
+            }
+        }
+
+        for (int slot = 0; slot < contents.length; slot++) {
+            if (contents[slot] != null) {
+                continue;
+            }
+            int maximumStackSize = Math.min(remaining.getMaxStackSize(), inventoryMaximumStackSize);
+            int moved = Math.min(maximumStackSize, remaining.getAmount());
+            ItemStack stored = remaining.clone();
+            stored.setAmount(moved);
+            contents[slot] = stored;
+            remaining.setAmount(remaining.getAmount() - moved);
+            if (remaining.getAmount() == 0) {
+                return null;
+            }
+        }
+        return remaining;
     }
 
     private void dropOverflow(

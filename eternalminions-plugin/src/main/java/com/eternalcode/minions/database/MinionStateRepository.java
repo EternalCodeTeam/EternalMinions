@@ -10,6 +10,10 @@ public final class MinionStateRepository extends AbstractRepositoryOrmLite {
         super(databaseManager, scheduler);
     }
 
+    CompletableFuture<Void> initialize() {
+        return this.createTable(MinionStateTable.class);
+    }
+
     private static void validate(MinionId minionId, int level, long progress, long updatedAt) {
         if (minionId == null) {
             throw new IllegalArgumentException("Minion id is required");
@@ -27,13 +31,12 @@ public final class MinionStateRepository extends AbstractRepositoryOrmLite {
 
     public CompletableFuture<Void> saveState(
             MinionId minionId,
-            boolean active,
             int level,
             long progress,
             long updatedAt
     ) {
         validate(minionId, level, progress, updatedAt);
-        MinionStateTable state = new MinionStateTable(minionId.value(), active, level, progress, updatedAt);
+        MinionStateTable state = new MinionStateTable(minionId.value(), level, progress, updatedAt);
         return this.save(MinionStateTable.class, state).thenApply(status -> null);
     }
 }

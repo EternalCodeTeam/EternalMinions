@@ -7,7 +7,6 @@ import com.j256.ormlite.table.DatabaseTable;
 final class MinionStateTable {
 
     @DatabaseField(columnName = "minion_id", id = true) private long minionId;
-    @DatabaseField(columnName = "active") private boolean active;
     @DatabaseField(columnName = "level") private int level;
     @DatabaseField(columnName = "progress") private long progress;
     @DatabaseField(columnName = "updated_at") private long updatedAt;
@@ -15,17 +14,14 @@ final class MinionStateTable {
     MinionStateTable() {
     }
 
-    MinionStateTable(long minionId, boolean active, int level, long progress, long updatedAt) {
+    MinionStateTable(long minionId, int level, long progress, long updatedAt) {
         this.minionId = minionId;
-        this.active = active;
         this.level = level;
         this.progress = progress;
         this.updatedAt = updatedAt;
     }
 
     long minionId() {return this.minionId;}
-
-    boolean active() {return this.active;}
 
     int level() {return this.level;}
 

@@ -96,15 +96,6 @@ public final class MinionStorage {
         return this.items.length;
     }
 
-    public boolean hasFreeSlot() {
-        for (ItemStack item : this.items) {
-            if (item == null) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void validateSlot(int slot) {
         if (slot < 0 || slot >= this.items.length) {
             throw new IndexOutOfBoundsException("Storage slot " + slot + " is outside capacity " + this.items.length);

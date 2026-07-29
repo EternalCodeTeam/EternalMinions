@@ -12,6 +12,12 @@ public final class MinionDatabase {
     private final DatabaseScheduler scheduler;
     private final DatabaseManager manager;
     private final MinionRepository minions;
+    private final MinionStateRepository states;
+    private final MinionSettingsRepository settings;
+    private final MinionEquipmentRepository equipment;
+    private final MinionStorageRepository storage;
+    private final MinionUpgradeRepository upgrades;
+    private final MinionChestLinkRepository chestLinks;
     private final MinionPersistenceService persistence;
 
     private MinionDatabase(
@@ -19,12 +25,24 @@ public final class MinionDatabase {
             DatabaseScheduler scheduler,
             DatabaseManager manager,
             MinionRepository minions,
+            MinionStateRepository states,
+            MinionSettingsRepository settings,
+            MinionEquipmentRepository equipment,
+            MinionStorageRepository storage,
+            MinionUpgradeRepository upgrades,
+            MinionChestLinkRepository chestLinks,
             MinionPersistenceService persistence
     ) {
         this.logger = logger;
         this.scheduler = scheduler;
         this.manager = manager;
         this.minions = minions;
+        this.states = states;
+        this.settings = settings;
+        this.equipment = equipment;
+        this.storage = storage;
+        this.upgrades = upgrades;
+        this.chestLinks = chestLinks;
         this.persistence = persistence;
     }
 
@@ -32,17 +50,35 @@ public final class MinionDatabase {
         DatabaseScheduler scheduler = new DatabaseScheduler("EternalMinions-Database");
         DatabaseManager manager = new DatabaseManager(logger, dataFolder, settings);
         MinionRepository minions = new MinionRepository(manager, scheduler);
+        MinionStateRepository states = new MinionStateRepository(manager, scheduler);
+        MinionSettingsRepository minionSettings = new MinionSettingsRepository(manager, scheduler);
+        MinionEquipmentRepository equipment = new MinionEquipmentRepository(manager, scheduler);
+        MinionStorageRepository storage = new MinionStorageRepository(manager, scheduler);
+        MinionUpgradeRepository upgrades = new MinionUpgradeRepository(manager, scheduler);
+        MinionChestLinkRepository chestLinks = new MinionChestLinkRepository(manager, scheduler);
         MinionPersistenceService persistence = new MinionPersistenceService(
                 logger,
                 minions,
-                new MinionStateRepository(manager, scheduler),
-                new MinionSettingsRepository(manager, scheduler),
-                new MinionEquipmentRepository(manager, scheduler),
-                new MinionStorageRepository(manager, scheduler),
-                new MinionUpgradeRepository(manager, scheduler),
-                new MinionChestLinkRepository(manager, scheduler)
+                states,
+                minionSettings,
+                equipment,
+                storage,
+                upgrades,
+                chestLinks
         );
-        return new MinionDatabase(logger, scheduler, manager, minions, persistence);
+        return new MinionDatabase(
+                logger,
+                scheduler,
+                manager,
+                minions,
+                states,
+                minionSettings,
+                equipment,
+                storage,
+                upgrades,
+                chestLinks,
+                persistence
+        );
     }
 
     public MinionPersistenceService persistence() {
@@ -50,7 +86,17 @@ public final class MinionDatabase {
     }
 
     public CompletableFuture<Void> initialize() {
-        return this.minions.initialize();
+        return this.scheduler.completeAsync(() -> {
+            this.manager.connect();
+            return null;
+        }).thenCompose(ignored -> this.minions.initialize())
+                .thenCompose(ignored -> this.states.initialize())
+                .thenCompose(ignored -> this.settings.initialize())
+                .thenCompose(ignored -> this.equipment.initialize())
+                .thenCompose(ignored -> this.storage.initialize())
+                .thenCompose(ignored -> this.upgrades.initialize())
+                .thenCompose(ignored -> this.chestLinks.initialize())
+                .thenRun(this.minions::markReady);
     }
 
     public CompletableFuture<List<MinionData>> loadAll() {

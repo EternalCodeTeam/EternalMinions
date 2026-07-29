@@ -14,10 +14,6 @@ public record MinionContext(Minion minion, World world, ScheduledMinion schedule
         }
     }
 
-    public boolean hasStorageRoom() {
-        return this.minion.storage().hasFreeSlot() || this.linkedChest() != null;
-    }
-
     public Container linkedChest() {
         MinionPosition chestPosition = this.minion.chestPosition();
         if (chestPosition == null || !chestPosition.worldKey().equals(this.minion.position().worldKey())) {

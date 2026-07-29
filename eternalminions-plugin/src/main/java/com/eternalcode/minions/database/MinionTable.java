@@ -6,13 +6,16 @@ import com.j256.ormlite.table.DatabaseTable;
 @DatabaseTable(tableName = "eternal_minions")
 final class MinionTable {
 
+    private static final String POSITION_INDEX = "eternal_minions_position_idx";
+
     @DatabaseField(columnName = "id", id = true) private long id;
-    @DatabaseField(columnName = "owner_id", canBeNull = false) private String ownerId;
+    @DatabaseField(columnName = "owner_id", canBeNull = false, index = true) private String ownerId;
     @DatabaseField(columnName = "behavior_id", canBeNull = false) private String behaviorId;
-    @DatabaseField(columnName = "world_key", canBeNull = false) private String worldKey;
-    @DatabaseField(columnName = "block_x") private int blockX;
+    @DatabaseField(columnName = "world_key", canBeNull = false, indexName = POSITION_INDEX)
+    private String worldKey;
+    @DatabaseField(columnName = "block_x", indexName = POSITION_INDEX) private int blockX;
     @DatabaseField(columnName = "block_y") private int blockY;
-    @DatabaseField(columnName = "block_z") private int blockZ;
+    @DatabaseField(columnName = "block_z", indexName = POSITION_INDEX) private int blockZ;
     @DatabaseField(columnName = "created_at") private long createdAt;
 
     MinionTable() {

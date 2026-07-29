@@ -11,6 +11,7 @@ import com.eternalcode.minions.minion.MinionPosition;
 import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
+import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
@@ -191,6 +192,9 @@ public final class MiningBehavior implements MinionBehavior {
         }
 
         Collection<ItemStack> drops = tool == null ? block.getDrops() : block.getDrops(tool);
+        if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
+            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+        }
         block.setType(Material.AIR, true);
         Minion updated = this.tools.consume(minion, 1);
         updated = this.transfers.deposit(context, updated, block.getLocation(), drops);

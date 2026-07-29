@@ -4,6 +4,8 @@ import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.misc.TransactionManager;
+import com.j256.ormlite.stmt.DeleteBuilder;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,11 @@ public final class MinionRepository extends AbstractRepositoryOrmLite {
     }
 
     public CompletableFuture<Void> initialize() {
-        return new MinionSchema(this.databaseManager, this.scheduler).initialize().thenRun(() -> this.ready = true);
+        return this.createTable(MinionTable.class);
+    }
+
+    void markReady() {
+        this.ready = true;
     }
 
     public CompletableFuture<Void> create(MinionData minion) {
@@ -79,7 +85,20 @@ public final class MinionRepository extends AbstractRepositoryOrmLite {
         if (minionId == null) {
             throw new IllegalArgumentException("Minion id is required");
         }
-        return this.deleteById(MinionTable.class, minionId.value()).thenApply(deleted -> null);
+        return this.<MinionTable, Long, Void>action(
+                MinionTable.class,
+                minions -> {
+                    TransactionManager.callInTransaction(
+                            this.databaseManager.connectionSource(),
+                            () -> {
+                                this.deleteComponents(minionId.value());
+                                minions.deleteById(minionId.value());
+                                return null;
+                            }
+                    );
+                    return null;
+                }
+        );
     }
 
     public boolean ready() {
@@ -91,7 +110,6 @@ public final class MinionRepository extends AbstractRepositoryOrmLite {
         this.databaseManager.<MinionStateTable, Long>getDao(MinionStateTable.class).create(
                 new MinionStateTable(
                         minion.id(),
-                        minion.active(),
                         minion.level(),
                         minion.progress(),
                         minion.createdAt()
@@ -149,5 +167,21 @@ public final class MinionRepository extends AbstractRepositoryOrmLite {
                         chest.blockZ()
                 )
         );
+    }
+
+    private void deleteComponents(long minionId) throws SQLException {
+        this.deleteComponents(MinionStateTable.class, minionId);
+        this.deleteComponents(MinionSettingsTable.class, minionId);
+        this.deleteComponents(MinionEquipmentTable.class, minionId);
+        this.deleteComponents(MinionStorageTable.class, minionId);
+        this.deleteComponents(MinionUpgradeTable.class, minionId);
+        this.deleteComponents(MinionChestLinkTable.class, minionId);
+    }
+
+    private <T> void deleteComponents(Class<T> tableType, long minionId) throws SQLException {
+        Dao<T, Object> components = this.databaseManager.getDao(tableType);
+        DeleteBuilder<T, Object> delete = components.deleteBuilder();
+        delete.where().eq("minion_id", minionId);
+        delete.delete();
     }
 }

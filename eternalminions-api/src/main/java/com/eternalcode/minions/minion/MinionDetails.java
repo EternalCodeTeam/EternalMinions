@@ -7,8 +7,7 @@ public record MinionDetails(
     UUID ownerId,
     String behaviorId,
     MinionPosition position,
-    int level,
-    boolean active
+    int level
 ) {
 
     public MinionDetails {

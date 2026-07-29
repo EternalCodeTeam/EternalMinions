@@ -11,8 +11,8 @@ final class MinionEquipmentTable {
     static final String SLOT_COLUMN = "slot";
     static final String ITEM_COLUMN = "serialized_item";
 
-    @DatabaseField(columnName = MINION_ID_COLUMN) private long minionId;
-    @DatabaseField(columnName = SLOT_COLUMN, canBeNull = false) private String slot;
+    @DatabaseField(columnName = MINION_ID_COLUMN, uniqueCombo = true) private long minionId;
+    @DatabaseField(columnName = SLOT_COLUMN, canBeNull = false, uniqueCombo = true) private String slot;
     @DatabaseField(columnName = ITEM_COLUMN, canBeNull = false, dataType = DataType.BYTE_ARRAY)
     private byte[] serializedItem;
 

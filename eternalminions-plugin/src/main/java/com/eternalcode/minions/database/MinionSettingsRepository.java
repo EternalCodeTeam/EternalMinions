@@ -11,6 +11,10 @@ public final class MinionSettingsRepository extends AbstractRepositoryOrmLite {
         super(databaseManager, scheduler);
     }
 
+    CompletableFuture<Void> initialize() {
+        return this.createTable(MinionSettingsTable.class);
+    }
+
     public CompletableFuture<Void> saveSettings(MinionId minionId, MinionSettings settings) {
         if (minionId == null || settings == null) {
             throw new IllegalArgumentException("Minion id and settings are required");

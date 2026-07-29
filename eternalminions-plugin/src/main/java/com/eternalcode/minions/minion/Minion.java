@@ -11,7 +11,6 @@ public final class Minion {
     private final UUID ownerId;
     private final String behaviorId;
     private final MinionPosition position;
-    private final boolean active;
     private final MinionProgress progress;
     private final MinionEquipment equipment;
     private final MinionStorage storage;
@@ -24,7 +23,6 @@ public final class Minion {
         UUID ownerId,
         String behaviorId,
         MinionPosition position,
-        boolean active,
         MinionProgress progress,
         MinionEquipment equipment,
         MinionStorage storage,
@@ -45,7 +43,6 @@ public final class Minion {
         this.ownerId = ownerId;
         this.behaviorId = behaviorId;
         this.position = position;
-        this.active = active;
         this.progress = progress;
         this.equipment = equipment;
         this.storage = storage;
@@ -58,7 +55,6 @@ public final class Minion {
     public UUID ownerId() { return this.ownerId; }
     public String behaviorId() { return this.behaviorId; }
     public MinionPosition position() { return this.position; }
-    public boolean active() { return this.active; }
     public MinionProgress progress() { return this.progress; }
     public MinionEquipment equipment() { return this.equipment; }
     public MinionStorage storage() { return this.storage; }
@@ -66,42 +62,37 @@ public final class Minion {
     public MinionPosition chestPosition() { return this.chestPosition; }
     public MinionSettings settings() { return this.settings; }
 
-    public Minion withActive(boolean active) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position, active,
-            this.progress, this.equipment, this.storage, this.upgrades, this.chestPosition, this.settings);
-    }
-
     public Minion withProgress(MinionProgress progress) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position, this.active,
+        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
             progress, this.equipment, this.storage, this.upgrades, this.chestPosition, this.settings);
     }
 
     public Minion withEquipment(MinionEquipment equipment) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position, this.active,
+        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
             this.progress, equipment, this.storage, this.upgrades, this.chestPosition, this.settings);
     }
 
     public Minion withStorage(MinionStorage storage) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position, this.active,
+        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
             this.progress, this.equipment, storage, this.upgrades, this.chestPosition, this.settings);
     }
 
     public Minion withUpgrades(MinionUpgrades upgrades) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position, this.active,
+        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
             this.progress, this.equipment, this.storage, upgrades, this.chestPosition, this.settings);
     }
 
     public Minion withChestPosition(MinionPosition chestPosition) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position, this.active,
+        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
             this.progress, this.equipment, this.storage, this.upgrades, chestPosition, this.settings);
     }
 
     public Minion withSettings(MinionSettings settings) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position, this.active,
+        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
             this.progress, this.equipment, this.storage, this.upgrades, this.chestPosition, settings);
     }
 
     public MinionDetails details() {
-        return new MinionDetails(this.id, this.ownerId, this.behaviorId, this.position, this.progress.level(), this.active);
+        return new MinionDetails(this.id, this.ownerId, this.behaviorId, this.position, this.progress.level());
     }
 }

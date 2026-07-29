@@ -6,6 +6,7 @@ import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionStorageUpdate;
 import com.eternalcode.minions.minion.status.MinionStatus;
+import java.util.List;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.inventory.ItemStack;
@@ -84,6 +85,9 @@ public final class MinionToolService {
     ) {
         ItemStack tool = minion.equipment().tool();
         if (tool == null || this.validation.remainingDurability(tool) > requirement.minDurabilityToKeep()) {
+            return minion;
+        }
+        if (!this.transfers.canStoreAll(context, minion.storage(), List.of(tool))) {
             return minion;
         }
 

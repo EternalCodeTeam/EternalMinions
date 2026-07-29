@@ -119,7 +119,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
         ToolValidationService toolValidation = new ToolValidationService();
         ToolDurabilityService toolDurability = new ToolDurabilityService();
         ToolInventoryLocator toolLocator = new ToolInventoryLocator();
-        MinionItemTransferService itemTransfers = new MinionItemTransferService();
+        MinionItemTransferService itemTransfers = new MinionItemTransferService(minionsConfig);
         MinionToolService tools = new MinionToolService(
                 toolValidation,
                 toolDurability,
@@ -359,7 +359,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
             FishermanBehavior.create(configs, directory, tools, transfers),
             KillerBehavior.create(configs, directory, tools, killerLooting),
             CollectorBehavior.create(configs, directory, tools, transfers),
-            CrafterBehavior.create(configs, directory),
+            CrafterBehavior.create(configs, directory, transfers),
             SellerBehavior.create(configs, directory, shop)
         );
 

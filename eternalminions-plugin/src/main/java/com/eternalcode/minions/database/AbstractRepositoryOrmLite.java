@@ -3,6 +3,7 @@ package com.eternalcode.minions.database;
 import com.eternalcode.commons.ThrowingFunction;
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.table.TableUtils;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +49,18 @@ public abstract class AbstractRepositoryOrmLite {
 
     protected <T> CompletableFuture<List<T>> selectAll(Class<T> type) {
         return this.action(type, Dao::queryForAll);
+    }
+
+    protected CompletableFuture<Void> createTable(Class<?> tableType) {
+        return this.scheduler.completeAsync(() -> {
+            try {
+                TableUtils.createTableIfNotExists(this.databaseManager.connectionSource(), tableType);
+                return null;
+            }
+            catch (SQLException exception) {
+                throw new DatabaseException("Failed to create table for " + tableType.getSimpleName(), exception);
+            }
+        });
     }
 
     protected <T, ID, R> CompletableFuture<R> action(

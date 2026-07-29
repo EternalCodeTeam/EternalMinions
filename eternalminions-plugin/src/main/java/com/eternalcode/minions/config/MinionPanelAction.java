@@ -8,7 +8,6 @@ public enum MinionPanelAction {
     MINION_INFORMATION,
     COLLECT_ITEMS,
     PICKUP_MINION,
-    TOGGLE_ACTIVE,
     UPGRADES,
     LINK_CHEST,
     ROTATE

@@ -10,6 +10,10 @@ public final class MinionEquipmentRepository extends MinionComponentRepository {
         super(databaseManager, scheduler);
     }
 
+    CompletableFuture<Void> initialize() {
+        return this.createTable(MinionEquipmentTable.class);
+    }
+
     private static void validate(MinionId minionId, MinionEquipmentSlot slot, byte[] serializedItem) {
         if (minionId == null || slot == null) {
             throw new IllegalArgumentException("Minion id and equipment slot are required");

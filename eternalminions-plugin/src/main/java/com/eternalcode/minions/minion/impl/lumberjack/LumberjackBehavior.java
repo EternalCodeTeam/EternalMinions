@@ -121,13 +121,6 @@ public final class LumberjackBehavior implements MinionBehavior {
         }
         Minion minion = preparation.minion();
 
-        if (!context.hasStorageRoom()) {
-            return MinionResult.idle(
-                    minion,
-                    CoreMinionStatuses.STORAGE_FULL
-            );
-        }
-
         int stationCount = this.config.stationCount(
                 minion.upgrades()
         );
@@ -303,6 +296,9 @@ public final class LumberjackBehavior implements MinionBehavior {
                 tool,
                 drops
         );
+        if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
+            return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+        }
 
         this.breakBlocks(
                 context,

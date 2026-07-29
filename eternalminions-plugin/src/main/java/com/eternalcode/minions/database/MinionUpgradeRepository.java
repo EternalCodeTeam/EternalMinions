@@ -11,6 +11,10 @@ public final class MinionUpgradeRepository extends MinionComponentRepository {
         super(databaseManager, scheduler);
     }
 
+    CompletableFuture<Void> initialize() {
+        return this.createTable(MinionUpgradeTable.class);
+    }
+
     private static void validate(MinionId minionId, UpgradeKind upgrade, int tier) {
         if (minionId == null || upgrade == null) {
             throw new IllegalArgumentException("Minion id and upgrade type are required");

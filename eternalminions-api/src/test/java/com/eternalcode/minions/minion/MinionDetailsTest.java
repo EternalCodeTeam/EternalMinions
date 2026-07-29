@@ -14,8 +14,7 @@ class MinionDetailsTest {
             UUID.randomUUID(),
             " ",
             new MinionPosition("world", 0, 64, 0),
-            1,
-            true
+            1
         ));
     }
 
@@ -26,8 +25,7 @@ class MinionDetailsTest {
             UUID.randomUUID(),
             "miner",
             new MinionPosition("world", 0, 64, 0),
-            0,
-            true
+            0
         ));
     }
 }

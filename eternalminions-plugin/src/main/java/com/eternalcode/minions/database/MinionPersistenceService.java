@@ -65,7 +65,6 @@ public final class MinionPersistenceService {
         this.report(
                 this.states.saveState(
                         minion.id(),
-                        minion.active(),
                         minion.progress().level(),
                         minion.progress().progress(),
                         System.currentTimeMillis()

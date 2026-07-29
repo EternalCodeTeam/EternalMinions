@@ -68,11 +68,6 @@ public final class CrafterConfig extends AbstractMinionConfig {
                 "<yellow>Brak składników"
         );
 
-        statuses.put(
-                CrafterStatuses.NO_ROOM_FOR_RESULT,
-                "<red>Brak miejsca na rezultat"
-        );
-
         return statuses;
     }
 }

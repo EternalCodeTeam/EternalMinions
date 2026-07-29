@@ -26,15 +26,11 @@ public final class MinionPanelConfig extends OkaeriConfig {
         "####T####",
         "#SSSISSS#",
         "###SSS###",
-        "#RUACPL##"
+        "#RU#CPL##"
     );
 
     @Comment("Inventory slot occupied by the profession usage instructions.")
     public int usageInstructionsSlot = 4;
-
-    @Comment("Status texts used by the {MINION_STATUS} placeholder.")
-    public String statusWorking = "Pracuje";
-    public String statusPaused = "Pauza";
 
     @Comment("Status texts used by the {MINION_CHEST} placeholder.")
     public String chestLinkedStatus = "Połączona";
@@ -119,15 +115,7 @@ public final class MinionPanelConfig extends OkaeriConfig {
             "<gray>Poziom: <white>{MINION_LEVEL}/{MINION_MAX_LEVEL}",
             "<gray>Postęp do następnego poziomu:",
             "{MINION_PROGRESS_BAR} <white>{MINION_PROGRESS}<gray>/<white>{MINION_PROGRESS_REQUIRED}",
-            "<gray>Magazyn: <white>{STORAGE_USED}/{STORAGE_CAPACITY}",
-            "<gray>Status: <white>{MINION_STATUS}"
-        ));
-        elements.put('A', element(
-            MinionPanelAction.TOGGLE_ACTIVE,
-            XMaterial.LEVER,
-            "<yellow>Start / pauza",
-            "<gray>Status: <white>{MINION_STATUS}",
-            "<gray>Kliknij, aby przełączyć."
+            "<gray>Magazyn: <white>{STORAGE_USED}/{STORAGE_CAPACITY}"
         ));
         elements.put('U', element(
             MinionPanelAction.UPGRADES,

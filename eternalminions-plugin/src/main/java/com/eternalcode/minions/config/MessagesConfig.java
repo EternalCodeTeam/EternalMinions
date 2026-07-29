@@ -29,9 +29,6 @@ public final class MessagesConfig extends OkaeriConfig {
     public Notice minionLimitReached = Notice.chat(
         prefix() + "<red>Osiągnięto limit minionów ({MINION_LIMIT_CURRENT}/{MINION_LIMIT_MAX})."
     );
-    public Notice minionPaused = Notice.chat(prefix() + "<white>Minion został wstrzymany.");
-    public Notice minionResumed = Notice.chat(prefix() + "<white>Minion wznowił pracę.");
-
     public Notice upgradePurchased = Notice.chat(prefix() + "<white>Ulepszenie zakupione!");
     public Notice upgradeMaxed = Notice.chat(prefix() + "<red>To ulepszenie ma już maksymalny poziom.");
     public Notice upgradeRequiresLevel = Notice.chat(prefix() + "<red>Minion ma za niski poziom na to ulepszenie.");

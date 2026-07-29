@@ -10,6 +10,10 @@ public final class MinionStorageRepository extends MinionComponentRepository {
         super(databaseManager, scheduler);
     }
 
+    CompletableFuture<Void> initialize() {
+        return this.createTable(MinionStorageTable.class);
+    }
+
     private static void validate(MinionId minionId, int slot, byte[] serializedItem) {
         if (minionId == null) {
             throw new IllegalArgumentException("Minion id is required");
