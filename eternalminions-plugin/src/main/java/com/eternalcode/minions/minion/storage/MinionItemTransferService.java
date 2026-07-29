@@ -2,7 +2,9 @@ package com.eternalcode.minions.minion.storage;
 
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionContext;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.block.Container;
@@ -47,8 +49,14 @@ public final class MinionItemTransferService {
             throw new IllegalArgumentException("Deposit context, minion, location and items are required");
         }
 
+        // Same loot, fewer entities. The server tick sends its regards.
+        Collection<ItemStack> combinedItems = MinionItemStacks.requiresCombine(items)
+                ? MinionItemStacks.combine(items)
+                : items;
         MinionStorage storage = minion.storage();
-        for (ItemStack item : items) {
+        List<ItemStack> overflow = null;
+
+        for (ItemStack item : combinedItems) {
             if (item == null || item.getType().isAir() || item.getAmount() <= 0) {
                 continue;
             }
@@ -57,11 +65,32 @@ public final class MinionItemTransferService {
             storage = update.storage();
             ItemStack remaining = update.remaining();
             if (remaining != null && context.policy().storageAllowed()) {
-                context.world().dropItemNaturally(overflowLocation, remaining);
+                if (overflow == null) {
+                    overflow = new ArrayList<>();
+                }
+                overflow.add(remaining);
             }
         }
 
+        this.dropOverflow(context, overflowLocation, overflow);
         return minion.withStorage(storage);
+    }
+
+    private void dropOverflow(
+            MinionContext context,
+            Location overflowLocation,
+            List<ItemStack> overflow
+    ) {
+        if (overflow == null) {
+            return;
+        }
+
+        List<ItemStack> combinedOverflow = MinionItemStacks.requiresCombine(overflow)
+                ? MinionItemStacks.combine(overflow)
+                : overflow;
+        for (ItemStack item : combinedOverflow) {
+            context.world().dropItemNaturally(overflowLocation, item);
+        }
     }
 
     public ItemStack addToInventory(Inventory inventory, ItemStack item) {

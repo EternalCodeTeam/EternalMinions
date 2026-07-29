@@ -147,7 +147,10 @@ public final class MinionActionEngine implements Runnable {
         }
         if (equipmentChanged) {
             this.persistence.saveEquipment(updated);
-            this.renderer.refreshEquipment(updated.id(), updated.equipment().tool());
+            // Durability belongs in storage, not on the wire. Packets are not confetti.
+            if (updated.equipment().hasVisualChangeSince(previous.equipment())) {
+                this.renderer.refreshEquipment(updated.id(), updated.equipment().tool());
+            }
         }
         if (storageChanged) {
             this.persistence.saveStorage(previous, updated);

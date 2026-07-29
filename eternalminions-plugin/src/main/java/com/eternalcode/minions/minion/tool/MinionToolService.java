@@ -74,7 +74,7 @@ public final class MinionToolService {
         }
 
         ItemStack damagedTool = this.durability.consume(tool, uses);
-        return minion.withEquipment(minion.equipment().withTool(damagedTool));
+        return minion.withEquipment(minion.equipment().withDurability(damagedTool));
     }
 
     private Minion retireWornTool(
