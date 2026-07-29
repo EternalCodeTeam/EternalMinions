@@ -5,6 +5,7 @@ import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
 import com.eternalcode.minions.minion.tool.ToolCategory;
+import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -13,6 +14,12 @@ import org.bukkit.Color;
 
 @Include(AbstractMinionConfig.class)
 public final class MinerConfig extends AbstractMinionConfig {
+
+    @Comment("SQUARE mines the area below the minion. LINE mines in its facing direction.")
+    public WorkMode workMode = WorkMode.SQUARE;
+
+    @Comment("Maximum blocks mined per cycle. Zero mines every matching block found in the work area.")
+    public int maxBlocksPerCycle = 1;
 
     public MinerConfig() {
         this.displayName = "<color:#B7B7B7:#D9D9D9:#B7B7B7>ᴍɪɴᴇʀ";
@@ -24,7 +31,7 @@ public final class MinerConfig extends AbstractMinionConfig {
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(
             "<gray>1. Włóż kilof do slotu narzędzia.",
-            "<gray>2. Wybierz tryb kopania i ustaw kierunek.",
+            "<gray>2. Ustaw kierunek miniona dla trybu LINE.",
             "<gray>3. Minion kopie bloki poziom niżej.",
             "<gray>4. Odbieraj bloki z magazynu lub podpiętej skrzyni."
         );
@@ -41,5 +48,11 @@ public final class MinerConfig extends AbstractMinionConfig {
 
     public int radius(MinionUpgrades upgrades) {
         return this.upgradeTierValue(upgrades, CoreUpgradeKinds.RANGE, 1);
+    }
+
+    public enum WorkMode {
+
+        SQUARE,
+        LINE
     }
 }

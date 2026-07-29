@@ -44,7 +44,6 @@ public final class MessagesConfig extends OkaeriConfig {
     public Notice chestLinkExpired = Notice.chat(prefix() + "<red>Czas na wybór skrzyni minął.");
 
     public Notice minionRotated = Notice.chat(prefix() + "<white>Minion został obrócony.");
-    public Notice minionModeChanged = Notice.chat(prefix() + "<white>Tryb pracy miniona został zmieniony.");
 
     private static String prefix() {
         return "<b><gradient:#FACC15:#FFE15F:#FACC15>ᴍɪɴɪᴏɴꜱ</gradient></b> <dark_gray>➤</dark_gray> ";

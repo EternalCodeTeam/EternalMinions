@@ -16,6 +16,9 @@ import org.bukkit.Color;
 @Include(AbstractMinionConfig.class)
 public final class FarmerConfig extends AbstractMinionConfig {
 
+    @Comment("Maximum crops harvested per cycle. Zero harvests every matching crop in range.")
+    public int maxCropsPerCycle = 1;
+
     @Comment({
             "Defines how the farmer searches for crops:",
             "AREA - scans an area around the minion.",

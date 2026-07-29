@@ -9,7 +9,7 @@ import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MaterialFilter;
 import com.eternalcode.minions.minion.MinionPosition;
 import com.eternalcode.minions.minion.MinionResult;
-import com.eternalcode.minions.minion.MiningMode;
+import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
@@ -52,6 +52,7 @@ public final class MiningBehavior implements MinionBehavior {
                 config.materials(config.allowedMaterials),
                 config.materials(config.blockedMaterials)
         );
+        WorkLimit.validate("miner.maxBlocksPerCycle", config.maxBlocksPerCycle);
     }
 
     @Override
@@ -76,7 +77,7 @@ public final class MiningBehavior implements MinionBehavior {
         }
         Minion minion = preparation.minion();
 
-        MinionResult result = minion.settings().miningMode() == MiningMode.LINEAR
+        MinionResult result = this.config.workMode == MinerConfig.WorkMode.LINE
             ? this.executeLinear(context, minion)
             : this.executeSquare(context, minion);
         if (result == null) {
@@ -88,54 +89,77 @@ public final class MiningBehavior implements MinionBehavior {
     private MinionResult executeSquare(MinionContext context, Minion minion) {
         int radius = this.config.radius(minion.upgrades());
         int targetCount = MinionMiningTargets.count(radius);
+        int workLimit = WorkLimit.resolve(this.config.maxBlocksPerCycle, targetCount);
+        int minedBlocks = 0;
+        Minion updated = minion;
+
         for (int checkedTargets = 0; checkedTargets < targetCount; checkedTargets++) {
             int targetIndex = context.scheduledMinion().miningTargetIndex(targetCount);
             context.scheduledMinion().advanceMiningTarget(targetCount);
-            int targetX = minion.position().blockX() + MinionMiningTargets.offsetX(radius, targetIndex);
-            int targetY = minion.position().blockY() + MinionMiningTargets.offsetY();
-            int targetZ = minion.position().blockZ() + MinionMiningTargets.offsetZ(radius, targetIndex);
+            int targetX = updated.position().blockX() + MinionMiningTargets.offsetX(radius, targetIndex);
+            int targetY = updated.position().blockY() + MinionMiningTargets.offsetY();
+            int targetZ = updated.position().blockZ() + MinionMiningTargets.offsetZ(radius, targetIndex);
             MinionResult result = this.tryMine(
                 context,
-                minion,
+                updated,
                 targetX,
                 targetY,
                 targetZ,
                 MinionMiningTargets.yaw(radius, targetIndex)
             );
-            if (result != null) {
+            if (result == null) {
+                continue;
+            }
+            if (!result.worked()) {
                 return result;
             }
+            updated = result.minion();
+            minedBlocks++;
+            if (minedBlocks >= workLimit) {
+                break;
+            }
         }
-        return null;
+        return minedBlocks == 0 ? null : MinionResult.worked(updated, MinerStatuses.MINING);
     }
 
     private MinionResult executeLinear(MinionContext context, Minion minion) {
         MinionDirection direction = minion.settings().direction();
         int targetCount = 2 * this.config.radius(minion.upgrades()) + 1;
+        int workLimit = WorkLimit.resolve(this.config.maxBlocksPerCycle, targetCount);
+        int minedBlocks = 0;
+        Minion updated = minion;
 
         for (int checkedTargets = 0; checkedTargets < targetCount; checkedTargets++) {
             int distance = context.scheduledMinion().miningTargetIndex(targetCount) + 1;
             context.scheduledMinion().advanceMiningTarget(targetCount);
 
-            int targetX = minion.position().blockX() + direction.offsetX() * distance;
-            int targetY = minion.position().blockY();
-            int targetZ = minion.position().blockZ() + direction.offsetZ() * distance;
+            int targetX = updated.position().blockX() + direction.offsetX() * distance;
+            int targetY = updated.position().blockY();
+            int targetZ = updated.position().blockZ() + direction.offsetZ() * distance;
 
             MinionResult result = this.tryMine(
                     context,
-                    minion,
+                    updated,
                     targetX,
                     targetY,
                     targetZ,
                     direction.yaw()
             );
 
-            if (result != null) {
+            if (result == null) {
+                continue;
+            }
+            if (!result.worked()) {
                 return result;
+            }
+            updated = result.minion();
+            minedBlocks++;
+            if (minedBlocks >= workLimit) {
+                break;
             }
         }
 
-        return null;
+        return minedBlocks == 0 ? null : MinionResult.worked(updated, MinerStatuses.MINING);
     }
 
     private MinionResult tryMine(

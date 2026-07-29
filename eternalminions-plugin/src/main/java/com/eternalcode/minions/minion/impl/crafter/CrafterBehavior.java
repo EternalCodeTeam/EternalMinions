@@ -6,6 +6,7 @@ import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.WorkLimit;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,13 @@ public final class CrafterBehavior implements MinionBehavior {
 
     public CrafterBehavior(CrafterConfig config) {
         this.config = config;
+        WorkLimit.validate("crafter.maxCraftsPerCycle", config.maxCraftsPerCycle);
+        if (config.maximumCraftsSafetyCap < 1) {
+            throw new IllegalArgumentException(
+                    "crafter.maximumCraftsSafetyCap must be positive: "
+                            + config.maximumCraftsSafetyCap
+            );
+        }
     }
 
     public static CrafterBehavior create(
@@ -97,43 +105,37 @@ public final class CrafterBehavior implements MinionBehavior {
             );
         }
 
-        boolean hadIngredients = false;
         ItemStack[] contents = chest.getInventory().getContents();
+        int craftLimit = this.config.maxCraftsPerCycle == 0
+                ? this.config.maximumCraftsSafetyCap
+                : Math.min(this.config.maxCraftsPerCycle, this.config.maximumCraftsSafetyCap);
+        int craftedItems = 0;
+        boolean hadIngredients = false;
 
-        for (MinionRecipe recipe : recipes) {
-            RecipeMatcher.CraftResult result =
-                    this.matcher.craft(recipe, contents);
-
-            if (
-                    result.state()
-                            == RecipeMatcher.CraftResult.State.MISSING_INGREDIENTS
-            ) {
-                continue;
+        while (craftedItems < craftLimit) {
+            RecipeMatcher.CraftResult craft = this.findCraft(recipes, contents);
+            if (craft == null) {
+                break;
             }
-
-            hadIngredients = true;
-
-            if (
-                    result.state()
-                            == RecipeMatcher.CraftResult.State.NO_SPACE
-            ) {
-                continue;
+            if (craft.state() == RecipeMatcher.CraftResult.State.NO_SPACE) {
+                hadIngredients = true;
+                break;
             }
-
-            chest.getInventory().setContents(
-                    result.contents()
-            );
-
-            Minion updated = minion.withProgress(
-                    minion.progress().advanced(this.config)
-            );
-
-            return MinionResult.worked(
-                    updated,
-                    CrafterStatuses.CRAFTING
-            );
+            if (craft.state() == RecipeMatcher.CraftResult.State.MISSING_INGREDIENTS) {
+                break;
+            }
+            contents = craft.contents();
+            craftedItems++;
         }
 
+        if (craftedItems > 0) {
+            chest.getInventory().setContents(contents);
+            Minion updated = minion;
+            for (int craftedItem = 0; craftedItem < craftedItems; craftedItem++) {
+                updated = updated.withProgress(updated.progress().advanced(this.config));
+            }
+            return MinionResult.worked(updated, CrafterStatuses.CRAFTING);
+        }
         if (hadIngredients) {
             return MinionResult.idle(
                     minion,
@@ -145,6 +147,23 @@ public final class CrafterBehavior implements MinionBehavior {
                 minion,
                 CrafterStatuses.NO_INGREDIENTS
         );
+    }
+
+    private RecipeMatcher.CraftResult findCraft(
+            List<MinionRecipe> recipes,
+            ItemStack[] contents
+    ) {
+        RecipeMatcher.CraftResult blockedCraft = null;
+        for (MinionRecipe recipe : recipes) {
+            RecipeMatcher.CraftResult craft = this.matcher.craft(recipe, contents);
+            if (craft.state() == RecipeMatcher.CraftResult.State.SUCCESS) {
+                return craft;
+            }
+            if (craft.state() == RecipeMatcher.CraftResult.State.NO_SPACE) {
+                blockedCraft = craft;
+            }
+        }
+        return blockedCraft;
     }
 
     private List<MinionRecipe> findRecipes(

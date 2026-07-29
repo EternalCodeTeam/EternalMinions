@@ -65,6 +65,11 @@ public final class FishermanBehavior implements MinionBehavior {
         this.tools = tools;
         this.transfers = transfers;
         this.toolRequirement = config.toolRequirement();
+        if (config.catchesPerCycle < 1) {
+            throw new IllegalArgumentException(
+                    "fisherman.catchesPerCycle must be positive: " + config.catchesPerCycle
+            );
+        }
     }
 
     @Override
@@ -126,13 +131,24 @@ public final class FishermanBehavior implements MinionBehavior {
                 )
         );
 
-        ItemStack rod = minion.equipment().tool();
-
-        return this.catchFish(
-                context,
-                minion,
-                rod,
-                water
+        Minion updated = minion;
+        MinionResult catchResult = null;
+        for (int catchNumber = 0; catchNumber < this.config.catchesPerCycle; catchNumber++) {
+            ItemStack rod = updated.equipment().tool();
+            if (rod == null || rod.getType().isAir()) {
+                break;
+            }
+            catchResult = this.catchFish(context, updated, rod, water);
+            updated = catchResult.minion();
+        }
+        if (catchResult == null) {
+            return MinionResult.idle(updated, FishermanStatuses.NO_ROD);
+        }
+        return new MinionResult(
+                updated,
+                catchResult.status(),
+                true,
+                catchResult.delayTicks()
         );
     }
 

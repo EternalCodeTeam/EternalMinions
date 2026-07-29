@@ -81,8 +81,13 @@ public final class MinionShopServiceImpl implements MinionShopService, MinionSho
 
     @Override
     public void payout(UUID ownerId, double amount) {
+        this.tryPayout(ownerId, amount);
+    }
+
+    @Override
+    public boolean tryPayout(UUID ownerId, double amount) {
         try {
-            this.resolveProvider().payout(ownerId, amount);
+            return this.resolveProvider().tryPayout(ownerId, amount);
         }
         catch (RuntimeException exception) {
             this.logger.log(
@@ -90,6 +95,7 @@ public final class MinionShopServiceImpl implements MinionShopService, MinionSho
                     "Shop provider failed to pay out " + amount + " to " + ownerId,
                     exception
             );
+            return false;
         }
     }
 

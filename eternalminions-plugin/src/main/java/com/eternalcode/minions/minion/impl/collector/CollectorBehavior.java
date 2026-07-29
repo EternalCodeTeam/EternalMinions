@@ -7,6 +7,7 @@ import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.MaterialFilter;
+import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionStorageUpdate;
@@ -24,9 +25,6 @@ import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 
 public final class CollectorBehavior implements MinionBehavior {
-
-    private static final int MAX_SCANNED_ENTITIES_PER_ACTION = 64;
-    private static final int MAX_COLLECTED_STACKS_PER_ACTION = 8;
 
     private final CollectorConfig config;
     private final MinionToolService tools;
@@ -60,6 +58,16 @@ public final class CollectorBehavior implements MinionBehavior {
         if (config.collectorRadiusBlocks < 1 || config.collectorRadiusBlocks > 16) {
             throw new IllegalArgumentException("Collector radius must be between 1 and 16");
         }
+        if (config.maxScannedEntitiesPerCycle < 1) {
+            throw new IllegalArgumentException(
+                    "collector.maxScannedEntitiesPerCycle must be positive: "
+                            + config.maxScannedEntitiesPerCycle
+            );
+        }
+        WorkLimit.validate(
+                "collector.maxCollectedStacksPerCycle",
+                config.maxCollectedStacksPerCycle
+        );
     }
 
     @Override
@@ -91,16 +99,22 @@ public final class CollectorBehavior implements MinionBehavior {
         boolean destinationBlocked = false;
         int scannedEntities = 0;
         int collectedStacks = 0;
+        int movedStacks = 0;
+        int collectionLimit = WorkLimit.resolve(
+                this.config.maxCollectedStacksPerCycle,
+                this.config.maxScannedEntitiesPerCycle
+        );
+        int radius = this.config.radius(minion.upgrades());
 
         Collection<Entity> nearbyEntities = context.world().getNearbyEntities(
             center,
-            this.config.collectorRadiusBlocks,
-            this.config.collectorRadiusBlocks,
-            this.config.collectorRadiusBlocks,
+            radius,
+            radius,
+            radius,
             entity -> entity instanceof Item
         );
         for (Entity entity : nearbyEntities) {
-            if (scannedEntities++ >= MAX_SCANNED_ENTITIES_PER_ACTION) {
+            if (scannedEntities++ >= this.config.maxScannedEntitiesPerCycle) {
                 break;
             }
 
@@ -110,7 +124,7 @@ public final class CollectorBehavior implements MinionBehavior {
                 continue;
             }
             foundItem = true;
-            if (collectedStacks++ >= MAX_COLLECTED_STACKS_PER_ACTION) {
+            if (collectedStacks++ >= collectionLimit) {
                 break;
             }
 
@@ -125,6 +139,7 @@ public final class CollectorBehavior implements MinionBehavior {
                 continue;
             }
             movedItem = true;
+            movedStacks++;
             if (remainingAmount <= 0) {
                 item.remove();
                 continue;
@@ -142,7 +157,10 @@ public final class CollectorBehavior implements MinionBehavior {
         }
 
         Minion updated = minion.withStorage(storage);
-        updated = updated.withProgress(updated.progress().advanced(this.config));
+        updated = this.tools.consume(updated, movedStacks);
+        for (int movedStack = 0; movedStack < movedStacks; movedStack++) {
+            updated = updated.withProgress(updated.progress().advanced(this.config));
+        }
         return MinionResult.worked(
             updated,
             destinationBlocked ? CoreMinionStatuses.STORAGE_FULL : CollectorStatuses.COLLECTING

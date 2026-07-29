@@ -8,20 +8,17 @@ final class MinionSettingsTable {
 
     @DatabaseField(columnName = "minion_id", id = true) private long minionId;
     @DatabaseField(columnName = "direction", canBeNull = false) private String direction;
-    @DatabaseField(columnName = "mining_mode", canBeNull = false) private String miningMode;
 
     MinionSettingsTable() {
     }
 
-    MinionSettingsTable(long minionId, String direction, String miningMode) {
+    MinionSettingsTable(long minionId, String direction) {
         this.minionId = minionId;
         this.direction = direction;
-        this.miningMode = miningMode;
     }
 
     long minionId() {return this.minionId;}
 
     String direction() {return this.direction;}
 
-    String miningMode() {return this.miningMode;}
 }

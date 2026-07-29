@@ -18,6 +18,9 @@ import org.bukkit.Color;
 @Include(AbstractMinionConfig.class)
 public final class FishermanConfig extends AbstractMinionConfig {
 
+    @Comment("Number of fishing catches completed per work cycle.")
+    public int catchesPerCycle = 1;
+
     @Comment({
             "Horizontal distance in which the fisherman searches for water.",
             "A value of 2 scans a 5x5 area around the minion."

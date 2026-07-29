@@ -7,7 +7,6 @@ import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
-import com.eternalcode.minions.minion.MiningMode;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -40,7 +39,6 @@ public final class MinionItemFactory {
     private final NamespacedKey toolKey;
     private final NamespacedKey storageKey;
     private final NamespacedKey upgradesKey;
-    private final NamespacedKey miningModeKey;
 
     public MinionItemFactory(
         Plugin plugin,
@@ -58,7 +56,6 @@ public final class MinionItemFactory {
         this.toolKey = new NamespacedKey(plugin, "minion_tool");
         this.storageKey = new NamespacedKey(plugin, "minion_storage");
         this.upgradesKey = new NamespacedKey(plugin, "minion_upgrades");
-        this.miningModeKey = new NamespacedKey(plugin, "minion_mining_mode");
     }
 
     public ItemStack create(MinionBehavior behavior) {
@@ -93,7 +90,6 @@ public final class MinionItemFactory {
         data.set(this.toolKey, PersistentDataType.BYTE_ARRAY, encodeItem(minion.equipment().tool()));
         data.set(this.storageKey, PersistentDataType.BYTE_ARRAY, encodeStorage(minion.storage()));
         data.set(this.upgradesKey, PersistentDataType.STRING, encodeUpgrades(minion.upgrades()));
-        data.set(this.miningModeKey, PersistentDataType.STRING, minion.settings().miningMode().name());
         this.applyPresentation(
             meta,
             behavior.config(),
@@ -207,10 +203,9 @@ public final class MinionItemFactory {
         byte[] toolData = data.getOrDefault(this.toolKey, PersistentDataType.BYTE_ARRAY, new byte[0]);
         byte[] storageData = data.getOrDefault(this.storageKey, PersistentDataType.BYTE_ARRAY, new byte[0]);
         String upgradesData = data.getOrDefault(this.upgradesKey, PersistentDataType.STRING, "");
-        String miningModeData = data.getOrDefault(this.miningModeKey, PersistentDataType.STRING, "");
         return Optional.of(new StoredMinionState(
             behaviorId, level, progress, decodeItem(toolData), decodeStorage(storageData),
-            decodeUpgrades(upgradesData), decodeMiningMode(miningModeData)));
+            decodeUpgrades(upgradesData)));
     }
 
     public record StoredMinionState(
@@ -219,21 +214,8 @@ public final class MinionItemFactory {
         long progress,
         ItemStack tool,
         ItemStack[] storage,
-        MinionUpgrades upgrades,
-        MiningMode miningMode
+        MinionUpgrades upgrades
     ) {
-    }
-
-    private static MiningMode decodeMiningMode(String encoded) {
-        if (encoded.isEmpty()) {
-            return MiningMode.SQUARE;
-        }
-        try {
-            return MiningMode.valueOf(encoded);
-        }
-        catch (IllegalArgumentException ignored) {
-            return MiningMode.SQUARE;
-        }
     }
 
     private static String encodeUpgrades(MinionUpgrades upgrades) {

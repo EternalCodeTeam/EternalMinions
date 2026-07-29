@@ -16,6 +16,9 @@ import org.bukkit.Color;
 @Include(AbstractMinionConfig.class)
 public final class LumberjackConfig extends AbstractMinionConfig {
 
+    @Comment("Maximum complete trees felled per cycle. Zero fells every tree found at a work station.")
+    public int maxTreesPerCycle = 1;
+
     @Comment({
             "Log materials treated as parts of a tree.",
             "Covers every vanilla tree species so the minion is not limited to oak.",

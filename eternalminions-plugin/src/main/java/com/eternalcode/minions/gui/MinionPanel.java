@@ -14,7 +14,6 @@ import com.eternalcode.minions.minion.MinionEquipment;
 import com.eternalcode.minions.minion.MinionLifecycleService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
-import com.eternalcode.minions.minion.MiningMode;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.multification.notice.Notice;
 import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder;
@@ -184,10 +183,6 @@ public final class MinionPanel {
                     player, minion, MinionAccessAction.MANAGE, element, placeholders,
                     current -> this.rotate(player, current)
             );
-            case TOGGLE_MODE -> this.createAccessibleElement(
-                    player, minion, MinionAccessAction.MANAGE, element, placeholders,
-                    current -> this.toggleMode(player, current)
-            );
             case NONE, MINION_INFORMATION -> this.createConfiguredElement(element, placeholders, null);
             case STORAGE_SLOT -> throw new IllegalStateException("Storage action was not handled");
         };
@@ -260,14 +255,6 @@ public final class MinionPanel {
         this.refresh(player, updated);
     }
 
-    private void toggleMode(Player player, Minion minion) {
-        MiningMode mode = minion.settings().miningMode() == MiningMode.SQUARE ? MiningMode.LINEAR : MiningMode.SQUARE;
-        Minion updated = minion.withSettings(minion.settings().withMiningMode(mode));
-        this.lifecycle.updateSettings(updated);
-        this.send(player, this.messages.minionModeChanged);
-        this.refresh(player, updated);
-    }
-
     private void collect(Player player, Minion minion) {
         MinionStorage storage = minion.storage();
         for (int slot = 0; slot < storage.capacity(); slot++) {
@@ -314,10 +301,6 @@ public final class MinionPanel {
         placeholders.put(
             "{MINION_CHEST}",
             minion.chestPosition() == null ? this.config.chestNotLinkedStatus : this.config.chestLinkedStatus
-        );
-        placeholders.put(
-            "{MINION_MODE}",
-            minion.settings().miningMode() == MiningMode.SQUARE ? this.config.modeSquare : this.config.modeLinear
         );
         placeholders.put("{MINION_DIRECTION}", switch (minion.settings().direction()) {
             case SOUTH -> this.config.directionSouth;

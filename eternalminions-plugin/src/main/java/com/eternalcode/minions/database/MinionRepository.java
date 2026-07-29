@@ -100,8 +100,7 @@ public final class MinionRepository extends AbstractRepositoryOrmLite {
         this.databaseManager.<MinionSettingsTable, Long>getDao(MinionSettingsTable.class).create(
                 new MinionSettingsTable(
                         minion.id(),
-                        minion.settings().direction().name(),
-                        minion.settings().miningMode().name()
+                        minion.settings().direction().name()
                 )
         );
         this.insertEquipment(minion);

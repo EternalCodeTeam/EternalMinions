@@ -9,6 +9,7 @@ import com.eternalcode.minions.minion.MinionBlockDrops;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
@@ -37,8 +38,7 @@ public final class LumberjackBehavior implements MinionBehavior {
     private final MinionItemTransferService transfers;
     private final ToolRequirement toolRequirement;
 
-    private final TreeScanner treeScanner =
-            new TreeScanner();
+    private final TreeScanner treeScanner = new TreeScanner();
 
     private final Set<Material> logMaterials;
     private final Set<Material> leafMaterials;
@@ -93,6 +93,7 @@ public final class LumberjackBehavior implements MinionBehavior {
         this.defaultSapling = this.saplingMaterials.isEmpty()
                 ? requireMaterial(XMaterial.OAK_SAPLING, "sapling")
                 : this.saplingMaterials.iterator().next();
+        WorkLimit.validate("lumberjack.maxTreesPerCycle", config.maxTreesPerCycle);
     }
 
     @Override
@@ -142,6 +143,9 @@ public final class LumberjackBehavior implements MinionBehavior {
 
         boolean foundSapling = false;
         boolean foundInvalidStation = false;
+        int treeLimit = WorkLimit.resolve(this.config.maxTreesPerCycle, stationCount);
+        int felledTrees = 0;
+        Minion updated = minion;
 
         for (int offset = 0; offset < stationCount; offset++) {
             int stationIndex =
@@ -150,14 +154,14 @@ public final class LumberjackBehavior implements MinionBehavior {
             int distance = stationIndex + 1;
 
             int stationX =
-                    minion.position().blockX()
+                    updated.position().blockX()
                             + direction.offsetX() * distance;
 
             int stationY =
-                    minion.position().blockY();
+                    updated.position().blockY();
 
             int stationZ =
-                    minion.position().blockZ()
+                    updated.position().blockZ()
                             + direction.offsetZ() * distance;
 
             if (
@@ -182,11 +186,23 @@ public final class LumberjackBehavior implements MinionBehavior {
                         direction.yaw()
                 );
 
-                return this.fellTree(
+                MinionResult treeResult = this.fellTree(
                         context,
-                        minion,
+                        updated,
                         station
                 );
+                if (!treeResult.worked()) {
+                    if (felledTrees == 0) {
+                        return treeResult;
+                    }
+                    break;
+                }
+                updated = treeResult.minion();
+                felledTrees++;
+                if (felledTrees >= treeLimit) {
+                    break;
+                }
+                continue;
             }
 
             if (this.saplingMaterials.contains(material)) {
@@ -199,8 +215,11 @@ public final class LumberjackBehavior implements MinionBehavior {
             }
         }
 
+        if (felledTrees > 0) {
+            return MinionResult.worked(updated, LumberjackStatuses.CUTTING);
+        }
         return MinionResult.idle(
-                minion,
+                updated,
                 resolveIdleStatus(
                         foundSapling,
                         foundInvalidStation

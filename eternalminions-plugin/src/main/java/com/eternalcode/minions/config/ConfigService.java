@@ -39,6 +39,7 @@ public final class ConfigService {
         config.saveDefaults();
         config.load(true);
         this.validate(config);
+        this.configs.add(new ConfigRegistration<>(config, configType, file));
         return config;
     }
 
@@ -66,7 +67,8 @@ public final class ConfigService {
 
     private <T extends OkaeriConfig> T loadValidated(ConfigRegistration<T> registration) {
         T loaded = this.configure(ConfigManager.create(registration.type()));
-        loaded.load(registration.file());
+        loaded.withBindFile(registration.file());
+        loaded.load(true);
         this.validate(loaded);
         return loaded;
     }

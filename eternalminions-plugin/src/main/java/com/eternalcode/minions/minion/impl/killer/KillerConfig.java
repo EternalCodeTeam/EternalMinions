@@ -16,6 +16,9 @@ import org.bukkit.entity.EntityType;
 @Include(AbstractMinionConfig.class)
 public final class KillerConfig extends AbstractMinionConfig {
 
+    @Comment("Maximum primary targets attacked per cycle. Zero attacks every eligible target in range.")
+    public int maxPrimaryTargetsPerCycle = 1;
+
     @Comment({
             "Mob types the killer is allowed to attack.",
             "When empty and attackAllMonstersWhenEmpty is enabled,",

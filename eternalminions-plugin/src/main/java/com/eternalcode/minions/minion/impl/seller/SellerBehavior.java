@@ -6,6 +6,7 @@ import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.shop.MinionShopProvider;
 import java.io.File;
@@ -26,9 +27,7 @@ public final class SellerBehavior implements MinionBehavior {
     public SellerBehavior(SellerConfig config, MinionShopProvider shop) {
         this.config = config;
         this.shop = shop;
-        if (config.sellBatch < 1) {
-            throw new IllegalArgumentException("Seller batch must be positive");
-        }
+        WorkLimit.validate("seller.sellBatch", config.sellBatch);
     }
 
     @Override
@@ -50,8 +49,11 @@ public final class SellerBehavior implements MinionBehavior {
 
         Sale sale = new Sale(this.config.sellBatch);
         Container chest = context.linkedChest();
+        Inventory linkedInventory = null;
+        ItemStack[] linkedContents = null;
         if (chest != null) {
-            this.sellFromInventory(chest.getInventory(), sale);
+            linkedInventory = chest.getInventory();
+            linkedContents = this.sellFromContents(linkedInventory.getContents(), sale);
         }
         MinionStorage storage = this.sellFromStorage(minion.storage(), sale);
         if (sale.soldCount == 0) {
@@ -61,14 +63,25 @@ public final class SellerBehavior implements MinionBehavior {
             );
         }
 
-        this.shop.payout(minion.ownerId(), sale.earned);
+        if (!this.shop.tryPayout(minion.ownerId(), sale.earned)) {
+            return MinionResult.idle(minion, SellerStatuses.PAYOUT_FAILED);
+        }
+        if (linkedInventory != null) {
+            linkedInventory.setContents(linkedContents);
+        }
         Minion updated = minion.withStorage(storage);
-        updated = updated.withProgress(updated.progress().advanced(this.config));
+        for (int soldItem = 0; soldItem < sale.soldCount; soldItem++) {
+            updated = updated.withProgress(updated.progress().advanced(this.config));
+        }
         return MinionResult.worked(updated, SellerStatuses.SELLING);
     }
 
-    private void sellFromInventory(Inventory inventory, Sale sale) {
-        ItemStack[] contents = inventory.getContents();
+    private ItemStack[] sellFromContents(ItemStack[] source, Sale sale) {
+        ItemStack[] contents = new ItemStack[source.length];
+        for (int slot = 0; slot < source.length; slot++) {
+            ItemStack sourceItem = source[slot];
+            contents[slot] = sourceItem == null ? null : sourceItem.clone();
+        }
         for (int slot = 0; slot < contents.length && sale.hasBudget(); slot++) {
             ItemStack item = contents[slot];
             if (item == null) {
@@ -83,12 +96,13 @@ public final class SellerBehavior implements MinionBehavior {
             int soldAmount = sale.take(item.getAmount(), price);
             int remainingAmount = item.getAmount() - soldAmount;
             if (remainingAmount <= 0) {
-                inventory.setItem(slot, null);
+                contents[slot] = null;
             }
             else {
                 item.setAmount(remainingAmount);
             }
         }
+        return contents;
     }
 
     private MinionStorage sellFromStorage(MinionStorage storage, Sale sale) {
@@ -129,11 +143,13 @@ public final class SellerBehavior implements MinionBehavior {
         }
 
         private boolean hasBudget() {
-            return this.soldCount < this.batch;
+            return this.batch == 0 || this.soldCount < this.batch;
         }
 
         private int take(int available, double price) {
-            int soldAmount = Math.min(available, this.batch - this.soldCount);
+            int soldAmount = this.batch == 0
+                    ? available
+                    : Math.min(available, this.batch - this.soldCount);
             this.soldCount += soldAmount;
             this.earned += price * soldAmount;
             return soldAmount;

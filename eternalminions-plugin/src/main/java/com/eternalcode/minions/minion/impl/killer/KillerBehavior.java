@@ -7,6 +7,7 @@ import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.MinionRotation;
+import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.tool.EnchantmentLevels;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
@@ -15,9 +16,11 @@ import com.eternalcode.minions.minion.tool.ToolRequirement;
 import java.io.File;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.Tag;
 import org.bukkit.attribute.Attribute;
@@ -31,7 +34,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 
-// TODO: need more logic in scaling damange/loot based on enchantments, currently this is "prowizorka"
 public final class KillerBehavior implements MinionBehavior {
 
     private final KillerConfig config;
@@ -69,6 +71,10 @@ public final class KillerBehavior implements MinionBehavior {
         this.allowedMobs = config.allowedMobs.isEmpty()
                 ? Set.of()
                 : Set.copyOf(EnumSet.copyOf(config.allowedMobs));
+        WorkLimit.validate(
+                "killer.maxPrimaryTargetsPerCycle",
+                config.maxPrimaryTargetsPerCycle
+        );
     }
 
     @Override
@@ -128,16 +134,12 @@ public final class KillerBehavior implements MinionBehavior {
             );
         }
 
-        LivingEntity target = searchResult.target();
-
-        if (target == null) {
+        if (searchResult.target() == null) {
             return MinionResult.idle(
                     minion,
                     KillerStatuses.NO_ENEMIES
             );
         }
-
-        this.faceTarget(context, origin, target);
 
         int lootingLevel = EnchantmentLevels.level(
                 weapon,
@@ -154,43 +156,72 @@ public final class KillerBehavior implements MinionBehavior {
                 ),
                 Enchantment.SWEEPING_EDGE.getMaxLevel()
         );
-
-        List<LivingEntity> sweepingTargets = this.findSweepingTargets(
-                context,
-                target,
-                sweepingLevel
+        int primaryTargetLimit = WorkLimit.resolve(
+                this.config.maxPrimaryTargetsPerCycle,
+                nearbyEntities.size()
         );
-
-        this.attack(
-                weapon,
+        List<LivingEntity> primaryTargets = this.finder.findAdditional(
                 origin,
-                target,
-                1.0D,
-                lootingLevel
+                nearbyEntities,
+                null,
+                primaryTargetLimit,
+                attackRange,
+                this.allowedMobs,
+                this.config.attackAllMonstersWhenEmpty,
+                this.config.ignoreNamedMobs,
+                this.config.ignoreInvulnerableMobs
         );
-
         double sweepingDamageMultiplier =
                 this.config.sweepingDamageMultiplier(sweepingLevel);
+        Set<UUID> attackedEntities = new HashSet<>();
+        int attackedPrimaryTargets = 0;
 
-        for (LivingEntity sweepingTarget : sweepingTargets) {
-            if (!sweepingTarget.isValid() || sweepingTarget.isDead()) {
+        for (LivingEntity primaryTarget : primaryTargets) {
+            if (!primaryTarget.isValid() || primaryTarget.isDead()) {
                 continue;
             }
-
+            if (!attackedEntities.add(primaryTarget.getUniqueId())) {
+                continue;
+            }
+            this.faceTarget(context, origin, primaryTarget);
             this.attack(
                     weapon,
                     origin,
-                    sweepingTarget,
-                    sweepingDamageMultiplier,
+                    primaryTarget,
+                    1.0D,
                     lootingLevel
             );
+            attackedPrimaryTargets++;
+
+            List<LivingEntity> sweepingTargets = this.findSweepingTargets(
+                    context,
+                    primaryTarget,
+                    sweepingLevel
+            );
+            for (LivingEntity sweepingTarget : sweepingTargets) {
+                if (!sweepingTarget.isValid() || sweepingTarget.isDead()) {
+                    continue;
+                }
+                if (!attackedEntities.add(sweepingTarget.getUniqueId())) {
+                    continue;
+                }
+                this.attack(
+                        weapon,
+                        origin,
+                        sweepingTarget,
+                        sweepingDamageMultiplier,
+                        lootingLevel
+                );
+            }
         }
 
-        Minion updated = this.tools.consume(minion, 1);
-
-        updated = updated.withProgress(
-                updated.progress().advanced(this.config)
-        );
+        if (attackedPrimaryTargets == 0) {
+            return MinionResult.idle(minion, KillerStatuses.NO_ENEMIES);
+        }
+        Minion updated = this.tools.consume(minion, attackedPrimaryTargets);
+        for (int attackedTarget = 0; attackedTarget < attackedPrimaryTargets; attackedTarget++) {
+            updated = updated.withProgress(updated.progress().advanced(this.config));
+        }
 
         return MinionResult
                 .worked(updated, KillerStatuses.ATTACKING)

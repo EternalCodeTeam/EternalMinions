@@ -4,6 +4,8 @@ import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
+import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
 import java.util.LinkedHashMap;
@@ -13,6 +15,12 @@ import org.bukkit.Color;
 
 @Include(AbstractMinionConfig.class)
 public final class CollectorConfig extends AbstractMinionConfig {
+
+    @Comment("Maximum nearby entities inspected per cycle.")
+    public int maxScannedEntitiesPerCycle = 64;
+
+    @Comment("Maximum item stacks collected per cycle. Zero collects every inspected matching stack.")
+    public int maxCollectedStacksPerCycle = 1;
 
     public CollectorConfig() {
         this.displayName = "<color:#FCD05C:#FFDE87:#FCD05C>ᴄᴏʟʟᴇᴄᴛᴏʀ";
@@ -38,6 +46,10 @@ public final class CollectorConfig extends AbstractMinionConfig {
 
     @Comment("These materials are never picked up (blacklist).")
     public List<XMaterial> collectorBlockedMaterials = List.of();
+
+    public int radius(MinionUpgrades upgrades) {
+        return this.upgradeTierValueOrHigher(upgrades, CoreUpgradeKinds.RANGE, this.collectorRadiusBlocks);
+    }
 
     private static Map<MinionStatus, String> defaultStatuses() {
         Map<MinionStatus, String> statuses = new LinkedHashMap<>();

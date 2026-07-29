@@ -36,7 +36,7 @@ public final class SellerConfig extends AbstractMinionConfig {
     })
     public Map<XMaterial, Double> sellPrices = defaultSellPrices();
 
-    @Comment("Maximum number of items sold in a single action.")
+    @Comment("Maximum items sold per cycle. Zero sells every supported item found.")
     public int sellBatch = 64;
 
     private static Map<XMaterial, Double> defaultSellPrices() {
@@ -55,6 +55,7 @@ public final class SellerConfig extends AbstractMinionConfig {
         statuses.put(SellerStatuses.SHOP_NOT_LINKED, "<red>Sklep nie jest podpięty");
         statuses.put(SellerStatuses.STORAGE_EMPTY, "<yellow>Magazyn pusty");
         statuses.put(SellerStatuses.ITEM_HAS_NO_PRICE, "<red>Przedmiot nie ma ceny");
+        statuses.put(SellerStatuses.PAYOUT_FAILED, "<red>Nie udało się wypłacić pieniędzy");
         return statuses;
     }
 }

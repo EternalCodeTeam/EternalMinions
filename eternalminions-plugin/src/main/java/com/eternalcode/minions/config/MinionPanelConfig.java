@@ -26,7 +26,7 @@ public final class MinionPanelConfig extends OkaeriConfig {
         "####T####",
         "#SSSISSS#",
         "###SSS###",
-        "#RUACPLM#"
+        "#RUACPL##"
     );
 
     @Comment("Inventory slot occupied by the profession usage instructions.")
@@ -39,10 +39,6 @@ public final class MinionPanelConfig extends OkaeriConfig {
     @Comment("Status texts used by the {MINION_CHEST} placeholder.")
     public String chestLinkedStatus = "Połączona";
     public String chestNotLinkedStatus = "Brak";
-
-    @Comment("Texts used by the {MINION_MODE} placeholder.")
-    public String modeSquare = "Kwadrat";
-    public String modeLinear = "Linia";
 
     @Comment("Texts used by the {MINION_DIRECTION} placeholder.")
     public String directionSouth = "Południe";
@@ -152,15 +148,6 @@ public final class MinionPanelConfig extends OkaeriConfig {
             "<yellow>Rotacja",
             "<gray>Kierunek: <white>{MINION_DIRECTION}",
             "<gray>Kliknij, aby obrócić o 90°."
-        ));
-        elements.put('M', element(
-            MinionPanelAction.TOGGLE_MODE,
-            XMaterial.IRON_PICKAXE,
-            "<yellow>Tryb pracy",
-            "<gray>Tryb: <white>{MINION_MODE}",
-            "<gray>Kwadrat: kopie wokół siebie.",
-            "<gray>Linia: kopie w kierunku patrzenia.",
-            "<gray>Kliknij, aby przełączyć."
         ));
         elements.put('C', element(
             MinionPanelAction.COLLECT_ITEMS,

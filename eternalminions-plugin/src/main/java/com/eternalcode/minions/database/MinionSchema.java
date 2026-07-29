@@ -97,7 +97,6 @@ final class MinionSchema {
                         CREATE TABLE IF NOT EXISTS eternal_minion_settings (
                             minion_id BIGINT NOT NULL PRIMARY KEY,
                             direction VARCHAR(32) NOT NULL,
-                            mining_mode VARCHAR(32) NOT NULL,
                             FOREIGN KEY (minion_id) REFERENCES eternal_minions(id) ON DELETE CASCADE
                         )
                         """);

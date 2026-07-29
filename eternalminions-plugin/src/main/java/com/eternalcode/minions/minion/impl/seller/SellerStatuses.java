@@ -8,6 +8,7 @@ public final class SellerStatuses {
     public static final MinionStatus SHOP_NOT_LINKED = new MinionStatus("SHOP_NOT_LINKED");
     public static final MinionStatus STORAGE_EMPTY = new MinionStatus("STORAGE_EMPTY");
     public static final MinionStatus ITEM_HAS_NO_PRICE = new MinionStatus("ITEM_HAS_NO_PRICE");
+    public static final MinionStatus PAYOUT_FAILED = new MinionStatus("PAYOUT_FAILED");
 
     private SellerStatuses() {
     }

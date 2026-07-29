@@ -5,7 +5,6 @@ import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.storage.MinionSettings;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
-import com.eternalcode.minions.minion.MiningMode;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.stmt.QueryBuilder;
 import java.sql.SQLException;
@@ -104,22 +103,12 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
     private static MinionSettings parseSettings(MinionSettingsTable row) {
         MinionSettings defaults = MinionSettings.defaults();
         MinionDirection direction = parseDirection(row.direction(), defaults.direction());
-        MiningMode miningMode = parseMiningMode(row.miningMode(), defaults.miningMode());
-        return new MinionSettings(direction, miningMode);
+        return new MinionSettings(direction);
     }
 
     private static MinionDirection parseDirection(String value, MinionDirection fallback) {
         try {
             return MinionDirection.valueOf(value);
-        }
-        catch (IllegalArgumentException exception) {
-            return fallback;
-        }
-    }
-
-    private static MiningMode parseMiningMode(String value, MiningMode fallback) {
-        try {
-            return MiningMode.valueOf(value);
         }
         catch (IllegalArgumentException exception) {
             return fallback;

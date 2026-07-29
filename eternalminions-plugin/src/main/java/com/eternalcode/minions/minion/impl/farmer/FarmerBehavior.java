@@ -10,6 +10,7 @@ import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionRotation;
 import com.eternalcode.minions.minion.MinionResult;
+import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
@@ -53,6 +54,7 @@ public final class FarmerBehavior implements MinionBehavior {
 
         this.crops = parseCrops(config.crops);
         this.seeds = parseMaterials(config.seeds);
+        WorkLimit.validate("farmer.maxCropsPerCycle", config.maxCropsPerCycle);
     }
 
     public static FarmerBehavior create(
@@ -183,6 +185,9 @@ public final class FarmerBehavior implements MinionBehavior {
 
         int range = this.config.range(minion.upgrades());
         int targetCount = this.targetCount(range);
+        int workLimit = WorkLimit.resolve(this.config.maxCropsPerCycle, targetCount);
+        int harvestedCrops = 0;
+        Minion updated = minion;
 
         for (int checked = 0; checked < targetCount; checked++) {
             int targetIndex = context.scheduledMinion()
@@ -192,19 +197,19 @@ public final class FarmerBehavior implements MinionBehavior {
                     .advanceMiningTarget(targetCount);
 
             Target target = this.target(
-                    minion,
+                    updated,
                     range,
                     targetIndex
             );
 
             int blockX =
-                    minion.position().blockX() + target.offsetX();
+                    updated.position().blockX() + target.offsetX();
 
             int blockY =
-                    minion.position().blockY() + this.config.cropYOffset;
+                    updated.position().blockY() + this.config.cropYOffset;
 
             int blockZ =
-                    minion.position().blockZ() + target.offsetZ();
+                    updated.position().blockZ() + target.offsetZ();
 
             if (!context.world().isChunkLoaded(blockX >> 4, blockZ >> 4)) {
                 continue;
@@ -224,7 +229,7 @@ public final class FarmerBehavior implements MinionBehavior {
 
             MinionResult result = this.tryHarvest(
                     context,
-                    minion,
+                    updated,
                     crop,
                     shape
             );
@@ -232,16 +237,25 @@ public final class FarmerBehavior implements MinionBehavior {
             if (result == null) {
                 continue;
             }
+            if (!result.worked()) {
+                return result;
+            }
 
             context.scheduledMinion().face(
                     MinionRotation.yawTowards(0, 0, target.offsetX(), target.offsetZ())
             );
-
-            return result;
+            updated = result.minion();
+            harvestedCrops++;
+            if (harvestedCrops >= workLimit) {
+                break;
+            }
         }
 
+        if (harvestedCrops > 0) {
+            return MinionResult.worked(updated, FarmerStatuses.HARVESTING);
+        }
         return MinionResult.idle(
-                minion,
+                updated,
                 FarmerStatuses.NO_MATURE_CROPS
         );
     }

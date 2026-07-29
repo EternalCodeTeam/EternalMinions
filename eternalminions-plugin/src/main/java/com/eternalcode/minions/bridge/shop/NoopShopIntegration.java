@@ -19,4 +19,9 @@ public final class NoopShopIntegration implements MinionShopProvider {
     @Override
     public void payout(UUID ownerId, double amount) {
     }
+
+    @Override
+    public boolean tryPayout(UUID ownerId, double amount) {
+        return false;
+    }
 }

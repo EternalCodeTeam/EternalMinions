@@ -18,8 +18,7 @@ public final class MinionSettingsRepository extends AbstractRepositoryOrmLite {
 
         MinionSettingsTable row = new MinionSettingsTable(
                 minionId.value(),
-                settings.direction().name(),
-                settings.miningMode().name()
+                settings.direction().name()
         );
         return this.save(MinionSettingsTable.class, row).thenApply(status -> null);
     }

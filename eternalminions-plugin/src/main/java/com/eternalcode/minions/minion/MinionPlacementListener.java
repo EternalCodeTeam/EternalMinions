@@ -85,7 +85,6 @@ public final class MinionPlacementListener implements Listener {
 
         MinionUpgrades upgrades = state.map(MinionItemFactory.StoredMinionState::upgrades)
             .orElseGet(MinionUpgrades::none);
-        MiningMode miningMode = state.map(MinionItemFactory.StoredMinionState::miningMode).orElse(MiningMode.SQUARE);
         MinionDirection direction = MinionDirection.fromYaw(player.getLocation().getYaw());
         Minion minion = new Minion(
             this.ids.next(),
@@ -99,7 +98,7 @@ public final class MinionPlacementListener implements Listener {
             this.createStorage(state.orElse(null), behavior, upgrades),
             upgrades,
             null,
-            new MinionSettings(direction, miningMode)
+            new MinionSettings(direction)
         );
         this.lifecycle.add(minion);
 

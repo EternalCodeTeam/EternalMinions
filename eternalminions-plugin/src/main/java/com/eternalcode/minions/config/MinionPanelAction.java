@@ -11,7 +11,6 @@ public enum MinionPanelAction {
     TOGGLE_ACTIVE,
     UPGRADES,
     LINK_CHEST,
-    ROTATE,
-    TOGGLE_MODE
+    ROTATE
 
 }
