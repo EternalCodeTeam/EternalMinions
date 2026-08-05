@@ -1,12 +1,14 @@
 package com.eternalcode.minions.minion;
 
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 
+/** Lightweight immutable identity, ownership, type, position and level view of a minion. */
 public record MinionDetails(
-    MinionId id,
-    UUID ownerId,
-    String behaviorId,
-    MinionPosition position,
+    @NotNull MinionId id,
+    @NotNull UUID ownerId,
+    @NotNull String behaviorId,
+    @NotNull MinionPosition position,
     int level
 ) {
 

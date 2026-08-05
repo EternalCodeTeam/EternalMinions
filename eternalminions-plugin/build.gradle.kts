@@ -8,7 +8,7 @@ plugins {
 
     id("de.eldoria.plugin-yml.paper") version "0.9.0"
     id("com.gradleup.shadow")
-    id("xyz.jpenilla.run-paper") version "3.0.2"
+    id("xyz.jpenilla.run-paper")
 }
 
 dependencies {

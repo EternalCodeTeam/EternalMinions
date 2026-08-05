@@ -1,5 +1,6 @@
 package com.eternalcode.minions.minion;
 
+/** Cardinal direction in which a minion faces and performs directional work. */
 public enum MinionDirection {
 
     SOUTH(0, 1, 0.0F),
@@ -19,29 +20,29 @@ public enum MinionDirection {
         this.yaw = yaw;
     }
 
+    /** Returns the X block offset associated with this direction. */
     public int offsetX() {
         return this.offsetX;
     }
 
+    /** Returns the Z block offset associated with this direction. */
     public int offsetZ() {
         return this.offsetZ;
     }
 
+    /** Returns the Bukkit yaw associated with this direction. */
     public float yaw() {
         return this.yaw;
     }
 
+    /** Returns the next clockwise direction. */
     public MinionDirection rotated() {
         return VALUES[(this.ordinal() + 1) % VALUES.length];
     }
 
+    /** Resolves the closest cardinal direction for a Bukkit yaw. */
     public static MinionDirection fromYaw(float yaw) {
-        int index = Math.floorMod(Math.round(yaw / 90.0F), 4);
-        return switch (index) {
-            case 0 -> SOUTH;
-            case 1 -> WEST;
-            case 2 -> NORTH;
-            default -> EAST;
-        };
+        int index = Math.floorMod(Math.round(yaw / 90.0F), VALUES.length);
+        return VALUES[index];
     }
 }

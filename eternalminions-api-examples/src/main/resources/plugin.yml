@@ -1,0 +1,21 @@
+name: EternalMinions-Api-Examples
+version: '0.1.0-SNAPSHOT'
+main: com.eternalcode.minions.examples.EternalMinionsApiExamplesPlugin
+api-version: '1.21'
+depend: [EternalMinions]
+authors: [EternalCodeTeam]
+description: Executable examples for the EternalMinions developer API.
+website: https://www.eternalcode.pl
+commands:
+  minionapi:
+    description: Demonstrates EternalMinions API queries, items, statuses and mutations.
+    usage: /minionapi
+    permission: eternalminions.examples.command
+permissions:
+  eternalminions.examples.command:
+    default: op
+  eternalminions.examples.manage-any:
+    default: op
+  eternalminions.examples.block-upgrades:
+    description: Demonstrates cancelling MinionUpgradePurchaseEvent.
+    default: false

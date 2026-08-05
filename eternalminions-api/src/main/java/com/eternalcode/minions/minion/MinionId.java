@@ -1,5 +1,6 @@
 package com.eternalcode.minions.minion;
 
+/** Positive, stable identifier of one persisted minion. */
 public record MinionId(long value) {
 
     public MinionId {

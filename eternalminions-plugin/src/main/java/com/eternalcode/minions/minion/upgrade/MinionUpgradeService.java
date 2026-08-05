@@ -1,35 +1,41 @@
 package com.eternalcode.minions.minion.upgrade;
 
 import com.eternalcode.minions.access.MinionAccessAction;
+import com.eternalcode.minions.event.MinionEventDispatcher;
+import com.eternalcode.minions.event.MinionUpgradePurchaseEvent;
 import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.MinionSnapshotMapper;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.minions.bridge.vault.EconomyService;
 import com.eternalcode.multification.notice.Notice;
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import org.bukkit.entity.Player;
 
 public final class MinionUpgradeService {
 
     private final MinionBehaviorRegistry behaviors;
     private final MinionAccessGuard access;
-    private final BiConsumer<Minion, UpgradeKind> update;
+    private final UpgradeUpdater update;
     private final MessagesConfig messages;
     private final NoticeService notices;
     private final UpgradePayment payment;
+    private final MinionSnapshotMapper snapshots;
+    private final MinionEventDispatcher events;
 
     public MinionUpgradeService(
         MinionBehaviorRegistry behaviors,
         MinionAccessGuard access,
-        BiConsumer<Minion, UpgradeKind> update,
+        UpgradeUpdater update,
         MessagesConfig messages,
         NoticeService notices,
-        Optional<? extends EconomyService> economy
+        Optional<? extends EconomyService> economy,
+        MinionSnapshotMapper snapshots,
+        MinionEventDispatcher events
     ) {
         this.behaviors = behaviors;
         this.access = access;
@@ -37,6 +43,8 @@ public final class MinionUpgradeService {
         this.messages = messages;
         this.notices = notices;
         this.payment = new UpgradePayment(economy);
+        this.snapshots = snapshots;
+        this.events = events;
     }
 
     public Optional<Minion> purchase(Player player, Minion minion, UpgradeKind kind) {
@@ -69,6 +77,18 @@ public final class MinionUpgradeService {
             return Optional.empty();
         }
 
+        MinionUpgradePurchaseEvent purchaseEvent = this.events.fire(new MinionUpgradePurchaseEvent(
+            this.snapshots.map(minion),
+            player.getUniqueId(),
+            kind.key(),
+            currentTier,
+            currentTier + 1,
+            nextTier.costAmount()
+        ));
+        if (purchaseEvent.isCancelled()) {
+            return Optional.empty();
+        }
+
         if (!this.payment.withdraw(player.getUniqueId(), nextTier.costAmount())) {
             this.send(player, this.messages.upgradeCannotAfford);
             return Optional.empty();
@@ -78,7 +98,7 @@ public final class MinionUpgradeService {
         if (kind.equals(CoreUpgradeKinds.CAPACITY)) {
             updated = updated.withStorage(updated.storage().resized(behavior.storageCapacity(updated)));
         }
-        this.update.accept(updated, kind);
+        this.update.update(updated, kind, player.getUniqueId());
         this.send(player, this.messages.upgradePurchased);
         return Optional.of(updated);
     }
@@ -89,5 +109,11 @@ public final class MinionUpgradeService {
 
     private void send(Player player, Notice notice) {
         this.notices.create().viewer(player).notice(notice).send();
+    }
+
+    @FunctionalInterface
+    public interface UpgradeUpdater {
+
+        void update(Minion minion, UpgradeKind kind, java.util.UUID actorId);
     }
 }

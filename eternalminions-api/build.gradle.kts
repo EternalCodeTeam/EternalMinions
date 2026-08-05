@@ -6,4 +6,5 @@ plugins {
 
 dependencies {
     compileOnlyApi("io.papermc.paper:paper-api:${Versions.PAPER_API}")
+    compileOnlyApi("org.jetbrains:annotations:${Versions.JETBRAINS_ANNOTATIONS}")
 }

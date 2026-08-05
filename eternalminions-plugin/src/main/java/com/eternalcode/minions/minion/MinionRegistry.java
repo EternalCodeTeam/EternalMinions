@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.LongConsumer;
 
-public final class MinionRegistry implements MinionService {
+public final class MinionRegistry {
 
     private final Long2ObjectOpenHashMap<Minion> minions = new Long2ObjectOpenHashMap<>();
     private final Collection<Minion> minionView = Collections.unmodifiableCollection(this.minions.values());
@@ -104,7 +104,6 @@ public final class MinionRegistry implements MinionService {
         }
     }
 
-    @Override
     public Optional<MinionDetails> findById(MinionId minionId) {
         Minion minion = this.minions.get(minionId.value());
         return minion == null ? Optional.empty() : Optional.of(minion.details());
@@ -120,7 +119,6 @@ public final class MinionRegistry implements MinionService {
         return count;
     }
 
-    @Override
     public Collection<MinionDetails> findByOwner(UUID ownerId) {
         List<MinionDetails> details = new ArrayList<>();
         for (Minion minion : this.minions.values()) {

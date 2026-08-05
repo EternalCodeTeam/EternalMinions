@@ -1,5 +1,8 @@
 package com.eternalcode.minions;
 
+import org.jetbrains.annotations.NotNull;
+
+/** Global lifecycle-aware accessor for the EternalMinions API implementation. */
 public final class EternalMinionsProvider {
 
     private static EternalMinionsApi api;
@@ -7,7 +10,12 @@ public final class EternalMinionsProvider {
     private EternalMinionsProvider() {
     }
 
-    public static EternalMinionsApi provide() {
+    /**
+     * Returns the active API instance.
+     *
+     * @throws IllegalStateException when EternalMinions is not enabled
+     */
+    public static @NotNull EternalMinionsApi provide() {
         if (api == null) {
             throw new IllegalStateException("EternalMinionsApi has not been initialized yet!");
         }

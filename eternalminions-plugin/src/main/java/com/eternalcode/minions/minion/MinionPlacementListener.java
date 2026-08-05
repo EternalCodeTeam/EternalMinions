@@ -1,6 +1,7 @@
 package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.config.MessagesConfig;
+import com.eternalcode.minions.event.MinionEventCause;
 import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.minion.limit.MinionLimitStatus;
 import com.eternalcode.minions.minion.limit.PlayerMinionLimitService;
@@ -99,7 +100,9 @@ public final class MinionPlacementListener implements Listener {
             null,
             new MinionSettings(direction)
         );
-        this.lifecycle.add(minion);
+        if (!this.lifecycle.add(minion, MinionEventCause.PLACEMENT, player.getUniqueId())) {
+            return;
+        }
 
         item.subtract(1);
         MinionLimitStatus updatedLimit = this.playerLimits.statusFor(player);

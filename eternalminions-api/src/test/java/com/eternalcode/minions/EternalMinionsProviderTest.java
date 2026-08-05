@@ -52,6 +52,26 @@ class EternalMinionsProviderTest {
         }
 
         @Override
+        public com.eternalcode.minions.minion.MinionManagementService minionManagementService() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public com.eternalcode.minions.behavior.MinionBehaviorService minionBehaviorService() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public com.eternalcode.minions.item.MinionItemService minionItemService() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public com.eternalcode.minions.status.MinionStatusService minionStatusService() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public com.eternalcode.minions.access.MinionAccessService minionAccessService() {
             throw new UnsupportedOperationException();
         }
@@ -72,8 +92,37 @@ class EternalMinionsProviderTest {
         }
 
         @Override
+        public Optional<com.eternalcode.minions.minion.MinionSnapshot> findSnapshotById(
+            com.eternalcode.minions.minion.MinionId minionId
+        ) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Collection<com.eternalcode.minions.minion.MinionDetails> findAll() {
+            return List.of();
+        }
+
+        @Override
+        public Collection<com.eternalcode.minions.minion.MinionSnapshot> findAllSnapshots() {
+            return List.of();
+        }
+
+        @Override
         public Collection<com.eternalcode.minions.minion.MinionDetails> findByOwner(UUID ownerId) {
             return List.of();
+        }
+
+        @Override
+        public int countByOwner(UUID ownerId) {
+            return 0;
+        }
+
+        @Override
+        public Optional<com.eternalcode.minions.minion.MinionDetails> findAt(
+            com.eternalcode.minions.minion.MinionPosition position
+        ) {
+            return Optional.empty();
         }
     }
 }
