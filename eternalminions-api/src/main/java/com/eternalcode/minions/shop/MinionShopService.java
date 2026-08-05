@@ -1,7 +1,6 @@
 package com.eternalcode.minions.shop;
 
 import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
 
 public interface MinionShopService {
 
@@ -11,8 +10,8 @@ public interface MinionShopService {
      * different plugin's registration is still active throws IllegalStateException.
      * Registrations are automatically removed when the owning plugin is disabled.
      */
-    @NotNull MinionShopRegistration registerProvider(
-            @NotNull Plugin plugin,
-            @NotNull MinionShopProvider provider
+    MinionShopRegistration registerProvider(
+            Plugin plugin,
+            MinionShopProvider provider
     );
 }

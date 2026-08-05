@@ -5,8 +5,6 @@ import eu.okaeri.configs.serdes.BidirectionalTransformer;
 import eu.okaeri.configs.serdes.SerdesContext;
 import java.util.Locale;
 import org.bukkit.Color;
-import org.jetbrains.annotations.Contract;
-import org.jspecify.annotations.NonNull;
 
 public final class BukkitColorTransformer extends BidirectionalTransformer<String, Color> {
 
@@ -18,7 +16,7 @@ public final class BukkitColorTransformer extends BidirectionalTransformer<Strin
     }
 
     @Override
-    public @NonNull Color leftToRight(@NonNull String value, @NonNull SerdesContext context) {
+    public Color leftToRight(String value, SerdesContext context) {
         if (!value.matches("#[0-9a-fA-F]{6}")) {
             throw new IllegalArgumentException(FORMAT_ERROR + value);
         }
@@ -26,9 +24,8 @@ public final class BukkitColorTransformer extends BidirectionalTransformer<Strin
         return Color.fromRGB(Integer.parseInt(value.substring(1), 16));
     }
 
-    @Contract("null, _ -> fail")
     @Override
-    public @NonNull String rightToLeft(@NonNull Color value, @NonNull SerdesContext context) {
+    public String rightToLeft(Color value, SerdesContext context) {
         return String.format(Locale.ROOT, "#%06X", value.asRGB());
     }
 }

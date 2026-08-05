@@ -12,7 +12,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.plugin.Plugin;
-import org.jspecify.annotations.NonNull;
 
 public final class MinionShopServiceImpl implements MinionShopService, MinionShopProvider, Listener {
 
@@ -28,7 +27,7 @@ public final class MinionShopServiceImpl implements MinionShopService, MinionSho
     }
 
     @Override
-    public @NonNull MinionShopRegistration registerProvider(@NonNull Plugin plugin, @NonNull MinionShopProvider provider) {
+    public MinionShopRegistration registerProvider(Plugin plugin, MinionShopProvider provider) {
         if (!plugin.isEnabled()) {
             throw new IllegalStateException(
                     "Cannot register a shop provider for disabled plugin: " + plugin.getName()

@@ -2,7 +2,6 @@ package com.eternalcode.minions.access;
 
 import com.eternalcode.minions.minion.MinionDetails;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 @FunctionalInterface
 public interface MinionAccessPolicy {
@@ -12,8 +11,8 @@ public interface MinionAccessPolicy {
      * The minion owner is always allowed before registered policies are evaluated.
      */
     boolean canAccess(
-            @NotNull Player player,
-            @NotNull MinionDetails minion,
-            @NotNull MinionAccessAction action
+            Player player,
+            MinionDetails minion,
+            MinionAccessAction action
     );
 }

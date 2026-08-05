@@ -1,7 +1,5 @@
 package com.eternalcode.minions;
 
-import java.util.Objects;
-
 public final class EternalMinionsProvider {
 
     private static EternalMinionsApi api;
@@ -22,7 +20,7 @@ public final class EternalMinionsProvider {
             throw new IllegalStateException("EternalMinionsApi has already been initialized!");
         }
 
-        api = Objects.requireNonNull(eternalMinionsApi, "eternalMinionsApi");
+        api = eternalMinionsApi;
     }
 
     static void deinitialize() {

@@ -5,7 +5,6 @@ import com.eternalcode.minions.access.MinionAccessPolicy;
 import com.eternalcode.minions.access.MinionAccessRegistration;
 import com.eternalcode.minions.access.MinionAccessService;
 import com.eternalcode.minions.minion.MinionDetails;
-import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,11 +17,10 @@ import org.bukkit.plugin.Plugin;
 public final class MinionAccessServiceImpl implements MinionAccessService, Listener {
 
     private final Logger logger;
-    private final CopyOnWriteArrayList<Registration> registrations =
-            new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<Registration> registrations = new CopyOnWriteArrayList<>();
 
     public MinionAccessServiceImpl(Logger logger) {
-        this.logger = Objects.requireNonNull(logger, "logger");
+        this.logger = logger;
     }
 
     @Override
@@ -31,10 +29,6 @@ public final class MinionAccessServiceImpl implements MinionAccessService, Liste
             MinionDetails minion,
             MinionAccessAction action
     ) {
-        Objects.requireNonNull(player, "player");
-        Objects.requireNonNull(minion, "minion");
-        Objects.requireNonNull(action, "action");
-
         if (minion.ownerId().equals(player.getUniqueId())) {
             return true;
         }
@@ -53,9 +47,6 @@ public final class MinionAccessServiceImpl implements MinionAccessService, Liste
             Plugin plugin,
             MinionAccessPolicy policy
     ) {
-        Objects.requireNonNull(plugin, "plugin");
-        Objects.requireNonNull(policy, "policy");
-
         if (!plugin.isEnabled()) {
             throw new IllegalStateException(
                     "Cannot register a minion access policy for disabled plugin "

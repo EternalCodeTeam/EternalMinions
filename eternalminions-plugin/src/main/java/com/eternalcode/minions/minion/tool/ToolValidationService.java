@@ -14,8 +14,6 @@ public final class ToolValidationService {
         return this.validate(requirement, tool, CoreMinionStatuses.NO_TOOL);
     }
 
-    // Overload accepting a profession-specific "missing tool" status (e.g. "Brak kilofa" for
-    // MINER instead of the generic "Brak narzędzia"), so the hologram reports the exact reason.
     public ToolCheck validate(ToolRequirement requirement, ItemStack tool, MinionStatus missingToolStatus) {
         if (requirement == null) {
             throw new IllegalArgumentException("Tool requirement must not be null");
@@ -25,8 +23,8 @@ public final class ToolValidationService {
         }
         if (tool == null || tool.getType() == Material.AIR) {
             return requirement.required()
-                ? new ToolCheck.Stopped(missingToolStatus)
-                : ToolCheck.Ready.EMPTY;
+                    ? new ToolCheck.Stopped(missingToolStatus)
+                    : ToolCheck.Ready.EMPTY;
         }
         if (!requirement.matches(tool.getType())) {
             return new ToolCheck.Stopped(missingToolStatus);
@@ -44,8 +42,8 @@ public final class ToolValidationService {
         }
         if (material == null || material == Material.AIR) {
             return requirement.required()
-                ? new ToolCheck.Stopped(CoreMinionStatuses.NO_TOOL)
-                : ToolCheck.Ready.EMPTY;
+                    ? new ToolCheck.Stopped(CoreMinionStatuses.NO_TOOL)
+                    : ToolCheck.Ready.EMPTY;
         }
         if (!requirement.matches(material)) {
             return new ToolCheck.Stopped(CoreMinionStatuses.NO_TOOL);
@@ -55,10 +53,10 @@ public final class ToolValidationService {
     }
 
     public ToolCheck validateAgainstBlock(
-        ToolRequirement requirement,
-        ItemStack tool,
-        Block target,
-        MinionStatus weakToolStatus
+            ToolRequirement requirement,
+            ItemStack tool,
+            Block target,
+            MinionStatus weakToolStatus
     ) {
         if (target == null) {
             throw new IllegalArgumentException("Tool target block must not be null");
