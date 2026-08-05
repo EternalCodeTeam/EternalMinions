@@ -10,7 +10,7 @@ import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.upgrade.MinionUpgradeService;
 import com.eternalcode.minions.minion.upgrade.MinionUpgradeTier;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.github.stefvanschie.inventoryframework.adventuresupport.ComponentHolder;
 import com.github.stefvanschie.inventoryframework.gui.GuiItem;
@@ -27,9 +27,9 @@ import org.bukkit.plugin.Plugin;
 public final class MinionUpgradePanel {
 
     private static final Map<UpgradeKind, Integer> COLUMNS = Map.of(
-        CoreUpgradeKinds.SPEED, 2,
-        CoreUpgradeKinds.RANGE, 4,
-        CoreUpgradeKinds.CAPACITY, 6
+        DefaultUpgradeKinds.SPEED, 2,
+        DefaultUpgradeKinds.RANGE, 4,
+        DefaultUpgradeKinds.CAPACITY, 6
     );
 
     private final Plugin plugin;
@@ -123,10 +123,10 @@ public final class MinionUpgradePanel {
     }
 
     private long effectiveValue(MinionBehavior behavior, MinionUpgrades minionUpgrades, UpgradeKind kind) {
-        if (kind.equals(CoreUpgradeKinds.SPEED)) {
+        if (kind.equals(DefaultUpgradeKinds.SPEED)) {
             return behavior.config().workInterval(minionUpgrades);
         }
-        if (kind.equals(CoreUpgradeKinds.CAPACITY)) {
+        if (kind.equals(DefaultUpgradeKinds.CAPACITY)) {
             return behavior.config().storageCapacity(minionUpgrades);
         }
         int tier = minionUpgrades.tier(kind);

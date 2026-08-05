@@ -5,7 +5,7 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.MinionUpgradeTierConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
@@ -66,7 +66,8 @@ public final class FishermanConfig extends AbstractMinionConfig {
 
         this.tool.category = ToolCategory.FISHING_ROD;
         this.tool.required = true;
-        this.upgrades.put(CoreUpgradeKinds.SPEED, List.of(
+        this.upgrades.put(
+                DefaultUpgradeKinds.SPEED, List.of(
                 new MinionUpgradeTierConfig(2, 170, new BigDecimal("8.00")),
                 new MinionUpgradeTierConfig(3, 140, new BigDecimal("16.00"))
         ));

@@ -1,33 +1,33 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.database.table;
 
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 @DatabaseTable(tableName = "eternal_minion_equipment")
-final class MinionEquipmentTable {
+public final class MinionEquipmentTable {
 
-    static final String MINION_ID_COLUMN = "minion_id";
-    static final String SLOT_COLUMN = "slot";
-    static final String ITEM_COLUMN = "serialized_item";
+    public static final String MINION_ID_COLUMN = "minion_id";
+    public static final String SLOT_COLUMN = "slot";
+    public static final String ITEM_COLUMN = "serialized_item";
 
     @DatabaseField(columnName = MINION_ID_COLUMN, uniqueCombo = true) private long minionId;
     @DatabaseField(columnName = SLOT_COLUMN, canBeNull = false, uniqueCombo = true) private String slot;
     @DatabaseField(columnName = ITEM_COLUMN, canBeNull = false, dataType = DataType.BYTE_ARRAY)
     private byte[] serializedItem;
 
-    MinionEquipmentTable() {
+    public MinionEquipmentTable() {
     }
 
-    MinionEquipmentTable(long minionId, String slot, byte[] serializedItem) {
+    public MinionEquipmentTable(long minionId, String slot, byte[] serializedItem) {
         this.minionId = minionId;
         this.slot = slot;
         this.serializedItem = serializedItem.clone();
     }
 
-    long minionId() {return this.minionId;}
+    public long minionId() {return this.minionId;}
 
-    String slot() {return this.slot;}
+    public String slot() {return this.slot;}
 
-    byte[] serializedItem() {return this.serializedItem.clone();}
+    public byte[] serializedItem() {return this.serializedItem.clone();}
 }

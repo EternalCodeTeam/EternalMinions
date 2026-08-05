@@ -3,7 +3,7 @@ package com.eternalcode.minions.minion.impl.killer;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
@@ -109,7 +109,7 @@ public final class KillerConfig extends AbstractMinionConfig {
 
         return this.upgradeTierValueOrHigher(
                 upgrades,
-                CoreUpgradeKinds.RANGE,
+                DefaultUpgradeKinds.RANGE,
                 baseRange
         );
     }

@@ -1,4 +1,7 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.minion.storage;
+
+import com.eternalcode.minions.database.DatabaseManager;
+import com.eternalcode.minions.database.repository.AbstractRepositoryOrmLite;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
@@ -11,7 +14,7 @@ public final class MinionChestLinkRepository extends AbstractRepositoryOrmLite {
         super(databaseManager, scheduler);
     }
 
-    CompletableFuture<Void> initialize() {
+    public CompletableFuture<Void> initialize() {
         return this.createTable(MinionChestLinkTable.class);
     }
 

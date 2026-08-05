@@ -1,21 +1,17 @@
 package com.eternalcode.minions.minion;
 
-import com.eternalcode.minions.minion.storage.MinionSettings;
 import com.eternalcode.minions.event.MinionEventCause;
+import com.eternalcode.minions.minion.storage.MinionSettings;
 import com.eternalcode.minions.minion.storage.MinionStorage;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.function.UnaryOperator;
 import org.bukkit.inventory.ItemStack;
+import org.jspecify.annotations.NonNull;
 
-public final class MinionApiService implements MinionService, MinionManagementService {
+public final class MinionManagement implements MinionManagementService {
 
     private final MinionRegistry minions;
     private final MinionLifecycleService lifecycle;
@@ -23,7 +19,7 @@ public final class MinionApiService implements MinionService, MinionManagementSe
     private final MinionIdSequence ids;
     private final MinionSnapshotMapper snapshots;
 
-    public MinionApiService(
+    public MinionManagement(
         MinionRegistry minions,
         MinionLifecycleService lifecycle,
         MinionBehaviorRegistry behaviors,
@@ -38,56 +34,8 @@ public final class MinionApiService implements MinionService, MinionManagementSe
     }
 
     @Override
-    public Optional<MinionDetails> findById(MinionId minionId) {
-        return this.minions.findById(minionId);
-    }
-
-    @Override
-    public Optional<MinionSnapshot> findSnapshotById(MinionId minionId) {
-        return this.minions.findMinion(minionId).map(this.snapshots::map);
-    }
-
-    @Override
-    public Collection<MinionDetails> findAll() {
-        List<MinionDetails> details = new ArrayList<>(this.minions.minions().size());
-        for (Minion minion : this.minions.minions()) {
-            details.add(minion.details());
-        }
-        return List.copyOf(details);
-    }
-
-    @Override
-    public Collection<MinionSnapshot> findAllSnapshots() {
-        List<MinionSnapshot> snapshots = new ArrayList<>(this.minions.minions().size());
-        for (Minion minion : this.minions.minions()) {
-            snapshots.add(this.snapshots.map(minion));
-        }
-        return List.copyOf(snapshots);
-    }
-
-    @Override
-    public Collection<MinionDetails> findByOwner(UUID ownerId) {
-        return this.minions.findByOwner(ownerId);
-    }
-
-    @Override
-    public int countByOwner(UUID ownerId) {
-        return this.minions.countByOwner(ownerId);
-    }
-
-    @Override
-    public Optional<MinionDetails> findAt(MinionPosition position) {
-        for (Minion minion : this.minions.minions()) {
-            if (minion.position().equals(position)) {
-                return Optional.of(minion.details());
-            }
-        }
-        return Optional.empty();
-    }
-
-    @Override
-    public MinionSnapshot create(MinionCreateRequest request) {
-        if (this.findAt(request.position()).isPresent()) {
+    public @NonNull MinionSnapshot create(MinionCreateRequest request) {
+        if (this.minions.findAt(request.position()).isPresent()) {
             throw new IllegalArgumentException("A minion already occupies " + request.position());
         }
 
@@ -120,7 +68,13 @@ public final class MinionApiService implements MinionService, MinionManagementSe
         if (direction == null) {
             throw new IllegalArgumentException("Direction is required");
         }
-        return this.updateSettings(minionId, minion -> minion.withSettings(new MinionSettings(direction)));
+        Minion minion = this.minions.findMinion(minionId).orElse(null);
+        if (minion == null) {
+            return Optional.empty();
+        }
+        Minion updated = minion.withSettings(new MinionSettings(direction));
+        this.lifecycle.updateSettings(updated, MinionEventCause.API, null);
+        return Optional.of(this.snapshots.map(updated));
     }
 
     @Override
@@ -176,7 +130,7 @@ public final class MinionApiService implements MinionService, MinionManagementSe
         }
 
         Minion updated = minion.withUpgrades(minion.upgrades().withTier(kind, tier));
-        if (kind.equals(CoreUpgradeKinds.CAPACITY)) {
+        if (kind.equals(DefaultUpgradeKinds.CAPACITY)) {
             int capacity = behavior.storageCapacity(updated);
             if (capacity > updated.storage().capacity()) {
                 updated = updated.withStorage(updated.storage().resized(capacity));
@@ -187,26 +141,13 @@ public final class MinionApiService implements MinionService, MinionManagementSe
     }
 
     @Override
-    public Optional<MinionSnapshot> setProgress(MinionId minionId, int level, long progress) {
+    public @NonNull Optional<MinionSnapshot> setProgress(@NonNull MinionId minionId, int level, long progress) {
         Minion minion = this.minions.findMinion(minionId).orElse(null);
         if (minion == null) {
             return Optional.empty();
         }
         Minion updated = minion.withProgress(new MinionProgress(level, progress));
         this.lifecycle.updateState(updated, MinionEventCause.API, null);
-        return Optional.of(this.snapshots.map(updated));
-    }
-
-    private Optional<MinionSnapshot> updateSettings(
-        MinionId minionId,
-        UnaryOperator<Minion> update
-    ) {
-        Minion minion = this.minions.findMinion(minionId).orElse(null);
-        if (minion == null) {
-            return Optional.empty();
-        }
-        Minion updated = update.apply(minion);
-        this.lifecycle.updateSettings(updated, MinionEventCause.API, null);
         return Optional.of(this.snapshots.map(updated));
     }
 }

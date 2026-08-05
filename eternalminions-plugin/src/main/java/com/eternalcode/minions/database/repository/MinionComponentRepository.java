@@ -1,4 +1,6 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.database.repository;
+
+import com.eternalcode.minions.database.DatabaseManager;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
@@ -7,7 +9,7 @@ import com.j256.ormlite.stmt.UpdateBuilder;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
-abstract class MinionComponentRepository extends AbstractRepositoryOrmLite {
+public abstract class MinionComponentRepository extends AbstractRepositoryOrmLite {
 
     protected MinionComponentRepository(DatabaseManager databaseManager, Scheduler scheduler) {
         super(databaseManager, scheduler);

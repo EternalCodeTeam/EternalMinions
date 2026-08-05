@@ -1,8 +1,10 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.minion.storage;
+
+import com.eternalcode.minions.database.DatabaseManager;
+import com.eternalcode.minions.database.repository.AbstractRepositoryOrmLite;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
-import com.eternalcode.minions.minion.storage.MinionSettings;
 import java.util.concurrent.CompletableFuture;
 
 public final class MinionSettingsRepository extends AbstractRepositoryOrmLite {
@@ -11,7 +13,7 @@ public final class MinionSettingsRepository extends AbstractRepositoryOrmLite {
         super(databaseManager, scheduler);
     }
 
-    CompletableFuture<Void> initialize() {
+    public CompletableFuture<Void> initialize() {
         return this.createTable(MinionSettingsTable.class);
     }
 

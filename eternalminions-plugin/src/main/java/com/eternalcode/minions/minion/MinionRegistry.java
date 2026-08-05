@@ -27,12 +27,17 @@ public final class MinionRegistry {
         this.index(minion);
     }
 
-    public void replace(Minion minion) {
+    public Minion replace(Minion minion) {
         long id = minion.id().value();
-        if (!this.minions.containsKey(id)) {
+        Minion previous = this.minions.replace(id, minion);
+        if (previous == null) {
             throw new IllegalArgumentException("Minion " + id + " is not registered");
         }
-        this.minions.put(id, minion);
+        if (!previous.position().equals(minion.position())) {
+            this.unindex(previous);
+            this.index(minion);
+        }
+        return previous;
     }
 
     public Optional<Minion> remove(MinionId minionId) {
@@ -57,11 +62,24 @@ public final class MinionRegistry {
             int blockY,
             int blockZ
     ) {
+        return this.findAt(worldKey, blockX, blockY, blockZ) != null;
+    }
+
+    public Optional<Minion> findAt(MinionPosition position) {
+        return Optional.ofNullable(this.findAt(
+            position.worldKey(),
+            position.blockX(),
+            position.blockY(),
+            position.blockZ()
+        ));
+    }
+
+    private Minion findAt(String worldKey, int blockX, int blockY, int blockZ) {
         Long2ObjectOpenHashMap<LongOpenHashSet> worldChunks =
                 this.minionsByWorldChunk.get(worldKey);
 
         if (worldChunks == null) {
-            return false;
+            return null;
         }
 
         LongOpenHashSet ids = worldChunks.get(
@@ -69,7 +87,7 @@ public final class MinionRegistry {
         );
 
         if (ids == null) {
-            return false;
+            return null;
         }
 
         LongIterator iterator = ids.iterator();
@@ -86,11 +104,11 @@ public final class MinionRegistry {
             if (position.blockX() == blockX
                     && position.blockY() == blockY
                     && position.blockZ() == blockZ) {
-                return true;
+                return minion;
             }
         }
 
-        return false;
+        return null;
     }
 
     public void forEachMinionIdInChunk(String worldKey, int chunkX, int chunkZ, LongConsumer action) {

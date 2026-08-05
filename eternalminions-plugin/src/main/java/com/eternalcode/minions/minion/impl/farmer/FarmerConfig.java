@@ -4,7 +4,7 @@ import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
@@ -129,7 +129,7 @@ public final class FarmerConfig extends AbstractMinionConfig {
 
     public int range(MinionUpgrades upgrades) {
         int baseRange = Math.max(1, this.baseRange);
-        return this.upgradeTierValueOrHigher(upgrades, CoreUpgradeKinds.RANGE, baseRange);
+        return this.upgradeTierValueOrHigher(upgrades, DefaultUpgradeKinds.RANGE, baseRange);
     }
 
     public enum WorkMode {

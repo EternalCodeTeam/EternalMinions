@@ -4,7 +4,7 @@ import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
@@ -121,7 +121,7 @@ public final class LumberjackConfig extends AbstractMinionConfig {
     }
 
     public int stationCount(MinionUpgrades upgrades) {
-        return this.upgradeTierValueOrHigher(upgrades, CoreUpgradeKinds.RANGE, 1);
+        return this.upgradeTierValueOrHigher(upgrades, DefaultUpgradeKinds.RANGE, 1);
     }
 
     public int maximumLogs() {

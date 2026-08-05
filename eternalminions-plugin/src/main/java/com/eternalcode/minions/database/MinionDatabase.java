@@ -1,5 +1,12 @@
 package com.eternalcode.minions.database;
 
+import com.eternalcode.minions.database.repository.MinionEquipmentRepository;
+import com.eternalcode.minions.database.repository.MinionRepository;
+import com.eternalcode.minions.database.repository.MinionStateRepository;
+import com.eternalcode.minions.minion.storage.MinionChestLinkRepository;
+import com.eternalcode.minions.minion.storage.MinionSettingsRepository;
+import com.eternalcode.minions.minion.storage.MinionStorageRepository;
+import com.eternalcode.minions.minion.upgrade.MinionUpgradeRepository;
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

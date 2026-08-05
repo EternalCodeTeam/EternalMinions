@@ -1,10 +1,12 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.database.table;
+
+import com.eternalcode.minions.database.MinionData;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 @DatabaseTable(tableName = "eternal_minions")
-final class MinionTable {
+public final class MinionTable {
 
     private static final String POSITION_INDEX = "eternal_minions_position_idx";
 
@@ -18,10 +20,10 @@ final class MinionTable {
     @DatabaseField(columnName = "block_z", indexName = POSITION_INDEX) private int blockZ;
     @DatabaseField(columnName = "created_at") private long createdAt;
 
-    MinionTable() {
+    public MinionTable() {
     }
 
-    MinionTable(MinionData minion) {
+    public MinionTable(MinionData minion) {
         this.id = minion.id();
         this.ownerId = minion.ownerId().toString();
         this.behaviorId = minion.behaviorId();
@@ -32,19 +34,19 @@ final class MinionTable {
         this.createdAt = minion.createdAt();
     }
 
-    long id() {return this.id;}
+    public long id() {return this.id;}
 
-    String ownerId() {return this.ownerId;}
+    public String ownerId() {return this.ownerId;}
 
-    String behaviorId() {return this.behaviorId;}
+    public String behaviorId() {return this.behaviorId;}
 
-    String worldKey() {return this.worldKey;}
+    public String worldKey() {return this.worldKey;}
 
-    int blockX() {return this.blockX;}
+    public int blockX() {return this.blockX;}
 
-    int blockY() {return this.blockY;}
+    public int blockY() {return this.blockY;}
 
-    int blockZ() {return this.blockZ;}
+    public int blockZ() {return this.blockZ;}
 
-    long createdAt() {return this.createdAt;}
+    public long createdAt() {return this.createdAt;}
 }

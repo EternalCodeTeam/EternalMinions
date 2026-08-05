@@ -1,4 +1,7 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.database.repository;
+
+import com.eternalcode.minions.database.DatabaseException;
+import com.eternalcode.minions.database.DatabaseManager;
 
 import com.eternalcode.commons.ThrowingFunction;
 import com.eternalcode.commons.scheduler.Scheduler;

@@ -4,7 +4,7 @@ import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
@@ -48,7 +48,7 @@ public final class CollectorConfig extends AbstractMinionConfig {
     public List<XMaterial> collectorBlockedMaterials = List.of();
 
     public int radius(MinionUpgrades upgrades) {
-        return this.upgradeTierValueOrHigher(upgrades, CoreUpgradeKinds.RANGE, this.collectorRadiusBlocks);
+        return this.upgradeTierValueOrHigher(upgrades, DefaultUpgradeKinds.RANGE, this.collectorRadiusBlocks);
     }
 
     private static Map<MinionStatus, String> defaultStatuses() {

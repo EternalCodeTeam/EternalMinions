@@ -1,9 +1,22 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.database.repository;
+
+import com.eternalcode.minions.database.DatabaseManager;
+import com.eternalcode.minions.database.ItemDataCodec;
+import com.eternalcode.minions.database.MinionData;
+import com.eternalcode.minions.database.MinionEquipmentSlot;
+import com.eternalcode.minions.database.StoredItemData;
+import com.eternalcode.minions.database.table.MinionEquipmentTable;
+import com.eternalcode.minions.database.table.MinionStateTable;
+import com.eternalcode.minions.database.table.MinionTable;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MinionId;
+import com.eternalcode.minions.minion.storage.MinionChestLinkTable;
 import com.eternalcode.minions.minion.storage.MinionSettings;
+import com.eternalcode.minions.minion.storage.MinionSettingsTable;
+import com.eternalcode.minions.minion.storage.MinionStorageTable;
+import com.eternalcode.minions.minion.upgrade.MinionUpgradeTable;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.stmt.QueryBuilder;

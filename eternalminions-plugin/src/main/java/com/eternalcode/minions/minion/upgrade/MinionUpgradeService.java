@@ -95,7 +95,7 @@ public final class MinionUpgradeService {
         }
 
         Minion updated = minion.withUpgrades(minion.upgrades().withTier(kind, currentTier + 1));
-        if (kind.equals(CoreUpgradeKinds.CAPACITY)) {
+        if (kind.equals(DefaultUpgradeKinds.CAPACITY)) {
             updated = updated.withStorage(updated.storage().resized(behavior.storageCapacity(updated)));
         }
         this.update.update(updated, kind, player.getUniqueId());

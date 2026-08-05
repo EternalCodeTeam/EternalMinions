@@ -1,5 +1,19 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.config.ConfigService;
+import com.eternalcode.minions.minion.impl.collector.CollectorBehavior;
+import com.eternalcode.minions.minion.impl.crafter.CrafterBehavior;
+import com.eternalcode.minions.minion.impl.farmer.FarmerBehavior;
+import com.eternalcode.minions.minion.impl.fisherman.FishermanBehavior;
+import com.eternalcode.minions.minion.impl.killer.KillerBehavior;
+import com.eternalcode.minions.minion.impl.killer.KillerLootingListener;
+import com.eternalcode.minions.minion.impl.lumberjack.LumberjackBehavior;
+import com.eternalcode.minions.minion.impl.miner.MiningBehavior;
+import com.eternalcode.minions.minion.impl.seller.SellerBehavior;
+import com.eternalcode.minions.minion.storage.MinionItemTransferService;
+import com.eternalcode.minions.minion.tool.MinionToolService;
+import com.eternalcode.minions.shop.MinionShopProvider;
+import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -11,6 +25,30 @@ import java.util.Optional;
 public final class MinionBehaviorRegistry {
 
     private volatile Map<String, MinionBehavior> behaviors = Map.of();
+
+    public static List<MinionBehavior> createEnabled(
+        ConfigService configs,
+        File directory,
+        MinionToolService tools,
+        MinionItemTransferService transfers,
+        KillerLootingListener killerLooting,
+        MinionShopProvider shop
+    ) {
+        List<MinionBehavior> all = List.of(
+            MiningBehavior.create(configs, directory, tools, transfers),
+            LumberjackBehavior.create(configs, directory, tools, transfers),
+            FarmerBehavior.create(configs, directory, tools, transfers),
+            FishermanBehavior.create(configs, directory, tools, transfers),
+            KillerBehavior.create(configs, directory, tools, killerLooting),
+            CollectorBehavior.create(configs, directory, tools, transfers),
+            CrafterBehavior.create(configs, directory, transfers),
+            SellerBehavior.create(configs, directory, shop)
+        );
+
+        return all.stream()
+            .filter(behavior -> behavior.config().enabled)
+            .toList();
+    }
 
     public MinionBehavior require(String behaviorId) {
         MinionBehavior behavior = this.find(behaviorId).orElse(null);

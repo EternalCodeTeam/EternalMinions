@@ -1,8 +1,10 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.minion.upgrade;
+
+import com.eternalcode.minions.database.DatabaseManager;
+import com.eternalcode.minions.database.repository.MinionComponentRepository;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
-import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import java.util.concurrent.CompletableFuture;
 
 public final class MinionUpgradeRepository extends MinionComponentRepository {
@@ -11,7 +13,7 @@ public final class MinionUpgradeRepository extends MinionComponentRepository {
         super(databaseManager, scheduler);
     }
 
-    CompletableFuture<Void> initialize() {
+    public CompletableFuture<Void> initialize() {
         return this.createTable(MinionUpgradeTable.class);
     }
 

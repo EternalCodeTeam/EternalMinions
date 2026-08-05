@@ -3,7 +3,7 @@ package com.eternalcode.minions.minion.impl.miner;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
@@ -47,7 +47,7 @@ public final class MinerConfig extends AbstractMinionConfig {
     }
 
     public int radius(MinionUpgrades upgrades) {
-        return this.upgradeTierValue(upgrades, CoreUpgradeKinds.RANGE, 1);
+        return this.upgradeTierValue(upgrades, DefaultUpgradeKinds.RANGE, 1);
     }
 
     public enum WorkMode {

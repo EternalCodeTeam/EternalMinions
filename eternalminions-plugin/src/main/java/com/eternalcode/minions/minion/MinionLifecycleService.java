@@ -124,13 +124,8 @@ public final class MinionLifecycleService {
         return true;
     }
 
-    public void updateState(Minion minion) {
-        this.updateState(minion, MinionEventCause.INTERNAL, null);
-    }
-
     public void updateState(Minion minion, MinionEventCause cause, UUID actorId) {
-        Minion previous = this.minions.findMinion(minion.id()).orElse(null);
-        this.minions.replace(minion);
+        Minion previous = this.minions.replace(minion);
         this.persistence.saveState(minion);
         this.fireUpdate(previous, minion, MinionUpdateType.PROGRESS, cause, actorId);
     }
@@ -140,8 +135,7 @@ public final class MinionLifecycleService {
     }
 
     public void updateEquipment(Minion minion, MinionEventCause cause, UUID actorId) {
-        Minion previous = this.minions.findMinion(minion.id()).orElse(null);
-        this.minions.replace(minion);
+        Minion previous = this.minions.replace(minion);
         this.persistence.saveEquipment(minion);
         this.renders.refreshEquipment(minion);
         this.fireUpdate(previous, minion, MinionUpdateType.TOOL, cause, actorId);
@@ -166,15 +160,10 @@ public final class MinionLifecycleService {
     }
 
     public void updateSettings(Minion minion, MinionEventCause cause, UUID actorId) {
-        Minion previous = this.minions.findMinion(minion.id()).orElse(null);
-        this.minions.replace(minion);
+        Minion previous = this.minions.replace(minion);
         this.persistence.saveSettings(minion);
         this.renders.refreshRotation(minion);
         this.fireUpdate(previous, minion, MinionUpdateType.DIRECTION, cause, actorId);
-    }
-
-    public void updateUpgrade(Minion minion, UpgradeKind upgrade) {
-        this.updateUpgrade(minion, upgrade, MinionEventCause.INTERNAL, null);
     }
 
     public void updateUpgrade(Minion minion, UpgradeKind upgrade, MinionEventCause cause, UUID actorId) {
@@ -193,8 +182,7 @@ public final class MinionLifecycleService {
     }
 
     public void updateChestLink(Minion minion, MinionEventCause cause, UUID actorId) {
-        Minion previous = this.minions.findMinion(minion.id()).orElse(null);
-        this.minions.replace(minion);
+        Minion previous = this.minions.replace(minion);
         this.persistence.saveChestLink(minion);
         this.fireUpdate(previous, minion, MinionUpdateType.CHEST_LINK, cause, actorId);
     }
@@ -266,9 +254,6 @@ public final class MinionLifecycleService {
         MinionEventCause cause,
         UUID actorId
     ) {
-        if (previous == null) {
-            return;
-        }
         this.events.fire(new MinionUpdatedEvent(
             this.snapshots.map(previous),
             this.snapshots.map(current),

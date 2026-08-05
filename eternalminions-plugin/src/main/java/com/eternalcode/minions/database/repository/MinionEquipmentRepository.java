@@ -1,4 +1,8 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.database.repository;
+
+import com.eternalcode.minions.database.DatabaseManager;
+import com.eternalcode.minions.database.MinionEquipmentSlot;
+import com.eternalcode.minions.database.table.MinionEquipmentTable;
 
 import com.eternalcode.commons.scheduler.Scheduler;
 import com.eternalcode.minions.minion.MinionId;
@@ -10,7 +14,7 @@ public final class MinionEquipmentRepository extends MinionComponentRepository {
         super(databaseManager, scheduler);
     }
 
-    CompletableFuture<Void> initialize() {
+    public CompletableFuture<Void> initialize() {
         return this.createTable(MinionEquipmentTable.class);
     }
 

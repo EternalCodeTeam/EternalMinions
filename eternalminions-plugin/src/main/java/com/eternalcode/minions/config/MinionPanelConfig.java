@@ -1,7 +1,7 @@
 package com.eternalcode.minions.config;
 
 import com.cryptomorin.xseries.XMaterial;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
@@ -54,7 +54,8 @@ public final class MinionPanelConfig extends OkaeriConfig {
 
     private static Map<UpgradeKind, MinionPanelElementConfig> defaultUpgradeElements() {
         Map<UpgradeKind, MinionPanelElementConfig> elements = new LinkedHashMap<>();
-        elements.put(CoreUpgradeKinds.SPEED, element(
+        elements.put(
+                DefaultUpgradeKinds.SPEED, element(
             MinionPanelAction.NONE,
             XMaterial.SUGAR,
             "<yellow>Szybkość <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
@@ -65,7 +66,8 @@ public final class MinionPanelConfig extends OkaeriConfig {
             "<gray>Koszt: <green>{UPGRADE_COST}",
             "<green>Kliknij, aby ulepszyć."
         ));
-        elements.put(CoreUpgradeKinds.RANGE, element(
+        elements.put(
+                DefaultUpgradeKinds.RANGE, element(
             MinionPanelAction.NONE,
             XMaterial.SPYGLASS,
             "<yellow>Zasięg <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
@@ -76,7 +78,8 @@ public final class MinionPanelConfig extends OkaeriConfig {
             "<gray>Koszt: <green>{UPGRADE_COST}",
             "<green>Kliknij, aby ulepszyć."
         ));
-        elements.put(CoreUpgradeKinds.CAPACITY, element(
+        elements.put(
+                DefaultUpgradeKinds.CAPACITY, element(
             MinionPanelAction.NONE,
             XMaterial.CHEST,
             "<yellow>Pojemność <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",

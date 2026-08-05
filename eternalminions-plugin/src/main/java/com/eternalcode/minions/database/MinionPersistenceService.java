@@ -1,8 +1,15 @@
 package com.eternalcode.minions.database;
 
+import com.eternalcode.minions.database.repository.MinionEquipmentRepository;
+import com.eternalcode.minions.database.repository.MinionRepository;
+import com.eternalcode.minions.database.repository.MinionStateRepository;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionPosition;
+import com.eternalcode.minions.minion.storage.MinionChestLinkRepository;
+import com.eternalcode.minions.minion.storage.MinionSettingsRepository;
+import com.eternalcode.minions.minion.storage.MinionStorageRepository;
+import com.eternalcode.minions.minion.upgrade.MinionUpgradeRepository;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -6,7 +6,7 @@ import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import com.eternalcode.minions.minion.upgrade.CoreUpgradeKinds;
+import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
@@ -116,15 +116,18 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
 
     private static Map<UpgradeKind, List<MinionUpgradeTierConfig>> defaultUpgrades() {
         Map<UpgradeKind, List<MinionUpgradeTierConfig>> upgrades = new LinkedHashMap<>();
-        upgrades.put(CoreUpgradeKinds.SPEED, List.of(
+        upgrades.put(
+                DefaultUpgradeKinds.SPEED, List.of(
             new MinionUpgradeTierConfig(2, 30, new BigDecimal("8.00")),
             new MinionUpgradeTierConfig(3, 20, new BigDecimal("16.00"))
         ));
-        upgrades.put(CoreUpgradeKinds.RANGE, List.of(
+        upgrades.put(
+                DefaultUpgradeKinds.RANGE, List.of(
             new MinionUpgradeTierConfig(2, 2, new BigDecimal("16.00")),
             new MinionUpgradeTierConfig(4, 3, new BigDecimal("32.00"))
         ));
-        upgrades.put(CoreUpgradeKinds.CAPACITY, List.of(
+        upgrades.put(
+                DefaultUpgradeKinds.CAPACITY, List.of(
             new MinionUpgradeTierConfig(3, 18, new BigDecimal("8.00")),
             new MinionUpgradeTierConfig(4, 27, new BigDecimal("16.00"))
         ));
@@ -132,11 +135,11 @@ public abstract class AbstractMinionConfig extends OkaeriConfig {
     }
 
     public long workInterval(MinionUpgrades minionUpgrades) {
-        return this.upgradeTierValue(minionUpgrades, CoreUpgradeKinds.SPEED, this.workIntervalTicks);
+        return this.upgradeTierValue(minionUpgrades, DefaultUpgradeKinds.SPEED, this.workIntervalTicks);
     }
 
     public int storageCapacity(MinionUpgrades minionUpgrades) {
-        return this.upgradeTierValue(minionUpgrades, CoreUpgradeKinds.CAPACITY, this.storageCapacity);
+        return this.upgradeTierValue(minionUpgrades, DefaultUpgradeKinds.CAPACITY, this.storageCapacity);
     }
 
     // Shared by every profession config's radius/range/cooldown-style getters: reads the tier

@@ -1,4 +1,4 @@
-package com.eternalcode.minions.database;
+package com.eternalcode.minions.database.repository;
 
 public final class MinionRepositoryException extends RuntimeException {
 
