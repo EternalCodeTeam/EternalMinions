@@ -1,6 +1,7 @@
 package com.eternalcode.minions.minion.impl.lumberjack;
 
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.Set;
 import org.bukkit.Material;
@@ -9,6 +10,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Leaves;
 
 public final class TreeScanner {
+
+    private static final Set<Material> HIVE_MATERIALS =
+            Set.of(Material.BEE_NEST, Material.BEEHIVE);
 
     private static long pack(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF) << 38)
@@ -167,7 +171,8 @@ public final class TreeScanner {
         if (!collectLeaves || leafMaterials.isEmpty()) {
             return ScanResult.complete(
                     logs,
-                    PositionBuffer.empty()
+                    PositionBuffer.empty(),
+                    this.findHives(world, logs, PositionBuffer.empty())
             );
         }
 
@@ -276,7 +281,99 @@ public final class TreeScanner {
             return ScanResult.leavesTruncated();
         }
 
-        return ScanResult.complete(logs, leaves);
+        return ScanResult.complete(
+                logs,
+                leaves,
+                this.findHives(world, logs, leaves)
+        );
+    }
+
+    private PositionBuffer findHives(
+            World world,
+            PositionBuffer logs,
+            PositionBuffer leaves
+    ) {
+        LongOpenHashSet visited = new LongOpenHashSet();
+        LongOpenHashSet hives = new LongOpenHashSet();
+
+        this.findAdjacentHives(world, logs, visited, hives);
+        this.findAdjacentHives(world, leaves, visited, hives);
+
+        PositionBuffer positions = new PositionBuffer(hives.size());
+        LongIterator iterator = hives.iterator();
+        while (iterator.hasNext()) {
+            long packed = iterator.nextLong();
+            positions.add(
+                    unpackX(packed),
+                    unpackY(packed),
+                    unpackZ(packed)
+            );
+        }
+        return positions;
+    }
+
+    private void findAdjacentHives(
+            World world,
+            PositionBuffer treeBlocks,
+            LongOpenHashSet visited,
+            LongOpenHashSet hives
+    ) {
+        for (int blockIndex = 0; blockIndex < treeBlocks.size(); blockIndex++) {
+            int blockX = treeBlocks.x(blockIndex);
+            int blockY = treeBlocks.y(blockIndex);
+            int blockZ = treeBlocks.z(blockIndex);
+
+            for (int offsetX = -1; offsetX <= 1; offsetX++) {
+                for (int offsetY = -1; offsetY <= 1; offsetY++) {
+                    for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
+                        if (
+                                offsetX == 0
+                                        && offsetY == 0
+                                        && offsetZ == 0
+                        ) {
+                            continue;
+                        }
+
+                        this.findHive(
+                                world,
+                                blockX + offsetX,
+                                blockY + offsetY,
+                                blockZ + offsetZ,
+                                visited,
+                                hives
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    private void findHive(
+            World world,
+            int blockX,
+            int blockY,
+            int blockZ,
+            LongOpenHashSet visited,
+            LongOpenHashSet hives
+    ) {
+        if (
+                blockY < world.getMinHeight()
+                        || blockY >= world.getMaxHeight()
+                        || !world.isChunkLoaded(blockX >> 4, blockZ >> 4)
+        ) {
+            return;
+        }
+
+        long packed = pack(blockX, blockY, blockZ);
+        if (!visited.add(packed)) {
+            return;
+        }
+        if (!HIVE_MATERIALS.contains(
+                world.getBlockAt(blockX, blockY, blockZ).getType()
+        )) {
+            return;
+        }
+        hives.add(packed);
     }
 
     private void enqueueLeaf(
@@ -346,22 +443,26 @@ public final class TreeScanner {
     public record ScanResult(
             PositionBuffer logs,
             PositionBuffer leaves,
+            PositionBuffer hives,
             State state
     ) {
 
         private static ScanResult complete(
                 PositionBuffer logs,
-                PositionBuffer leaves
+                PositionBuffer leaves,
+                PositionBuffer hives
         ) {
             return new ScanResult(
                     logs,
                     leaves,
+                    hives,
                     State.COMPLETE
             );
         }
 
         private static ScanResult logsTruncated() {
             return new ScanResult(
+                    PositionBuffer.empty(),
                     PositionBuffer.empty(),
                     PositionBuffer.empty(),
                     State.LOG_LIMIT_REACHED
@@ -372,12 +473,14 @@ public final class TreeScanner {
             return new ScanResult(
                     PositionBuffer.empty(),
                     PositionBuffer.empty(),
+                    PositionBuffer.empty(),
                     State.LEAF_LIMIT_REACHED
             );
         }
 
         private static ScanResult empty() {
             return new ScanResult(
+                    PositionBuffer.empty(),
                     PositionBuffer.empty(),
                     PositionBuffer.empty(),
                     State.EMPTY

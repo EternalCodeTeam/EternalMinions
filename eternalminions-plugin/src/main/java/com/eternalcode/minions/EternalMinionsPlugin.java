@@ -35,6 +35,7 @@ import com.eternalcode.minions.minion.MinionLifecycleService;
 import com.eternalcode.minions.minion.MinionPlacementListener;
 import com.eternalcode.minions.minion.MinionPistonProtectionListener;
 import com.eternalcode.minions.minion.MinionRegistry;
+import com.eternalcode.minions.minion.MinionRotationService;
 import com.eternalcode.minions.minion.MinionService;
 import com.eternalcode.minions.minion.upgrade.MinionUpgradeService;
 import com.eternalcode.minions.minion.impl.collector.CollectorBehavior;
@@ -243,6 +244,15 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                         messages,
                         notices
                 );
+        MinionRotationService rotations = new MinionRotationService(
+                access,
+                lifecycle::updateSettings,
+                (player, notice) -> notices.create()
+                        .viewer(player)
+                        .notice(notice)
+                        .send(),
+                messages.minionRotated
+        );
         MinionPanel panel = new MinionPanel(
                 this,
                 panelConfig,
@@ -251,6 +261,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 miniMessage,
                 behaviors,
                 lifecycle,
+                rotations,
                 access,
                 itemTransfers,
                 pickupHandler,
@@ -263,6 +274,7 @@ public final class EternalMinionsPlugin extends JavaPlugin implements EternalMin
                 entityIndex,
                 access,
                 panel,
+                rotations,
                 pickupHandler
         );
         PacketEvents.getAPI().getEventManager().registerListener(this.interactionListener);

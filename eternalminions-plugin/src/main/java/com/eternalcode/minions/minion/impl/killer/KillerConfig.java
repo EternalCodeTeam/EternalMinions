@@ -16,8 +16,11 @@ import org.bukkit.entity.EntityType;
 @Include(AbstractMinionConfig.class)
 public final class KillerConfig extends AbstractMinionConfig {
 
-    @Comment("Maximum primary targets attacked per cycle. Zero attacks every eligible target in range.")
-    public int maxPrimaryTargetsPerCycle = 1;
+    @Comment({
+            "When enabled, Sweeping Edge is required to damage every eligible mob in range.",
+            "Without the enchantment, the killer attacks only the nearest eligible mob."
+    })
+    public boolean requireSweepingEdgeForAreaDamage = true;
 
     @Comment({
             "Mob types the killer is allowed to attack.",
@@ -52,9 +55,6 @@ public final class KillerConfig extends AbstractMinionConfig {
             "Minecraft players normally have 1 base attack damage."
     })
     public double baseAttackDamage = 1.0D;
-
-    @Comment("Range around the primary target used by Sweeping Edge.")
-    public double sweepingRangeBlocks = 2.5D;
 
     @Comment("Horizontal knockback applied per Knockback enchantment level.")
     public double knockbackStrengthPerLevel = 0.4D;
@@ -94,9 +94,7 @@ public final class KillerConfig extends AbstractMinionConfig {
                 "<red>• Fire Aspect <gray>— podpala cele; poziom wydłuża podpalenie.",
                 "<red>• Knockback <gray>— odrzuca cele; poziom zwiększa siłę.",
                 "<red>• Looting <gray>— zwiększa ilość przedmiotów z zabitych mobów.",
-                "<red>• Sweeping Edge I <gray>— trafia 1 dodatkowy cel za 50% obrażeń.",
-                "<red>• Sweeping Edge II <gray>— trafia 2 dodatkowe cele za 67% obrażeń.",
-                "<red>• Sweeping Edge III <gray>— trafia 3 dodatkowe cele za 75% obrażeń.",
+                "<red>• Sweeping Edge <gray>— odblokowuje atak wszystkich mobów w zasięgu.",
                 "<red>• Unbreaking <gray>— zmniejsza zużycie wytrzymałości broni.",
                 "",
                 "<yellow>Moby z nametagiem i niewrażliwe moby są chronione."
@@ -130,19 +128,20 @@ public final class KillerConfig extends AbstractMinionConfig {
         );
     }
 
-    public double sweepingRange() {
-        return Math.max(
-                0.0D,
-                this.sweepingRangeBlocks
-        );
-    }
-
-    public double sweepingDamageMultiplier(int level) {
-        if (level <= 0) {
-            return 0.0D;
+    public int attackTargetLimit(
+            int nearbyEntityCount,
+            int sweepingEdgeLevel
+    ) {
+        if (nearbyEntityCount <= 0) {
+            return 0;
         }
-
-        return (double) level / (level + 1.0D);
+        if (
+                this.requireSweepingEdgeForAreaDamage
+                        && sweepingEdgeLevel <= 0
+        ) {
+            return 1;
+        }
+        return nearbyEntityCount;
     }
 
     private static Map<MinionStatus, String> defaultStatuses() {

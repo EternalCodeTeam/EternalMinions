@@ -277,7 +277,9 @@ public final class LumberjackBehavior implements MinionBehavior {
         ItemStack tool = minion.equipment().tool();
 
         int expectedBlocks =
-                tree.logs().size() + tree.leaves().size();
+                tree.logs().size()
+                        + tree.leaves().size()
+                        + tree.hives().size();
 
         List<ItemStack> drops = new ArrayList<>(
                 expectedDropCapacity(expectedBlocks)
@@ -296,9 +298,22 @@ public final class LumberjackBehavior implements MinionBehavior {
                 tool,
                 drops
         );
+
+        this.collectDrops(
+                context,
+                tree.hives(),
+                tool,
+                drops
+        );
+
         if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
             return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
         }
+
+        this.breakBlocks(
+                context,
+                tree.hives()
+        );
 
         this.breakBlocks(
                 context,

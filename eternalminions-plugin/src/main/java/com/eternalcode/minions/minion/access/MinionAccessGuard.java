@@ -7,6 +7,7 @@ import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.notice.NoticeService;
+import com.eternalcode.multification.notice.Notice;
 import java.util.Optional;
 import org.bukkit.entity.Player;
 
@@ -51,7 +52,7 @@ public final class MinionAccessGuard {
 
     private void send(
             Player player,
-            com.eternalcode.multification.notice.Notice notice
+            Notice notice
     ) {
         this.notices.create()
                 .viewer(player)

@@ -5,6 +5,7 @@ object Versions {
 
     const val JUNIT_BOM = "6.1.2"
     const val ASSERTJ = "3.27.7"
+    const val MOCKITO = "5.20.0"
 
     const val OKAERI_CONFIGS = "5.0.13"
     const val MULTIFICATION = "1.2.5-SNAPSHOT"

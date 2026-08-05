@@ -7,7 +7,6 @@ import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.MinionRotation;
-import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.tool.EnchantmentLevels;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
@@ -16,11 +15,9 @@ import com.eternalcode.minions.minion.tool.ToolRequirement;
 import java.io.File;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.Tag;
 import org.bukkit.attribute.Attribute;
@@ -71,10 +68,6 @@ public final class KillerBehavior implements MinionBehavior {
         this.allowedMobs = config.allowedMobs.isEmpty()
                 ? Set.of()
                 : Set.copyOf(EnumSet.copyOf(config.allowedMobs));
-        WorkLimit.validate(
-                "killer.maxPrimaryTargetsPerCycle",
-                config.maxPrimaryTargetsPerCycle
-        );
     }
 
     @Override
@@ -156,70 +149,42 @@ public final class KillerBehavior implements MinionBehavior {
                 ),
                 Enchantment.SWEEPING_EDGE.getMaxLevel()
         );
-        int primaryTargetLimit = WorkLimit.resolve(
-                this.config.maxPrimaryTargetsPerCycle,
-                nearbyEntities.size()
+        int targetLimit = this.config.attackTargetLimit(
+                nearbyEntities.size(),
+                sweepingLevel
         );
-        List<LivingEntity> primaryTargets = this.finder.findAdditional(
+        List<LivingEntity> targets = this.finder.findAdditional(
                 origin,
                 nearbyEntities,
                 null,
-                primaryTargetLimit,
+                targetLimit,
                 attackRange,
                 this.allowedMobs,
                 this.config.attackAllMonstersWhenEmpty,
                 this.config.ignoreNamedMobs,
                 this.config.ignoreInvulnerableMobs
         );
-        double sweepingDamageMultiplier =
-                this.config.sweepingDamageMultiplier(sweepingLevel);
-        Set<UUID> attackedEntities = new HashSet<>();
-        int attackedPrimaryTargets = 0;
+        int attackedTargets = 0;
 
-        for (LivingEntity primaryTarget : primaryTargets) {
-            if (!primaryTarget.isValid() || primaryTarget.isDead()) {
+        for (LivingEntity target : targets) {
+            if (!target.isValid() || target.isDead()) {
                 continue;
             }
-            if (!attackedEntities.add(primaryTarget.getUniqueId())) {
-                continue;
-            }
-            this.faceTarget(context, origin, primaryTarget);
+            this.faceTarget(context, origin, target);
             this.attack(
                     weapon,
                     origin,
-                    primaryTarget,
-                    1.0D,
+                    target,
                     lootingLevel
             );
-            attackedPrimaryTargets++;
-
-            List<LivingEntity> sweepingTargets = this.findSweepingTargets(
-                    context,
-                    primaryTarget,
-                    sweepingLevel
-            );
-            for (LivingEntity sweepingTarget : sweepingTargets) {
-                if (!sweepingTarget.isValid() || sweepingTarget.isDead()) {
-                    continue;
-                }
-                if (!attackedEntities.add(sweepingTarget.getUniqueId())) {
-                    continue;
-                }
-                this.attack(
-                        weapon,
-                        origin,
-                        sweepingTarget,
-                        sweepingDamageMultiplier,
-                        lootingLevel
-                );
-            }
+            attackedTargets++;
         }
 
-        if (attackedPrimaryTargets == 0) {
+        if (attackedTargets == 0) {
             return MinionResult.idle(minion, KillerStatuses.NO_ENEMIES);
         }
-        Minion updated = this.tools.consume(minion, attackedPrimaryTargets);
-        for (int attackedTarget = 0; attackedTarget < attackedPrimaryTargets; attackedTarget++) {
+        Minion updated = this.tools.consume(minion, attackedTargets);
+        for (int attackedTarget = 0; attackedTarget < attackedTargets; attackedTarget++) {
             updated = updated.withProgress(updated.progress().advanced(this.config));
         }
 
@@ -228,46 +193,13 @@ public final class KillerBehavior implements MinionBehavior {
                 .withDelay(this.config.attackCooldown());
     }
 
-    private List<LivingEntity> findSweepingTargets(
-            MinionContext context,
-            LivingEntity primaryTarget,
-            int sweepingLevel
-    ) {
-        if (sweepingLevel <= 0) {
-            return List.of();
-        }
-
-        double range = this.config.sweepingRange();
-
-        Collection<Entity> nearbyEntities = context.world().getNearbyEntities(
-                primaryTarget.getLocation(),
-                range,
-                range,
-                range
-        );
-
-        return this.finder.findAdditional(
-                primaryTarget.getLocation(),
-                nearbyEntities,
-                primaryTarget,
-                sweepingLevel,
-                range,
-                this.allowedMobs,
-                this.config.attackAllMonstersWhenEmpty,
-                this.config.ignoreNamedMobs,
-                this.config.ignoreInvulnerableMobs
-        );
-    }
-
     private void attack(
             ItemStack weapon,
             Location origin,
             LivingEntity target,
-            double damageMultiplier,
             int lootingLevel
     ) {
-        double damage =
-                this.calculateDamage(weapon, target) * damageMultiplier;
+        double damage = this.calculateDamage(weapon, target);
 
         this.looting.trackHit(
                 target.getUniqueId(),

@@ -112,6 +112,7 @@ public final class LumberjackConfig extends AbstractMinionConfig {
                 "<dark_gray>Działanie:",
                 "<aqua>• Drwal ścina również duże drzewa.",
                 "<aqua>• Naturalne liście są usuwane automatycznie.",
+                "<aqua>• Ule i gniazda pszczół przy drzewie są usuwane.",
                 "<aqua>• Pnie 2x2 są ponownie sadzone jako 2x2.",
                 "<aqua>• Fortune i Silk Touch wpływają na drop.",
                 "",

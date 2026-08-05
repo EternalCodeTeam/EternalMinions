@@ -5,6 +5,7 @@ import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.gui.MinionPanel;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.Minion;
+import com.eternalcode.minions.minion.MinionRotationService;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
@@ -22,6 +23,7 @@ public final class MinionInteractionListener extends PacketListenerAbstract {
     private final MinionEntityIndex entityIndex;
     private final MinionAccessGuard access;
     private final MinionPanel panel;
+    private final MinionRotationService rotations;
     private final BiConsumer<Player, Minion> pickup;
 
     public MinionInteractionListener(
@@ -29,6 +31,7 @@ public final class MinionInteractionListener extends PacketListenerAbstract {
         MinionEntityIndex entityIndex,
         MinionAccessGuard access,
         MinionPanel panel,
+        MinionRotationService rotations,
         BiConsumer<Player, Minion> pickup
     ) {
         super(PacketListenerPriority.NORMAL);
@@ -36,6 +39,7 @@ public final class MinionInteractionListener extends PacketListenerAbstract {
         this.entityIndex = entityIndex;
         this.access = access;
         this.panel = panel;
+        this.rotations = rotations;
         this.pickup = pickup;
     }
 
@@ -63,11 +67,16 @@ public final class MinionInteractionListener extends PacketListenerAbstract {
         event.setCancelled(true);
         Player player = event.getPlayer();
         this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
-            if (attack) {
-                this.pickup(player, minionId.get());
-            }
-            else {
-                this.open(player, minionId.get());
+            MinionInteractionAction action =
+                    MinionInteractionAction.resolve(
+                            attack,
+                            player.isSneaking()
+                    );
+
+            switch (action) {
+                case PICK_UP -> this.pickup(player, minionId.get());
+                case ROTATE -> this.rotations.rotate(player, minionId.get());
+                case OPEN_PANEL -> this.open(player, minionId.get());
             }
         });
     }

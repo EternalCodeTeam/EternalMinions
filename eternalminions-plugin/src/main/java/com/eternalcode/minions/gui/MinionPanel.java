@@ -12,6 +12,7 @@ import com.eternalcode.minions.minion.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.MinionEquipment;
 import com.eternalcode.minions.minion.MinionLifecycleService;
+import com.eternalcode.minions.minion.MinionRotationService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.notice.NoticeService;
@@ -45,6 +46,7 @@ public final class MinionPanel {
     private final MinionBehaviorRegistry behaviors;
     private final PanelItemFactory items;
     private final MinionLifecycleService lifecycle;
+    private final MinionRotationService rotations;
     private final MinionAccessGuard access;
     private final MinionItemTransferService transfers;
     private final BiConsumer<Player, Minion> pickup;
@@ -59,6 +61,7 @@ public final class MinionPanel {
         MiniMessage miniMessage,
         MinionBehaviorRegistry behaviors,
         MinionLifecycleService lifecycle,
+        MinionRotationService rotations,
         MinionAccessGuard access,
         MinionItemTransferService transfers,
         BiConsumer<Player, Minion> pickup,
@@ -73,6 +76,7 @@ public final class MinionPanel {
         this.behaviors = behaviors;
         this.items = new PanelItemFactory(miniMessage);
         this.lifecycle = lifecycle;
+        this.rotations = rotations;
         this.access = access;
         this.transfers = transfers;
         this.pickup = pickup;
@@ -175,9 +179,13 @@ public final class MinionPanel {
                     player, minion, MinionAccessAction.MANAGE, element, placeholders,
                     current -> this.linkChest.accept(player, current)
             );
-            case ROTATE -> this.createAccessibleElement(
-                    player, minion, MinionAccessAction.MANAGE, element, placeholders,
-                    current -> this.rotate(player, current)
+            case ROTATE -> this.createConfiguredElement(
+                    element,
+                    placeholders,
+                    event -> this.rotations.rotate(
+                            player,
+                            minion.id()
+                    ).ifPresent(rotated -> this.refresh(player, rotated))
             );
             case NONE, MINION_INFORMATION -> this.createConfiguredElement(element, placeholders, null);
             case STORAGE_SLOT -> throw new IllegalStateException("Storage action was not handled");
@@ -235,13 +243,6 @@ public final class MinionPanel {
                 placeholders,
                 event -> this.withAccess(player, minion, action, click)
         );
-    }
-
-    private void rotate(Player player, Minion minion) {
-        Minion updated = minion.withSettings(minion.settings().withDirection(minion.settings().direction().rotated()));
-        this.lifecycle.updateSettings(updated);
-        this.send(player, this.messages.minionRotated);
-        this.refresh(player, updated);
     }
 
     private void collect(Player player, Minion minion) {
