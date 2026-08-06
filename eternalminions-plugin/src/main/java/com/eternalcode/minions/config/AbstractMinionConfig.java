@@ -8,7 +8,6 @@ import com.eternalcode.minions.minion.tool.ToolCategory;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
 import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
-import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -20,7 +19,7 @@ import org.bukkit.Material;
 
 // Common settings every minion profession config shares. Each profession's config class (e.g.
 // FarmerConfig, MinerConfig) extends this and adds only the fields specific to it.
-public abstract class AbstractMinionConfig extends OkaeriConfig {
+public abstract class AbstractMinionConfig extends ConfigurationFile {
 
     @Comment("Whether this minion type is enabled. Set to false to disable it entirely.")
     public boolean enabled = true;

@@ -3,13 +3,18 @@ package com.eternalcode.minions.config;
 import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
-import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class MinionPanelConfig extends OkaeriConfig {
+public final class MinionPanelConfig extends ConfigurationFile {
+
+    @Override
+    public Path resolve(Path dataDirectory) {
+        return dataDirectory.resolve("panel.yml");
+    }
 
     @Comment("Text displayed instead of a value when a minion reached its maximum level.")
     public String maximumValue = "MAX";

@@ -16,7 +16,6 @@ import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import java.io.File;
 import java.util.Collection;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -34,11 +33,10 @@ public final class CollectorBehavior implements MinionBehavior {
 
     public static CollectorBehavior create(
         ConfigService configs,
-        File directory,
         MinionToolService tools,
         MinionItemTransferService transfers
     ) {
-        CollectorConfig config = configs.load(CollectorConfig.class, new File(directory, "collector.yml"));
+        CollectorConfig config = configs.get(CollectorConfig.class);
         return new CollectorBehavior(config, tools, transfers);
     }
 

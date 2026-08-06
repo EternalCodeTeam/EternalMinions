@@ -7,6 +7,7 @@ import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
@@ -14,6 +15,11 @@ import org.bukkit.Color;
 
 @Include(AbstractMinionConfig.class)
 public final class MinerConfig extends AbstractMinionConfig {
+
+    @Override
+    public Path resolve(Path dataDirectory) {
+        return dataDirectory.resolve("minions").resolve("miner.yml");
+    }
 
     @Comment("SQUARE mines the area below the minion. LINE mines in its facing direction.")
     public WorkMode workMode = WorkMode.SQUARE;

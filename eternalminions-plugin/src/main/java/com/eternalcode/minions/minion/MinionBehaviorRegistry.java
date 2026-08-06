@@ -13,7 +13,6 @@ import com.eternalcode.minions.minion.impl.seller.SellerBehavior;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.shop.MinionShopProvider;
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -28,21 +27,20 @@ public final class MinionBehaviorRegistry {
 
     public static List<MinionBehavior> createEnabled(
         ConfigService configs,
-        File directory,
         MinionToolService tools,
         MinionItemTransferService transfers,
         KillerLootingListener killerLooting,
         MinionShopProvider shop
     ) {
         List<MinionBehavior> all = List.of(
-            MiningBehavior.create(configs, directory, tools, transfers),
-            LumberjackBehavior.create(configs, directory, tools, transfers),
-            FarmerBehavior.create(configs, directory, tools, transfers),
-            FishermanBehavior.create(configs, directory, tools, transfers),
-            KillerBehavior.create(configs, directory, tools, killerLooting),
-            CollectorBehavior.create(configs, directory, tools, transfers),
-            CrafterBehavior.create(configs, directory, transfers),
-            SellerBehavior.create(configs, directory, shop)
+            MiningBehavior.create(configs, tools, transfers),
+            LumberjackBehavior.create(configs, tools, transfers),
+            FarmerBehavior.create(configs, tools, transfers),
+            FishermanBehavior.create(configs, tools, transfers),
+            KillerBehavior.create(configs, tools, killerLooting),
+            CollectorBehavior.create(configs, tools, transfers),
+            CrafterBehavior.create(configs, transfers),
+            SellerBehavior.create(configs, shop)
         );
 
         return all.stream()

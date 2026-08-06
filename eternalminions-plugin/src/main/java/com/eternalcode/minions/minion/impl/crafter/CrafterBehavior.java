@@ -11,7 +11,6 @@ import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionStorageUpdate;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import org.bukkit.Bukkit;
@@ -46,13 +45,9 @@ public final class CrafterBehavior implements MinionBehavior {
 
     public static CrafterBehavior create(
             ConfigService configs,
-            File directory,
             MinionItemTransferService transfers
     ) {
-        CrafterConfig config = configs.load(
-                CrafterConfig.class,
-                new File(directory, "crafter.yml")
-        );
+        CrafterConfig config = configs.get(CrafterConfig.class);
 
         return new CrafterBehavior(config, transfers);
     }

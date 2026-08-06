@@ -16,7 +16,6 @@ import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,14 +38,10 @@ public final class FishermanBehavior implements MinionBehavior {
 
     public static FishermanBehavior create(
             ConfigService configs,
-            File directory,
             MinionToolService tools,
             MinionItemTransferService transfers
     ) {
-        FishermanConfig config = configs.load(
-                FishermanConfig.class,
-                new File(directory, "fisherman.yml")
-        );
+        FishermanConfig config = configs.get(FishermanConfig.class);
 
         return new FishermanBehavior(
                 config,

@@ -9,12 +9,18 @@ import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.render.MinionRendererType;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import me.tofaa.entitylib.meta.display.AbstractDisplayMeta;
 
-public final class MinionsConfig extends OkaeriConfig {
+public final class MinionsConfig extends ConfigurationFile {
+
+    @Override
+    public Path resolve(Path dataDirectory) {
+        return dataDirectory.resolve("config.yml");
+    }
 
     @Comment("Renderer used by every minion. Changing it requires a server restart.")
     public MinionRendererType minionRenderer = MinionRendererType.ARMOR_STAND;

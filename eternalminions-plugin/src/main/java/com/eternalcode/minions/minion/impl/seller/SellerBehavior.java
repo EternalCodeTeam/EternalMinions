@@ -9,7 +9,6 @@ import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.WorkLimit;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.shop.MinionShopProvider;
-import java.io.File;
 import org.bukkit.block.Container;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -19,8 +18,8 @@ public final class SellerBehavior implements MinionBehavior {
     private final SellerConfig config;
     private final MinionShopProvider shop;
 
-    public static SellerBehavior create(ConfigService configs, File directory, MinionShopProvider shop) {
-        SellerConfig config = configs.load(SellerConfig.class, new File(directory, "seller.yml"));
+    public static SellerBehavior create(ConfigService configs, MinionShopProvider shop) {
+        SellerConfig config = configs.get(SellerConfig.class);
         return new SellerBehavior(config, shop);
     }
 

@@ -1,9 +1,14 @@
 package com.eternalcode.minions.config;
 
 import com.eternalcode.multification.notice.Notice;
-import eu.okaeri.configs.OkaeriConfig;
+import java.nio.file.Path;
 
-public final class MessagesConfig extends OkaeriConfig {
+public final class MessagesConfig extends ConfigurationFile {
+
+    @Override
+    public Path resolve(Path dataDirectory) {
+        return dataDirectory.resolve("messages.yml");
+    }
 
     public Notice noPermission = Notice.chat(prefix() + "<white>Nie masz uprawnień do wykonania tej komendy!");
     public Notice playerNotFound = Notice.chat(prefix() + "<white>Nie znaleziono takiego gracza.");

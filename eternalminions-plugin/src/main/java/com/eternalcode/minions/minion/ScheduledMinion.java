@@ -75,8 +75,7 @@ public final class ScheduledMinion {
             return;
         }
 
-        this.miningTargetIndex =
-                (this.miningTargetIndex + 1) % targetCount;
+        this.miningTargetIndex = (this.miningTargetIndex + 1) % targetCount;
     }
 }
 

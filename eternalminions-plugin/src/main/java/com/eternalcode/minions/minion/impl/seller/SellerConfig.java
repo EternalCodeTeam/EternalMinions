@@ -6,6 +6,7 @@ import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,11 @@ import org.bukkit.Color;
 
 @Include(AbstractMinionConfig.class)
 public final class SellerConfig extends AbstractMinionConfig {
+
+    @Override
+    public Path resolve(Path dataDirectory) {
+        return dataDirectory.resolve("minions").resolve("seller.yml");
+    }
 
     public SellerConfig() {
         this.displayName = "<color:#DD00FF:#FF55FF:#DD00FF>ꜱᴇʟʟᴇʀ";

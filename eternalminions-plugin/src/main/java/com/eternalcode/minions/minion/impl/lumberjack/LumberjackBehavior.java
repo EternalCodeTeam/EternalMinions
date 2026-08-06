@@ -17,7 +17,6 @@ import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -48,14 +47,10 @@ public final class LumberjackBehavior implements MinionBehavior {
 
     public static LumberjackBehavior create(
             ConfigService configs,
-            File directory,
             MinionToolService tools,
             MinionItemTransferService transfers
     ) {
-        LumberjackConfig config = configs.load(
-                LumberjackConfig.class,
-                new File(directory, "lumberjack.yml")
-        );
+        LumberjackConfig config = configs.get(LumberjackConfig.class);
 
         return new LumberjackBehavior(
                 config,

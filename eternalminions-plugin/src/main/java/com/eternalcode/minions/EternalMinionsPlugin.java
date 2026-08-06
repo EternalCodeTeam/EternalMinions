@@ -5,9 +5,9 @@ import com.eternalcode.minions.bridge.shop.MinionShopServiceImpl;
 import com.eternalcode.minions.bridge.shop.ShopBridges;
 import com.eternalcode.minions.bridge.vault.VaultBridge;
 import com.eternalcode.minions.bridge.vault.VaultEconomyHook;
-import com.eternalcode.minions.command.InvalidUsageHandler;
+import com.eternalcode.minions.command.handler.InvalidUsageHandlerImpl;
 import com.eternalcode.minions.command.MinionGiveCommand;
-import com.eternalcode.minions.command.MissingPermissionHandler;
+import com.eternalcode.minions.command.handler.MissingPermissionHandlerImpl;
 import com.eternalcode.minions.command.ReloadCommand;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.config.MessagesConfig;
@@ -44,6 +44,13 @@ import com.eternalcode.minions.minion.activity.rule.loadedchunk.LoadedChunkActiv
 import com.eternalcode.minions.minion.activity.rule.offline.OfflineActivityRule;
 import com.eternalcode.minions.minion.activity.rule.proximity.ProximityActivityRule;
 import com.eternalcode.minions.minion.impl.killer.KillerLootingListener;
+import com.eternalcode.minions.minion.impl.collector.CollectorConfig;
+import com.eternalcode.minions.minion.impl.crafter.CrafterConfig;
+import com.eternalcode.minions.minion.impl.farmer.FarmerConfig;
+import com.eternalcode.minions.minion.impl.fisherman.FishermanConfig;
+import com.eternalcode.minions.minion.impl.killer.KillerConfig;
+import com.eternalcode.minions.minion.impl.lumberjack.LumberjackConfig;
+import com.eternalcode.minions.minion.impl.miner.MinerConfig;
 import com.eternalcode.minions.minion.impl.seller.SellerConfig;
 import com.eternalcode.minions.minion.limit.PlayerMinionLimitService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
@@ -102,17 +109,28 @@ public final class EternalMinionsPlugin extends JavaPlugin {
         File dataFolder = this.getDataFolder();
         dataFolder.mkdirs();
 
-        ConfigService configs = new ConfigService();
-        MinionsConfig minionsConfig = configs.create(MinionsConfig.class, new File(dataFolder, "config.yml"));
-        MessagesConfig messages = configs.create(MessagesConfig.class, new File(dataFolder, "messages.yml"));
-        MinionPanelConfig panelConfig = configs.create(MinionPanelConfig.class, new File(dataFolder, "panel.yml"));
-        DatabaseConfig databaseConfig = configs.create(DatabaseConfig.class, new File(dataFolder, "database.yml"));
+        ConfigService configs = new ConfigService(dataFolder.toPath(), List.of(
+                MinionsConfig.class,
+                MessagesConfig.class,
+                MinionPanelConfig.class,
+                DatabaseConfig.class,
+                MinerConfig.class,
+                LumberjackConfig.class,
+                FarmerConfig.class,
+                FishermanConfig.class,
+                KillerConfig.class,
+                CollectorConfig.class,
+                CrafterConfig.class,
+                SellerConfig.class
+        ));
+
+        MinionsConfig minionsConfig = configs.get(MinionsConfig.class);
+        MessagesConfig messages = configs.get(MessagesConfig.class);
+        MinionPanelConfig panelConfig = configs.get(MinionPanelConfig.class);
+        DatabaseConfig databaseConfig = configs.get(DatabaseConfig.class);
 
         MiniMessage miniMessage = MiniMessage.miniMessage();
         NoticeService notices = new NoticeService(messages, miniMessage);
-        File minionConfigDirectory = new File(dataFolder, "minions");
-        minionConfigDirectory.mkdirs();
-
         MinionBehaviorRegistry behaviors = new MinionBehaviorRegistry();
         MinionItemTransferService itemTransfers = new MinionItemTransferService(minionsConfig);
         MinionToolService tools = new MinionToolService(
@@ -122,7 +140,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 itemTransfers
         );
         KillerLootingListener killerLooting = new KillerLootingListener();
-        SellerConfig sellerConfig = configs.load(SellerConfig.class, new File(minionConfigDirectory, "seller.yml"));
+        SellerConfig sellerConfig = configs.get(SellerConfig.class);
 
         BridgeManager bridgeManager = new BridgeManager();
         Optional<VaultEconomyHook> economy = VaultBridge.discover(bridgeManager, this);
@@ -138,7 +156,6 @@ public final class EternalMinionsPlugin extends JavaPlugin {
 
         behaviors.replace(MinionBehaviorRegistry.createEnabled(
                 configs,
-                minionConfigDirectory,
                 tools,
                 itemTransfers,
                 killerLooting,
@@ -283,7 +300,6 @@ public final class EternalMinionsPlugin extends JavaPlugin {
             configs.reload();
             behaviors.replace(MinionBehaviorRegistry.createEnabled(
                     configs,
-                    minionConfigDirectory,
                     tools,
                     itemTransfers,
                     killerLooting,
@@ -299,8 +315,8 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 .result(Notice.class, new NoticeResultHandler(notices))
                 .message(LiteBukkitMessages.PLAYER_NOT_FOUND, messages.playerNotFound)
                 .message(LiteBukkitMessages.PLAYER_ONLY, messages.playerOnly)
-                .invalidUsage(new InvalidUsageHandler(notices, messages))
-                .missingPermission(new MissingPermissionHandler(notices, messages))
+                .invalidUsage(new InvalidUsageHandlerImpl(notices, messages))
+                .missingPermission(new MissingPermissionHandlerImpl(notices, messages))
                 .extension(new LiteAdventureExtension<>())
                 .build();
 

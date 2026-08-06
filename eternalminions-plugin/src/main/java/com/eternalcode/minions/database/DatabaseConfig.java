@@ -1,14 +1,20 @@
 package com.eternalcode.minions.database;
 
-import eu.okaeri.configs.OkaeriConfig;
+import com.eternalcode.minions.config.ConfigurationFile;
 import eu.okaeri.configs.annotation.Comment;
+import java.nio.file.Path;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
 @SuppressWarnings({"FieldMayBeFinal", "FieldCanBeLocal"})
 @Getter
 @Accessors(fluent = true)
-public class DatabaseConfig extends OkaeriConfig implements DatabaseSettings {
+public class DatabaseConfig extends ConfigurationFile implements DatabaseSettings {
+
+    @Override
+    public Path resolve(Path dataDirectory) {
+        return dataDirectory.resolve("database.yml");
+    }
 
     @Comment({"Type of the database driver (e.g., SQLITE, H2, MYSQL, MARIADB, POSTGRESQL).", "Determines the "
             + "database type "

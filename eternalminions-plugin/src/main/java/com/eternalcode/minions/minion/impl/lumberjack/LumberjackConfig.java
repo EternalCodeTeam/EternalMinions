@@ -8,6 +8,7 @@ import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,11 @@ import org.bukkit.Color;
 
 @Include(AbstractMinionConfig.class)
 public final class LumberjackConfig extends AbstractMinionConfig {
+
+    @Override
+    public Path resolve(Path dataDirectory) {
+        return dataDirectory.resolve("minions").resolve("lumberjack.yml");
+    }
 
     @Comment("Maximum complete trees felled per cycle. Zero fells every tree found at a work station.")
     public int maxTreesPerCycle = 1;

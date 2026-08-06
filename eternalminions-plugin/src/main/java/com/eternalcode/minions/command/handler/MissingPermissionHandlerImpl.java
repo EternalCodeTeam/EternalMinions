@@ -1,18 +1,19 @@
-package com.eternalcode.minions.command;
+package com.eternalcode.minions.command.handler;
 
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.notice.NoticeService;
 import dev.rollczi.litecommands.handler.result.ResultHandlerChain;
 import dev.rollczi.litecommands.invocation.Invocation;
 import dev.rollczi.litecommands.permission.MissingPermissions;
+import dev.rollczi.litecommands.permission.MissingPermissionsHandler;
 import org.bukkit.command.CommandSender;
 
-public final class MissingPermissionHandler implements dev.rollczi.litecommands.permission.MissingPermissionsHandler<CommandSender> {
+public final class MissingPermissionHandlerImpl implements MissingPermissionsHandler<CommandSender> {
 
     private final NoticeService noticeService;
     private final MessagesConfig messages;
 
-    public MissingPermissionHandler(NoticeService noticeService, MessagesConfig messages) {
+    public MissingPermissionHandlerImpl(NoticeService noticeService, MessagesConfig messages) {
         this.noticeService = noticeService;
         this.messages = messages;
     }

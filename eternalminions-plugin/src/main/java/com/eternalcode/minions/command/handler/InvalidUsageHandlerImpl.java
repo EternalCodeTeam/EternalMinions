@@ -1,19 +1,20 @@
-package com.eternalcode.minions.command;
+package com.eternalcode.minions.command.handler;
 
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.notice.NoticeService;
 import dev.rollczi.litecommands.handler.result.ResultHandlerChain;
 import dev.rollczi.litecommands.invalidusage.InvalidUsage;
+import dev.rollczi.litecommands.invalidusage.InvalidUsageHandler;
 import dev.rollczi.litecommands.invocation.Invocation;
 import dev.rollczi.litecommands.schematic.Schematic;
 import org.bukkit.command.CommandSender;
 
-public final class InvalidUsageHandler implements dev.rollczi.litecommands.invalidusage.InvalidUsageHandler<CommandSender> {
+public final class InvalidUsageHandlerImpl implements InvalidUsageHandler<CommandSender> {
 
     private final NoticeService noticeService;
     private final MessagesConfig messages;
 
-    public InvalidUsageHandler(NoticeService noticeService, MessagesConfig messages) {
+    public InvalidUsageHandlerImpl(NoticeService noticeService, MessagesConfig messages) {
         this.noticeService = noticeService;
         this.messages = messages;
     }

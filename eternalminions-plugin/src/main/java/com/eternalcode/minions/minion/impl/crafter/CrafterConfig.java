@@ -5,6 +5,7 @@ import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.tool.ToolCategory;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.Include;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,11 @@ import org.bukkit.Color;
 
 @Include(AbstractMinionConfig.class)
 public final class CrafterConfig extends AbstractMinionConfig {
+
+    @Override
+    public Path resolve(Path dataDirectory) {
+        return dataDirectory.resolve("minions").resolve("crafter.yml");
+    }
 
     @Comment("Maximum recipes crafted per cycle. Zero crafts until blocked by ingredients, space or safety cap.")
     public int maxCraftsPerCycle = 1;

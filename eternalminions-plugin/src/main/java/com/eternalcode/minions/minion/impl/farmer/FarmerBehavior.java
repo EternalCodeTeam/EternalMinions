@@ -18,7 +18,6 @@ import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import java.io.File;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -59,14 +58,10 @@ public final class FarmerBehavior implements MinionBehavior {
 
     public static FarmerBehavior create(
             ConfigService configs,
-            File directory,
             MinionToolService tools,
             MinionItemTransferService transfers
     ) {
-        FarmerConfig config = configs.load(
-                FarmerConfig.class,
-                new File(directory, "farmer.yml")
-        );
+        FarmerConfig config = configs.get(FarmerConfig.class);
 
         return new FarmerBehavior(
                 config,

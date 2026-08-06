@@ -16,7 +16,6 @@ import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import java.io.File;
 import java.util.Collection;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -32,11 +31,10 @@ public final class MiningBehavior implements MinionBehavior {
 
     public static MiningBehavior create(
         ConfigService configs,
-        File directory,
         MinionToolService tools,
         MinionItemTransferService transfers
     ) {
-        MinerConfig config = configs.load(MinerConfig.class, new File(directory, "miner.yml"));
+        MinerConfig config = configs.get(MinerConfig.class);
         return new MiningBehavior(config, tools, transfers);
     }
 

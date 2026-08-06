@@ -8,49 +8,58 @@ import eu.okaeri.configs.serdes.commons.SerdesCommons;
 import eu.okaeri.configs.yaml.bukkit.serdes.SerdesBukkit;
 import eu.okaeri.configs.yaml.snakeyaml.YamlSnakeYamlConfigurer;
 import java.io.File;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Map;
 
 public final class ConfigService {
 
-    private final List<ConfigRegistration<?>> configs = new ArrayList<>();
+    private final Path dataDirectory;
+    private final Map<Class<? extends ConfigurationFile>, ConfigurationFile> configs = new LinkedHashMap<>();
 
-    public <T extends OkaeriConfig> T create(Class<T> configType, File file) {
-        return this.create(configType, file, ignored -> {});
+    public ConfigService(Path dataDirectory, List<Class<? extends ConfigurationFile>> configTypes) {
+        this.dataDirectory = dataDirectory;
+        for (Class<? extends ConfigurationFile> configType : List.copyOf(configTypes)) {
+            this.load(configType);
+        }
     }
 
-    public <T extends OkaeriConfig> T create(Class<T> configType, File file, Consumer<T> seedDefaults) {
-        T config = this.configure(ConfigManager.create(configType));
-        seedDefaults.accept(config);
-        config.withBindFile(file);
-        config.withRemoveOrphans(true);
-        config.saveDefaults();
-        config.load(true);
-        this.validate(config);
-        this.configs.add(new ConfigRegistration<>(config, configType, file));
-        return config;
-    }
-
-    public <T extends OkaeriConfig> T load(Class<T> configType, File file) {
-        T config = this.configure(ConfigManager.create(configType));
-        config.withBindFile(file);
-        config.withRemoveOrphans(true);
-        config.saveDefaults();
-        config.load(true);
-        this.validate(config);
-        this.configs.add(new ConfigRegistration<>(config, configType, file));
-        return config;
+    public <T extends ConfigurationFile> T get(Class<T> configType) {
+        ConfigurationFile config = this.configs.get(configType);
+        if (config == null) {
+            throw new IllegalArgumentException("Config is not registered: " + configType.getName());
+        }
+        return configType.cast(config);
     }
 
     public void reload() {
-        List<OkaeriConfig> loadedConfigs = new ArrayList<>(this.configs.size());
-        for (ConfigRegistration<?> registration : this.configs) {
-            loadedConfigs.add(this.loadValidated(registration));
+        for (ConfigurationFile config : this.configs.values()) {
+            config.load(true);
+        }
+    }
+
+    private <T extends ConfigurationFile> void load(Class<T> configType) {
+        if (this.configs.containsKey(configType)) {
+            throw new IllegalArgumentException("Config is already registered: " + configType.getName());
         }
 
-        for (int index = 0; index < this.configs.size(); index++) {
-            this.configs.get(index).config().load(loadedConfigs.get(index));
+        T config = this.configure(ConfigManager.create(configType));
+        File file = config.resolve(this.dataDirectory).toFile();
+        this.createDirectory(file.getParentFile());
+        config.withBindFile(file);
+        config.withRemoveOrphans(true);
+        config.saveDefaults();
+        config.load(true);
+        this.configs.put(configType, config);
+    }
+
+    private void createDirectory(File directory) {
+        if (directory.isDirectory()) {
+            return;
+        }
+        if (!directory.mkdirs()) {
+            throw new IllegalStateException("Failed to create config directory: " + directory);
         }
     }
 
@@ -65,20 +74,4 @@ public final class ConfigService {
         return config;
     }
 
-    private <T extends OkaeriConfig> T loadValidated(ConfigRegistration<T> registration) {
-        T loaded = this.configure(ConfigManager.create(registration.type()));
-        loaded.withBindFile(registration.file());
-        loaded.load(true);
-        this.validate(loaded);
-        return loaded;
-    }
-
-    private void validate(OkaeriConfig config) {
-        if (config instanceof MinionPanelConfig panelConfig) {
-            MinionPanelLayout.from(panelConfig);
-        }
-    }
-
-    private record ConfigRegistration<T extends OkaeriConfig>(T config, Class<T> type, File file) {
-    }
 }

@@ -12,7 +12,6 @@ import com.eternalcode.minions.minion.tool.MinionToolPreparation;
 import com.eternalcode.minions.minion.tool.MinionToolService;
 import com.eternalcode.minions.minion.tool.ToolCheck;
 import com.eternalcode.minions.minion.tool.ToolRequirement;
-import java.io.File;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -43,14 +42,10 @@ public final class KillerBehavior implements MinionBehavior {
 
     public static KillerBehavior create(
             ConfigService configs,
-            File directory,
             MinionToolService tools,
             KillerLootingListener looting
     ) {
-        KillerConfig config = configs.load(
-                KillerConfig.class,
-                new File(directory, "killer.yml")
-        );
+        KillerConfig config = configs.get(KillerConfig.class);
 
         return new KillerBehavior(config, tools, looting);
     }
