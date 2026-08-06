@@ -63,10 +63,10 @@ public final class FarmerConfig extends AbstractMinionConfig {
 
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(
-            "<gray>1. Przygotuj dojrzałe uprawy wokół miniona.",
-            "<gray>2. Włóż motykę do slotu narzędzia.",
-            "<gray>3. Zapewnij nasiona do ponownego sadzenia.",
-            "<gray>4. Odbieraj plony z magazynu lub podpiętej skrzyni."
+            "<gray>1. Plant crops within the minion's work area.",
+            "<gray>2. Insert a hoe into the tool slot.",
+            "<gray>3. Keep seeds available for replanting.",
+            "<gray>4. Collect produce from its storage or linked chest."
         );
     }
 
@@ -107,27 +107,27 @@ public final class FarmerConfig extends AbstractMinionConfig {
 
         statuses.put(
                 FarmerStatuses.HARVESTING,
-                "<green>Zbieranie plonów..."
+                "<green>Harvesting crops..."
         );
 
         statuses.put(
                 FarmerStatuses.NO_MATURE_CROPS,
-                "<yellow>Brak dojrzałych upraw"
+                "<yellow>No mature crops nearby"
         );
 
         statuses.put(
                 FarmerStatuses.NO_SEEDS,
-                "<red>Brak nasion do ponownego zasadzenia"
+                "<red>No seeds available for replanting"
         );
 
         statuses.put(
                 FarmerStatuses.NO_HOE,
-                "<red>Brak motyki"
+                "<red>Hoe required"
         );
 
         statuses.put(
                 FarmerStatuses.NO_CONFIGURED_CROPS,
-                "<red>Brak poprawnie skonfigurowanych upraw"
+                "<red>No valid crops configured"
         );
 
         return statuses;

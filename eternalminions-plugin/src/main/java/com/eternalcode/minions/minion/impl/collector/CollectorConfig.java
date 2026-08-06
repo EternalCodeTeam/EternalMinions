@@ -37,10 +37,10 @@ public final class CollectorConfig extends AbstractMinionConfig {
         this.items.setLeatherArmorColor(Color.fromRGB(252, 208, 92));
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(
-            "<gray>1. Postaw miniona przy miejscu zbierania.",
-            "<gray>2. Włóż łopatę do slotu narzędzia.",
-            "<gray>3. Minion zbierze przedmioty leżące w pobliżu.",
-            "<gray>4. Podepnij skrzynię albo odbieraj łup z magazynu."
+            "<gray>1. Place the minion where dropped items appear.",
+            "<gray>2. Insert a shovel into the tool slot.",
+            "<gray>3. The minion will collect nearby dropped items.",
+            "<gray>4. Link a chest or collect items from its storage."
         );
     }
 
@@ -59,9 +59,9 @@ public final class CollectorConfig extends AbstractMinionConfig {
 
     private static Map<MinionStatus, String> defaultStatuses() {
         Map<MinionStatus, String> statuses = new LinkedHashMap<>();
-        statuses.put(CollectorStatuses.COLLECTING, "<green>Zbieranie...");
-        statuses.put(CollectorStatuses.NO_ITEMS_ON_GROUND, "<yellow>Brak przedmiotów");
-        statuses.put(CollectorStatuses.NO_SHOVEL, "<red>Brak łopaty");
+        statuses.put(CollectorStatuses.COLLECTING, "<green>Collecting items...");
+        statuses.put(CollectorStatuses.NO_ITEMS_ON_GROUND, "<yellow>No items nearby");
+        statuses.put(CollectorStatuses.NO_SHOVEL, "<red>Shovel required");
         return statuses;
     }
 }

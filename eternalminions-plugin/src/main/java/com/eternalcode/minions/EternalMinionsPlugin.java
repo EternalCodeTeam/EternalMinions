@@ -11,7 +11,7 @@ import com.eternalcode.minions.command.handler.MissingPermissionHandlerImpl;
 import com.eternalcode.minions.command.ReloadCommand;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.config.MessagesConfig;
-import com.eternalcode.minions.config.MinionPanelConfig;
+import com.eternalcode.minions.gui.MinionPanelConfig;
 import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.database.DatabaseConfig;
 import com.eternalcode.minions.database.MinionDatabase;

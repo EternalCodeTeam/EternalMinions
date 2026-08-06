@@ -97,19 +97,19 @@ public abstract class AbstractMinionConfig extends ConfigurationFile {
 
     private static List<String> defaultItemLore() {
         return List.of(
-            "<gray>Poziom: <white>{MINION_LEVEL}<gray>/<white>{MINION_MAX_LEVEL}",
-            "<gray>Postęp: <white>{MINION_PROGRESS}<gray>/<white>{MINION_PROGRESS_REQUIRED}",
-            "<gray>Magazyn: <white>{STORAGE_USED}<gray>/<white>{STORAGE_CAPACITY}",
+            "<gray>Level: <white>{MINION_LEVEL}<gray>/<white>{MINION_MAX_LEVEL}",
+            "<gray>Progress: <white>{MINION_PROGRESS}<gray>/<white>{MINION_PROGRESS_REQUIRED}",
+            "<gray>Storage: <white>{STORAGE_USED}<gray>/<white>{STORAGE_CAPACITY}",
             "",
-            "<dark_gray>Kliknij PPM blok, aby postawić miniona."
+            "<dark_gray>Right-click a block to place this minion."
         );
     }
 
     private static MinionPanelElementConfig defaultUsageInstructions() {
         MinionPanelElementConfig instructions = new MinionPanelElementConfig();
         instructions.material = XMaterial.KNOWLEDGE_BOOK;
-        instructions.displayName = "<yellow>Jak używać?";
-        instructions.lore = List.of("<gray>Instrukcja nie została skonfigurowana.");
+        instructions.displayName = "<yellow>How to Use";
+        instructions.lore = List.of("<gray>No usage instructions have been configured.");
         return instructions;
     }
 

@@ -33,29 +33,23 @@ public final class MinionsConfig extends ConfigurationFile {
 
     private static Map<MinionStatus, String> defaultStatuses() {
         Map<MinionStatus, String> statuses = new LinkedHashMap<>();
-        statuses.put(CoreMinionStatuses.IDLE, "<gray>Bezczynny");
-        statuses.put(CoreMinionStatuses.WORKING, "<green>Pracuje");
-        statuses.put(CoreMinionStatuses.NO_TOOL, "<red>Brak narzędzia");
-        statuses.put(CoreMinionStatuses.STORAGE_FULL, "<red>Magazyn pełny");
-        statuses.put(CoreMinionStatuses.OFFLINE, "<dark_gray>Właściciel offline");
-        statuses.put(CoreMinionStatuses.AWAY, "<dark_gray>Właściciel poza zasięgiem");
+        statuses.put(CoreMinionStatuses.IDLE, "<gray>Idle");
+        statuses.put(CoreMinionStatuses.WORKING, "<green>Working");
+        statuses.put(CoreMinionStatuses.NO_TOOL, "<red>Tool required");
+        statuses.put(CoreMinionStatuses.STORAGE_FULL, "<red>Storage full");
+        statuses.put(CoreMinionStatuses.OFFLINE, "<dark_gray>Owner offline");
+        statuses.put(CoreMinionStatuses.AWAY, "<dark_gray>Owner out of range");
         return statuses;
     }
 
     @Comment("Maximum distance at which a client-side minion representation is spawned.")
     public int renderDistanceBlocks = 64;
 
-    @Comment("Maximum distance at which action animations and particles are sent.")
-    public int animationDistanceBlocks = 32;
-
     @Comment("Maximum scheduler work budget during one server tick, in microseconds.")
     public int schedulerBudgetMicros = 2_000;
 
     @Comment("Maximum number of physical world actions executed during one server tick.")
     public int physicalActionsPerTick = 250;
-
-    @Comment("Maximum amount of offline progress credited after loading a minion.")
-    public int maximumOfflineHours = 168;
 
     @Comment("Maximum distance between a minion and its linked chest, in blocks.")
     public int chestLinkDistanceBlocks = 10;
@@ -102,8 +96,8 @@ public final class MinionsConfig extends ConfigurationFile {
         })
         public List<String> hologramLines = List.of(
                 "<b><gradient:#FACC15:#FFE15F:#FACC15>{TYPE}</gradient></b>",
-                "<#FFE15F>Właściciel: <white>{OWNER}",
-                "<#FFE15F>Poziom: <white>{LEVEL}",
+                "<#FFE15F>Owner: <white>{OWNER}",
+                "<#FFE15F>Level: <white>{LEVEL}",
                 "<#FFE15F>Status: <white>{STATUS}"
         );
 

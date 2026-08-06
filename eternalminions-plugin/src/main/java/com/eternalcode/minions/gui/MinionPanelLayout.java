@@ -1,5 +1,7 @@
-package com.eternalcode.minions.config;
+package com.eternalcode.minions.gui;
 
+import com.eternalcode.minions.config.MinionPanelAction;
+import com.eternalcode.minions.config.MinionPanelElementConfig;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;

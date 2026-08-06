@@ -43,10 +43,10 @@ public final class CrafterConfig extends AbstractMinionConfig {
 
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(
-            "<gray>1. Podepnij skrzynię do miniona.",
-            "<gray>2. Włóż do niej składniki receptur.",
-            "<gray>3. Minion automatycznie wykona dostępne receptury.",
-            "<gray>4. Zostaw miejsce na gotowe przedmioty."
+            "<gray>1. Link a chest to the minion.",
+            "<gray>2. Place crafting ingredients inside the chest.",
+            "<gray>3. The minion will craft available recipes automatically.",
+            "<gray>4. Leave enough room for the crafted items."
         );
     }
 
@@ -56,22 +56,22 @@ public final class CrafterConfig extends AbstractMinionConfig {
 
         statuses.put(
                 CrafterStatuses.CRAFTING,
-                "<green>Tworzenie..."
+                "<green>Crafting items..."
         );
 
         statuses.put(
                 CrafterStatuses.NO_RECIPE_SELECTED,
-                "<red>Brak receptury dla wybranego przedmiotu"
+                "<red>No recipe selected"
         );
 
         statuses.put(
                 CrafterStatuses.NO_CHEST,
-                "<red>Brak podpiętej skrzyni"
+                "<red>Linked chest required"
         );
 
         statuses.put(
                 CrafterStatuses.NO_INGREDIENTS,
-                "<yellow>Brak składników"
+                "<yellow>Missing ingredients"
         );
 
         return statuses;

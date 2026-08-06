@@ -1,6 +1,9 @@
-package com.eternalcode.minions.config;
+package com.eternalcode.minions.gui;
 
 import com.cryptomorin.xseries.XMaterial;
+import com.eternalcode.minions.config.ConfigurationFile;
+import com.eternalcode.minions.config.MinionPanelAction;
+import com.eternalcode.minions.config.MinionPanelElementConfig;
 import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import eu.okaeri.configs.annotation.Comment;
@@ -31,29 +34,29 @@ public final class MinionPanelConfig extends ConfigurationFile {
         "####T####",
         "#SSSISSS#",
         "###SSS###",
-        "#RU#CPL##"
+        "#RU#C#PL#"
     );
 
     @Comment("Inventory slot occupied by the profession usage instructions.")
     public int usageInstructionsSlot = 4;
 
     @Comment("Status texts used by the {MINION_CHEST} placeholder.")
-    public String chestLinkedStatus = "Połączona";
-    public String chestNotLinkedStatus = "Brak";
+    public String chestLinkedStatus = "Linked";
+    public String chestNotLinkedStatus = "Not linked";
 
     @Comment("Texts used by the {MINION_DIRECTION} placeholder.")
-    public String directionSouth = "Południe";
-    public String directionWest = "Zachód";
-    public String directionNorth = "Północ";
-    public String directionEast = "Wschód";
+    public String directionSouth = "South";
+    public String directionWest = "West";
+    public String directionNorth = "North";
+    public String directionEast = "East";
 
     @Comment("Title of the upgrades panel. Supports MiniMessage and minion placeholders.")
-    public String upgradesTitle = "<dark_gray>Ulepszenia miniona";
+    public String upgradesTitle = "<dark_gray>Minion Upgrades";
 
     @Comment({
         "Icons of the upgrades panel, one per upgrade kind.",
         "Placeholders: {UPGRADE_TIER}, {UPGRADE_MAX_TIER}, {UPGRADE_VALUE}, {UPGRADE_NEXT_VALUE},",
-        "{UPGRADE_REQUIRED_LEVEL}, {UPGRADE_COST} (MAX gdy wykupione)."
+        "{UPGRADE_REQUIRED_LEVEL}, {UPGRADE_COST} (MAX when fully upgraded)."
     })
     public Map<UpgradeKind, MinionPanelElementConfig> upgradeElements = defaultUpgradeElements();
 
@@ -63,37 +66,37 @@ public final class MinionPanelConfig extends ConfigurationFile {
                 DefaultUpgradeKinds.SPEED, element(
             MinionPanelAction.NONE,
             XMaterial.SUGAR,
-            "<yellow>Szybkość <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
-            "<gray>Cykl pracy:",
-            "<white>{UPGRADE_VALUE} ticków <dark_gray>→ <green>{UPGRADE_NEXT_VALUE} ticków",
+            "<yellow>Speed <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
+            "<gray>Work interval:",
+            "<white>{UPGRADE_VALUE} ticks <dark_gray>→ <green>{UPGRADE_NEXT_VALUE} ticks",
             "",
-            "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Koszt: <green>{UPGRADE_COST}",
-            "<green>Kliknij, aby ulepszyć."
+            "<gray>Required minion level: <white>{UPGRADE_REQUIRED_LEVEL}",
+            "<gray>Cost: <green>{UPGRADE_COST}",
+            "<green>Click to upgrade."
         ));
         elements.put(
                 DefaultUpgradeKinds.RANGE, element(
             MinionPanelAction.NONE,
             XMaterial.SPYGLASS,
-            "<yellow>Zasięg <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
-            "<gray>Promień kopania:",
+            "<yellow>Range <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
+            "<gray>Work radius:",
             "<white>{UPGRADE_VALUE} <dark_gray>→ <green>{UPGRADE_NEXT_VALUE}",
             "",
-            "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Koszt: <green>{UPGRADE_COST}",
-            "<green>Kliknij, aby ulepszyć."
+            "<gray>Required minion level: <white>{UPGRADE_REQUIRED_LEVEL}",
+            "<gray>Cost: <green>{UPGRADE_COST}",
+            "<green>Click to upgrade."
         ));
         elements.put(
                 DefaultUpgradeKinds.CAPACITY, element(
             MinionPanelAction.NONE,
             XMaterial.CHEST,
-            "<yellow>Pojemność <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
-            "<gray>Sloty magazynu:",
+            "<yellow>Capacity <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
+            "<gray>Storage slots:",
             "<white>{UPGRADE_VALUE} <dark_gray>→ <green>{UPGRADE_NEXT_VALUE}",
             "",
-            "<gray>Wymagany poziom miniona: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Koszt: <green>{UPGRADE_COST}",
-            "<green>Kliknij, aby ulepszyć."
+            "<gray>Required minion level: <white>{UPGRADE_REQUIRED_LEVEL}",
+            "<gray>Cost: <green>{UPGRADE_COST}",
+            "<green>Click to upgrade."
         ));
         return elements;
     }
@@ -107,54 +110,54 @@ public final class MinionPanelConfig extends ConfigurationFile {
         elements.put('T', element(
             MinionPanelAction.TOOL_SLOT,
             XMaterial.GRAY_DYE,
-            "<red>Brak narzędzia",
-            "<gray>Kliknij narzędziem na ten slot."
+            "<red>No tool equipped",
+            "<gray>Click this slot while holding a tool."
         ));
         elements.put('S', element(
             MinionPanelAction.STORAGE_SLOT,
             XMaterial.GRAY_STAINED_GLASS_PANE,
-            "<dark_gray>Pusty slot magazynu"
+            "<dark_gray>Empty storage slot"
         ));
         elements.put('I', element(
             MinionPanelAction.MINION_INFORMATION,
             XMaterial.BOOK,
-            "<green>Informacje o minionie",
-            "<gray>Typ pracy: <white>{MINION_BEHAVIOR}",
-            "<gray>Poziom: <white>{MINION_LEVEL}/{MINION_MAX_LEVEL}",
-            "<gray>Postęp do następnego poziomu:",
+            "<green>Minion Information",
+            "<gray>Profession: <white>{MINION_BEHAVIOR}",
+            "<gray>Level: <white>{MINION_LEVEL}/{MINION_MAX_LEVEL}",
+            "<gray>Progress to the next level:",
             "{MINION_PROGRESS_BAR} <white>{MINION_PROGRESS}<gray>/<white>{MINION_PROGRESS_REQUIRED}",
-            "<gray>Magazyn: <white>{STORAGE_USED}/{STORAGE_CAPACITY}"
+            "<gray>Storage: <white>{STORAGE_USED}/{STORAGE_CAPACITY}"
         ));
         elements.put('U', element(
             MinionPanelAction.UPGRADES,
             XMaterial.EXPERIENCE_BOTTLE,
-            "<yellow>Ulepszenia",
-            "<gray>Kliknij, aby otworzyć panel ulepszeń."
+            "<yellow>Upgrades",
+            "<gray>Click to open the upgrades panel."
         ));
         elements.put('L', element(
             MinionPanelAction.LINK_CHEST,
             XMaterial.HOPPER,
-            "<yellow>Link do skrzyni",
-            "<gray>Skrzynia: <white>{MINION_CHEST}",
-            "<gray>Kliknij, aby połączyć lub rozłączyć."
+            "<yellow>Linked Chest",
+            "<gray>Chest: <white>{MINION_CHEST}",
+            "<gray>Click to link or unlink a chest."
         ));
         elements.put('R', element(
             MinionPanelAction.ROTATE,
             XMaterial.COMPASS,
-            "<yellow>Rotacja",
-            "<gray>Kierunek: <white>{MINION_DIRECTION}",
-            "<gray>Kliknij, aby obrócić o 90°."
+            "<yellow>Rotation",
+            "<gray>Direction: <white>{MINION_DIRECTION}",
+            "<gray>Click to rotate by 90°."
         ));
         elements.put('C', element(
             MinionPanelAction.COLLECT_ITEMS,
             XMaterial.CHEST,
-            "<green>Odbierz przedmioty",
-            "<gray>Zapełnienie: <white>{STORAGE_USED}/{STORAGE_CAPACITY}"
+            "<green>Collect Items",
+            "<gray>Storage: <white>{STORAGE_USED}/{STORAGE_CAPACITY}"
         ));
         elements.put('P', element(
             MinionPanelAction.PICKUP_MINION,
             XMaterial.BARRIER,
-            "<red>Podnieś miniona"
+            "<red>Pick Up Minion"
         ));
         return elements;
     }

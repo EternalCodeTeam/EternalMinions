@@ -88,22 +88,22 @@ public final class KillerConfig extends AbstractMinionConfig {
         this.statuses = defaultStatuses();
 
         this.usageInstructions.lore = List.of(
-                "<gray>1. Postaw zabójcę przy miejscu pojawiania się mobów.",
-                "<gray>2. Włóż broń do slotu narzędzia.",
-                "<gray>3. Zabójca automatycznie zaatakuje najbliższy dozwolony cel.",
-                "<gray>4. Drop trafia do magazynu lub podpiętej skrzyni.",
+                "<gray>1. Place the killer near a mob spawning area.",
+                "<gray>2. Insert a weapon into the tool slot.",
+                "<gray>3. The killer will attack the nearest valid target.",
+                "<gray>4. Drops go to its storage or linked chest.",
                 "",
-                "<dark_gray>Obsługiwane enchanty:",
-                "<red>• Sharpness <gray>— zwiększa obrażenia przeciw wszystkim mobom.",
-                "<red>• Smite <gray>— zwiększa obrażenia przeciw nieumarłym.",
-                "<red>• Bane of Arthropods <gray>— zwiększa obrażenia przeciw stawonogom.",
-                "<red>• Fire Aspect <gray>— podpala cele; poziom wydłuża podpalenie.",
-                "<red>• Knockback <gray>— odrzuca cele; poziom zwiększa siłę.",
-                "<red>• Looting <gray>— zwiększa ilość przedmiotów z zabitych mobów.",
-                "<red>• Sweeping Edge <gray>— odblokowuje atak wszystkich mobów w zasięgu.",
-                "<red>• Unbreaking <gray>— zmniejsza zużycie wytrzymałości broni.",
+                "<dark_gray>Supported enchantments:",
+                "<red>• Sharpness <gray>— increases damage against all mobs.",
+                "<red>• Smite <gray>— increases damage against undead mobs.",
+                "<red>• Bane of Arthropods <gray>— increases damage against arthropods.",
+                "<red>• Fire Aspect <gray>— ignites targets; higher levels burn longer.",
+                "<red>• Knockback <gray>— pushes targets away; higher levels increase force.",
+                "<red>• Looting <gray>— increases drops from defeated mobs.",
+                "<red>• Sweeping Edge <gray>— enables attacks against all mobs in range.",
+                "<red>• Unbreaking <gray>— reduces weapon durability loss.",
                 "",
-                "<yellow>Moby z nametagiem i niewrażliwe moby są chronione."
+                "<yellow>Named and invulnerable mobs are protected."
         );
     }
 
@@ -156,22 +156,22 @@ public final class KillerConfig extends AbstractMinionConfig {
 
         statuses.put(
                 KillerStatuses.ATTACKING,
-                "<red>Atakowanie..."
+                "<red>Attacking..."
         );
 
         statuses.put(
                 KillerStatuses.NO_ENEMIES,
-                "<yellow>Brak przeciwników w zasięgu"
+                "<yellow>No targets in range"
         );
 
         statuses.put(
                 KillerStatuses.PROTECTED_MOBS_NEARBY,
-                "<yellow>W pobliżu są tylko chronione moby"
+                "<yellow>Only protected mobs nearby"
         );
 
         statuses.put(
                 KillerStatuses.NO_WEAPON,
-                "<red>Brak broni"
+                "<red>Weapon required"
         );
 
         return statuses;

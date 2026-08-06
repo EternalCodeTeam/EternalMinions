@@ -29,10 +29,10 @@ public final class SellerConfig extends AbstractMinionConfig {
         this.items.setLeatherArmorColor(Color.fromRGB(221, 0, 255));
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(
-            "<gray>1. Umieść przedmioty w magazynie miniona.",
-            "<gray>2. Możesz także podpiąć skrzynię z przedmiotami.",
-            "<gray>3. Minion sprzeda przedmioty obsługiwane przez sklep.",
-            "<gray>4. Pieniądze otrzymuje właściciel miniona."
+            "<gray>1. Place items in the minion's storage.",
+            "<gray>2. You can also link a chest containing items.",
+            "<gray>3. The minion will sell items supported by the shop.",
+            "<gray>4. Sale proceeds are paid to the minion's owner."
         );
     }
 
@@ -57,11 +57,11 @@ public final class SellerConfig extends AbstractMinionConfig {
 
     private static Map<MinionStatus, String> defaultStatuses() {
         Map<MinionStatus, String> statuses = new LinkedHashMap<>();
-        statuses.put(SellerStatuses.SELLING, "<green>Sprzedawanie...");
-        statuses.put(SellerStatuses.SHOP_NOT_LINKED, "<red>Sklep nie jest podpięty");
-        statuses.put(SellerStatuses.STORAGE_EMPTY, "<yellow>Magazyn pusty");
-        statuses.put(SellerStatuses.ITEM_HAS_NO_PRICE, "<red>Przedmiot nie ma ceny");
-        statuses.put(SellerStatuses.PAYOUT_FAILED, "<red>Nie udało się wypłacić pieniędzy");
+        statuses.put(SellerStatuses.SELLING, "<green>Selling items...");
+        statuses.put(SellerStatuses.SHOP_NOT_LINKED, "<red>Shop integration unavailable");
+        statuses.put(SellerStatuses.STORAGE_EMPTY, "<yellow>Storage empty");
+        statuses.put(SellerStatuses.ITEM_HAS_NO_PRICE, "<red>Item has no sell price");
+        statuses.put(SellerStatuses.PAYOUT_FAILED, "<red>Could not pay the minion's owner");
         return statuses;
     }
 }

@@ -110,19 +110,19 @@ public final class LumberjackConfig extends AbstractMinionConfig {
         this.statuses = defaultStatuses();
 
         this.usageInstructions.lore = List.of(
-                "<gray>1. Włóż siekierę do slotu narzędzia.",
-                "<gray>2. Ustaw kierunek pracy w panelu.",
-                "<gray>3. Posadź sadzonki w linii przed minionem.",
-                "<gray>4. Zaczekaj, aż wyrosną drzewa.",
+                "<gray>1. Insert an axe into the tool slot.",
+                "<gray>2. Set the work direction in the minion panel.",
+                "<gray>3. Plant saplings in a line in front of the minion.",
+                "<gray>4. Wait for the trees to grow.",
                 "",
-                "<dark_gray>Działanie:",
-                "<aqua>• Drwal ścina również duże drzewa.",
-                "<aqua>• Naturalne liście są usuwane automatycznie.",
-                "<aqua>• Ule i gniazda pszczół przy drzewie są usuwane.",
-                "<aqua>• Pnie 2x2 są ponownie sadzone jako 2x2.",
-                "<aqua>• Fortune i Silk Touch wpływają na drop.",
+                "<dark_gray>Behavior:",
+                "<aqua>• The lumberjack can fell large trees.",
+                "<aqua>• Natural leaves are removed automatically.",
+                "<aqua>• Bee nests and beehives attached to trees are removed.",
+                "<aqua>• 2x2 trunks are replanted in a 2x2 pattern.",
+                "<aqua>• Fortune and Silk Touch affect block drops.",
                 "",
-                "<yellow>Liście postawione przez gracza są chronione."
+                "<yellow>Leaves placed by players are protected."
         );
     }
 
@@ -202,37 +202,37 @@ public final class LumberjackConfig extends AbstractMinionConfig {
 
         statuses.put(
                 LumberjackStatuses.CUTTING,
-                "<green>Ścinanie drzewa..."
+                "<green>Felling tree..."
         );
 
         statuses.put(
                 LumberjackStatuses.WAITING_FOR_TREE,
-                "<yellow>Czekam, aż drzewo wyrośnie"
+                "<yellow>Waiting for a tree to grow"
         );
 
         statuses.put(
                 LumberjackStatuses.NO_SAPLING,
-                "<red>Brak sadzonki na stanowisku"
+                "<red>No sapling at the work station"
         );
 
         statuses.put(
                 LumberjackStatuses.INVALID_STATION,
-                "<red>Stanowisko jest zablokowane"
+                "<red>Work station obstructed"
         );
 
         statuses.put(
                 LumberjackStatuses.TREE_TOO_LARGE,
-                "<red>Drzewo jest zbyt duże"
+                "<red>Tree exceeds the configured size limit"
         );
 
         statuses.put(
                 LumberjackStatuses.CANOPY_TOO_LARGE,
-                "<red>Korona drzewa jest zbyt duża"
+                "<red>Canopy exceeds the configured size limit"
         );
 
         statuses.put(
                 LumberjackStatuses.NO_AXE,
-                "<red>Brak siekiery"
+                "<red>Axe required"
         );
 
         return statuses;

@@ -22,7 +22,7 @@ public final class MinerConfig extends AbstractMinionConfig {
     }
 
     @Comment("SQUARE mines the area below the minion. LINE mines in its facing direction.")
-    public WorkMode workMode = WorkMode.SQUARE;
+    public WorkMode workMode = WorkMode.LINE;
 
     @Comment("Maximum blocks mined per cycle. Zero mines every matching block found in the work area.")
     public int maxBlocksPerCycle = 1;
@@ -36,19 +36,19 @@ public final class MinerConfig extends AbstractMinionConfig {
         this.items.setLeatherArmorColor(Color.fromRGB(183, 183, 183));
         this.statuses = defaultStatuses();
         this.usageInstructions.lore = List.of(
-            "<gray>1. Włóż kilof do slotu narzędzia.",
-            "<gray>2. Ustaw kierunek miniona dla trybu LINE.",
-            "<gray>3. Minion kopie bloki poziom niżej.",
-            "<gray>4. Odbieraj bloki z magazynu lub podpiętej skrzyni."
+            "<gray>1. Insert a pickaxe into the tool slot.",
+            "<gray>2. Set the minion's direction when using LINE mode.",
+            "<gray>3. The minion mines blocks one level below itself.",
+            "<gray>4. Collect blocks from its storage or linked chest."
         );
     }
 
     private static Map<MinionStatus, String> defaultStatuses() {
         Map<MinionStatus, String> statuses = new LinkedHashMap<>();
-        statuses.put(MinerStatuses.MINING, "<green>Kopanie...");
-        statuses.put(MinerStatuses.TOOL_TOO_WEAK, "<red>Kilof jest za słaby");
-        statuses.put(MinerStatuses.NO_BLOCKS_IN_RANGE, "<yellow>Brak bloków w zasięgu");
-        statuses.put(MinerStatuses.NO_PICKAXE, "<red>Brak kilofa");
+        statuses.put(MinerStatuses.MINING, "<green>Mining...");
+        statuses.put(MinerStatuses.TOOL_TOO_WEAK, "<red>Pickaxe tier too low");
+        statuses.put(MinerStatuses.NO_BLOCKS_IN_RANGE, "<yellow>No blocks in range");
+        statuses.put(MinerStatuses.NO_PICKAXE, "<red>Pickaxe required");
         return statuses;
     }
 
