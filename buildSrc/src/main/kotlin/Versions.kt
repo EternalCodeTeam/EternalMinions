@@ -6,6 +6,8 @@ object Versions {
     const val JUNIT_BOM = "6.1.2"
     const val ASSERTJ = "3.27.7"
     const val MOCKITO = "5.20.0"
+    const val MOCKBUKKIT = "4.110.0"
+    const val TESTCONTAINERS = "1.21.4"
 
     const val OKAERI_CONFIGS = "5.0.13"
     const val MULTIFICATION = "1.2.5-SNAPSHOT"
@@ -26,4 +28,6 @@ object Versions {
     const val H2 = "2.4.240"
     const val MARIA_DB = "3.5.9"
     const val POSTGRESQL = "42.7.13"
+    const val MYSQL_CONNECTOR = "26.7.0"
+    const val SQLITE_JDBC = "3.53.2.1"
 }

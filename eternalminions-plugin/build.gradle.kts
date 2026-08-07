@@ -9,6 +9,7 @@ plugins {
     id("de.eldoria.plugin-yml.paper") version "0.9.0"
     id("com.gradleup.shadow")
     id("xyz.jpenilla.run-paper")
+    id("me.champeau.jmh") version "0.7.3"
 }
 
 dependencies {
@@ -48,10 +49,40 @@ dependencies {
     implementation("com.h2database:h2:${Versions.H2}")
     implementation("org.mariadb.jdbc:mariadb-java-client:${Versions.MARIA_DB}")
     implementation("org.postgresql:postgresql:${Versions.POSTGRESQL}")
+    // DatabaseDriverType.MYSQL/SQLITE load their driver by class name (DatabaseManager); without
+    // these, selecting either in database.yml crashed with ClassNotFoundException at connect().
+    implementation("com.mysql:mysql-connector-j:${Versions.MYSQL_CONNECTOR}")
+    implementation("org.xerial:sqlite-jdbc:${Versions.SQLITE_JDBC}")
 
     // compileOnly, never shaded/relocated: our code must see the exact same Economy class the
     // Vault plugin registers at runtime, not a shaded copy of it.
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
+
+    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:${Versions.MOCKBUKKIT}")
+
+    testImplementation(platform("org.testcontainers:testcontainers-bom:${Versions.TESTCONTAINERS}"))
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:mysql")
+
+    // The jmh source set doesn't inherit main's compileOnly paper-api dependency (same reason
+    // the test source set above redeclares it), so benchmarks referencing org.bukkit types need
+    // it here explicitly.
+    jmhImplementation("io.papermc.paper:paper-api:${Versions.PAPER_API}")
+    // TreeScannerBenchmark drives a real MockBukkit World so the benchmark exercises the same
+    // Block/World calls production code makes, not a hand-rolled stand-in.
+    jmhImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:${Versions.MOCKBUKKIT}")
+}
+
+jmh {
+    // Kept short so `./gradlew jmh` stays usable as a sanity check in CI; increase locally
+    // (or override per-benchmark with @Warmup/@Measurement) when actually chasing numbers.
+    warmupIterations.set(2)
+    iterations.set(3)
+    fork.set(1)
+    benchmarkMode.set(listOf("avgt"))
+    timeUnit.set("us")
+    failOnError.set(true)
 }
 
 paper {
@@ -120,6 +151,8 @@ tasks.shadowJar {
         "com.h2database",
         "org.mariadb.jdbc",
         "org.postgresql",
+        "com.mysql",
+        "org.sqlite",
     ).forEach { dependencyPackage ->
         relocate(dependencyPackage, "$relocationPrefix.$dependencyPackage")
     }
