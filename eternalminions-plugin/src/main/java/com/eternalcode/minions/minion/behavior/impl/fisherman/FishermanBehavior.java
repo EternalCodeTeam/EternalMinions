@@ -261,7 +261,7 @@ public final class FishermanBehavior implements MinionBehavior {
                 continue;
             }
 
-            Material material = entry.getKey().parseMaterial();
+            Material material = entry.getKey().get();
 
             if (material != null) {
                 return new ItemStack(material);

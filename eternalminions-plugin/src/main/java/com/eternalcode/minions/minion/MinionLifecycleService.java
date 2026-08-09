@@ -1,6 +1,5 @@
 package com.eternalcode.minions.minion;
 
-import com.eternalcode.minions.access.MinionAccessAction;
 import com.eternalcode.minions.event.MinionCreatedEvent;
 import com.eternalcode.minions.event.MinionEventCause;
 import com.eternalcode.minions.event.EventDispatcher;
@@ -9,23 +8,17 @@ import com.eternalcode.minions.event.MinionPreRemoveEvent;
 import com.eternalcode.minions.event.MinionRemovedEvent;
 import com.eternalcode.minions.event.MinionUpdatedEvent;
 import com.eternalcode.minions.event.MinionUpdateType;
-import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.database.MinionData;
 import com.eternalcode.minions.database.MinionPersistenceService;
-import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.schedule.MinionScheduler;
-import com.eternalcode.minions.minion.storage.MinionItemTransferService;
-import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.eternalcode.minions.render.MinionRenderService;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
+import java.util.function.Consumer;
 
 public final class MinionLifecycleService {
 
@@ -33,10 +26,7 @@ public final class MinionLifecycleService {
     private final MinionScheduler scheduler;
     private final MinionRenderService renders;
     private final MinionPersistenceService persistence;
-    private final MinionItemFactory items;
     private final MinionBehaviorRegistry behaviors;
-    private final MinionAccessGuard access;
-    private final MinionItemTransferService transfers;
     private final MinionStatusTracker statuses;
     private final EventDispatcher events;
 
@@ -45,10 +35,7 @@ public final class MinionLifecycleService {
         MinionScheduler scheduler,
         MinionRenderService renders,
         MinionPersistenceService persistence,
-        MinionItemFactory items,
         MinionBehaviorRegistry behaviors,
-        MinionAccessGuard access,
-        MinionItemTransferService transfers,
         MinionStatusTracker statuses,
         EventDispatcher events
     ) {
@@ -56,10 +43,7 @@ public final class MinionLifecycleService {
         this.scheduler = scheduler;
         this.renders = renders;
         this.persistence = persistence;
-        this.items = items;
         this.behaviors = behaviors;
-        this.access = access;
-        this.transfers = transfers;
         this.statuses = statuses;
         this.events = events;
     }
@@ -102,6 +86,15 @@ public final class MinionLifecycleService {
     }
 
     public boolean remove(MinionId minionId, MinionEventCause cause, UUID actorId) {
+        return this.remove(minionId, cause, actorId, ignored -> {});
+    }
+
+    boolean remove(
+        MinionId minionId,
+        MinionEventCause cause,
+        UUID actorId,
+        Consumer<Minion> afterRemoval
+    ) {
         Minion minion = this.minions.findMinion(minionId).orElse(null);
         if (minion == null) {
             return false;
@@ -116,6 +109,7 @@ public final class MinionLifecycleService {
         this.scheduler.remove(minion);
         this.renders.remove(minion);
         this.statuses.clearStatus(minionId);
+        afterRemoval.accept(minion);
         this.persistence.delete(minionId);
         this.events.fire(new MinionRemovedEvent(snapshot, cause, actorId));
         return true;
@@ -182,58 +176,6 @@ public final class MinionLifecycleService {
         Minion previous = this.minions.replace(minion);
         this.persistence.saveChestLink(minion);
         this.fireUpdate(previous, minion, MinionUpdateType.CHEST_LINK, cause, actorId);
-    }
-
-    public boolean pickup(Player player, MinionId minionId) {
-        Minion accessibleMinion = this.access.findAccessible(
-                player,
-                minionId,
-                MinionAccessAction.PICK_UP
-        ).orElse(null);
-
-        if (accessibleMinion == null) {
-            return false;
-        }
-
-        MinionSnapshot snapshot = this.snapshot(accessibleMinion);
-        MinionPreRemoveEvent event = this.events.fire(new MinionPreRemoveEvent(
-            snapshot,
-            MinionEventCause.PICKUP,
-            player.getUniqueId()
-        ));
-        if (event.isCancelled()) {
-            return false;
-        }
-
-        Optional<Minion> removed = this.minions.remove(accessibleMinion.id());
-        if (removed.isEmpty()) {
-            return false;
-        }
-        Minion current = removed.get();
-        this.scheduler.remove(current);
-        this.renders.remove(current);
-        this.statuses.clearStatus(current.id());
-
-        MinionStorage storage = current.storage();
-        for (int slot = 0; slot < storage.capacity(); slot++) {
-            ItemStack item = storage.item(slot);
-            if (item != null) {
-                this.transfers.giveOrDrop(player, item);
-            }
-        }
-
-        // Storage contents are handed out as loose items above, so the minion item itself
-        // must carry an emptied storage — otherwise placing it again would duplicate them.
-        Minion emptied = current.withStorage(new MinionStorage(storage.capacity()));
-        this.transfers.giveOrDrop(player, this.items.create(emptied));
-
-        this.persistence.delete(current.id());
-        this.events.fire(new MinionRemovedEvent(
-            snapshot,
-            MinionEventCause.PICKUP,
-            player.getUniqueId()
-        ));
-        return true;
     }
 
     private MinionCreateRequest createRequest(Minion minion) {

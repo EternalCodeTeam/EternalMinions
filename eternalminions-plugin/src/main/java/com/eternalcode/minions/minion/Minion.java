@@ -3,27 +3,15 @@ package com.eternalcode.minions.minion;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.storage.MinionSettings;
 import com.eternalcode.minions.minion.storage.MinionStorage;
-import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
-public final class Minion {
-
-    private final MinionId id;
-    private final UUID ownerId;
-    private final String behaviorId;
-    private final MinionPosition position;
-    private final MinionProgress progress;
-    private final MinionEquipment equipment;
-    private final MinionStorage storage;
-    private final MinionUpgrades upgrades;
-    private final MinionPosition chestPosition;
-    private final MinionSettings settings;
-
-    public Minion(
+public record Minion(
         MinionId id,
         UUID ownerId,
         String behaviorId,
@@ -34,7 +22,9 @@ public final class Minion {
         MinionUpgrades upgrades,
         MinionPosition chestPosition,
         MinionSettings settings
-    ) {
+) {
+
+    public Minion {
         if (id == null || ownerId == null || position == null) {
             throw new IllegalArgumentException("Minion identity and position are required");
         }
@@ -44,32 +34,12 @@ public final class Minion {
         if (progress == null || equipment == null || storage == null || upgrades == null || settings == null) {
             throw new IllegalArgumentException("Minion progress, equipment, storage, upgrades and settings are required");
         }
-        this.id = id;
-        this.ownerId = ownerId;
-        this.behaviorId = behaviorId;
-        this.position = position;
-        this.progress = progress;
-        this.equipment = equipment;
-        this.storage = storage;
-        this.upgrades = upgrades;
-        this.chestPosition = chestPosition;
-        this.settings = settings;
     }
 
-    public MinionId id() { return this.id; }
-    public UUID ownerId() { return this.ownerId; }
-    public String behaviorId() { return this.behaviorId; }
-    public MinionPosition position() { return this.position; }
-    public MinionProgress progress() { return this.progress; }
-    public MinionEquipment equipment() { return this.equipment; }
-    public MinionStorage storage() { return this.storage; }
-    public MinionUpgrades upgrades() { return this.upgrades; }
-    public MinionPosition chestPosition() { return this.chestPosition; }
-    public MinionSettings settings() { return this.settings; }
-
     public Minion withProgress(MinionProgress progress) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
-            progress, this.equipment, this.storage, this.upgrades, this.chestPosition, this.settings);
+        return new Minion(
+                this.id, this.ownerId, this.behaviorId, this.position,
+                progress, this.equipment, this.storage, this.upgrades, this.chestPosition, this.settings);
     }
 
     public Minion withEquipment(MinionEquipment equipment) {
@@ -77,28 +47,33 @@ public final class Minion {
             return this;
         }
 
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
-            this.progress, equipment, this.storage, this.upgrades, this.chestPosition, this.settings);
+        return new Minion(
+                this.id, this.ownerId, this.behaviorId, this.position,
+                this.progress, equipment, this.storage, this.upgrades, this.chestPosition, this.settings);
     }
 
     public Minion withStorage(MinionStorage storage) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
-            this.progress, this.equipment, storage, this.upgrades, this.chestPosition, this.settings);
+        return new Minion(
+                this.id, this.ownerId, this.behaviorId, this.position,
+                this.progress, this.equipment, storage, this.upgrades, this.chestPosition, this.settings);
     }
 
     public Minion withUpgrades(MinionUpgrades upgrades) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
-            this.progress, this.equipment, this.storage, upgrades, this.chestPosition, this.settings);
+        return new Minion(
+                this.id, this.ownerId, this.behaviorId, this.position,
+                this.progress, this.equipment, this.storage, upgrades, this.chestPosition, this.settings);
     }
 
     public Minion withChestPosition(MinionPosition chestPosition) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
-            this.progress, this.equipment, this.storage, this.upgrades, chestPosition, this.settings);
+        return new Minion(
+                this.id, this.ownerId, this.behaviorId, this.position,
+                this.progress, this.equipment, this.storage, this.upgrades, chestPosition, this.settings);
     }
 
     public Minion withSettings(MinionSettings settings) {
-        return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
-            this.progress, this.equipment, this.storage, this.upgrades, this.chestPosition, settings);
+        return new Minion(
+                this.id, this.ownerId, this.behaviorId, this.position,
+                this.progress, this.equipment, this.storage, this.upgrades, this.chestPosition, settings);
     }
 
     public MinionDetails details() {
@@ -107,7 +82,7 @@ public final class Minion {
 
     public MinionSnapshot snapshot(MinionStatus status) {
         Map<String, Integer> upgradeTiers = new LinkedHashMap<>();
-        for (Map.Entry<UpgradeKind, Integer> entry : this.upgrades.entries().entrySet()) {
+        for (Entry<UpgradeKind, Integer> entry : this.upgrades.entries().entrySet()) {
             upgradeTiers.put(entry.getKey().key(), entry.getValue());
         }
 

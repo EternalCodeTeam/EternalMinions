@@ -109,7 +109,7 @@ public final class FarmerBehavior implements MinionBehavior {
                 Map.Entry<XMaterial, CropShape> entry
                 : configuredCrops.entrySet()
         ) {
-            Material material = entry.getKey().parseMaterial();
+            Material material = entry.getKey().get();
             CropShape shape = entry.getValue();
 
             if (material == null || shape == null) {
@@ -132,8 +132,8 @@ public final class FarmerBehavior implements MinionBehavior {
                 Map.Entry<XMaterial, XMaterial> entry
                 : configuredMaterials.entrySet()
         ) {
-            Material key = entry.getKey().parseMaterial();
-            Material value = entry.getValue().parseMaterial();
+            Material key = entry.getKey().get();
+            Material value = entry.getValue().get();
 
             if (key == null || value == null) {
                 continue;

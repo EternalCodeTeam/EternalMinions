@@ -471,7 +471,7 @@ public final class LumberjackBehavior implements MinionBehavior {
                 continue;
             }
 
-            Material parsed = material.parseMaterial();
+            Material parsed = material.get();
 
             if (parsed != null) {
                 materials.add(parsed);
@@ -500,8 +500,8 @@ public final class LumberjackBehavior implements MinionBehavior {
                 continue;
             }
 
-            Material log = entry.getKey().parseMaterial();
-            Material sapling = entry.getValue().parseMaterial();
+            Material log = entry.getKey().get();
+            Material sapling = entry.getValue().get();
 
             if (log != null && sapling != null) {
                 saplingByLog.put(log, sapling);
@@ -517,7 +517,7 @@ public final class LumberjackBehavior implements MinionBehavior {
     ) {
         Material material = configured == null
                 ? null
-                : configured.parseMaterial();
+                : configured.get();
 
         if (material == null) {
             throw new IllegalArgumentException(

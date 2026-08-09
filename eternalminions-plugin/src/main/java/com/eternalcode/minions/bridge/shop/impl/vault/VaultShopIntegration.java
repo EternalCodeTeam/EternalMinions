@@ -28,7 +28,7 @@ public final class VaultShopIntegration implements MinionShopProvider {
     private static Map<Material, Double> convert(Map<XMaterial, Double> sellPrices) {
         Map<Material, Double> converted = new EnumMap<>(Material.class);
         for (Map.Entry<XMaterial, Double> entry : sellPrices.entrySet()) {
-            Material material = entry.getKey().parseMaterial();
+            Material material = entry.getKey().get();
             if (material != null) {
                 converted.put(material, entry.getValue());
             }

@@ -7,19 +7,19 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public final class MinionQueries implements MinionService {
+public final class MinionServiceImpl implements MinionService {
 
     private final MinionRegistry minions;
     private final MinionStatusTracker statuses;
 
-    public MinionQueries(MinionRegistry minions, MinionStatusTracker statuses) {
+    public MinionServiceImpl(MinionRegistry minions, MinionStatusTracker statuses) {
         this.minions = minions;
         this.statuses = statuses;
     }
 
     @Override
     public Optional<MinionDetails> findById(MinionId minionId) {
-        return this.minions.findById(minionId);
+        return this.minions.findMinion(minionId).map(Minion::details);
     }
 
     @Override
@@ -47,7 +47,13 @@ public final class MinionQueries implements MinionService {
 
     @Override
     public Collection<MinionDetails> findByOwner(UUID ownerId) {
-        return this.minions.findByOwner(ownerId);
+        List<MinionDetails> details = new ArrayList<>();
+        for (Minion minion : this.minions.minions()) {
+            if (minion.ownerId().equals(ownerId)) {
+                details.add(minion.details());
+            }
+        }
+        return List.copyOf(details);
     }
 
     @Override

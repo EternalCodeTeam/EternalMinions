@@ -32,7 +32,7 @@ import com.eternalcode.minions.minion.MinionManagement;
 import com.eternalcode.minions.minion.MinionPickupService;
 import com.eternalcode.minions.minion.controller.MinionPistonProtectionController;
 import com.eternalcode.minions.minion.controller.MinionPlacementController;
-import com.eternalcode.minions.minion.MinionQueries;
+import com.eternalcode.minions.minion.MinionServiceImpl;
 import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.minion.rotation.MinionRotationService;
 import com.eternalcode.minions.minion.access.MinionAccessGuard;
@@ -205,14 +205,11 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 scheduler,
                 renders,
                 persistence,
-                minionItems,
                 behaviors,
-                access,
-                itemTransfers,
                 statusTracker,
                 events
         );
-        MinionQueries queryApi = new MinionQueries(this.minions, statusTracker);
+        MinionServiceImpl queryApi = new MinionServiceImpl(this.minions, statusTracker);
         MinionManagement managementApi = new MinionManagement(
                 this.minions,
                 lifecycle,
@@ -225,6 +222,9 @@ public final class EternalMinionsPlugin extends JavaPlugin {
 
         MinionPickupService pickups = new MinionPickupService(
                 lifecycle,
+                access,
+                itemTransfers,
+                minionItems,
                 playerLimits,
                 notices
         );

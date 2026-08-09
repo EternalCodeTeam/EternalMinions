@@ -5,10 +5,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.eternalcode.minions.minion.storage.MinionSettings;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
+import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class MinionRegistryTest {
+
+    @Test
+    void registryDoesNotExposeApiProjections() {
+        assertThat(Arrays.stream(MinionRegistry.class.getDeclaredMethods()))
+            .noneMatch(method -> method.getReturnType() == MinionDetails.class
+                || method.getGenericReturnType().getTypeName().contains("MinionDetails"));
+    }
 
     @Test
     void replaceReturnsPreviousMinion() {

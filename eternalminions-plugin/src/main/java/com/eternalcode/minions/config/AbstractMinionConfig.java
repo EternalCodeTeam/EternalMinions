@@ -202,7 +202,7 @@ public abstract class AbstractMinionConfig extends ConfigurationFile {
     public Set<Material> materials(List<XMaterial> configuredMaterials) {
         Set<Material> materials = EnumSet.noneOf(Material.class);
         for (XMaterial configuredMaterial : configuredMaterials) {
-            Material material = configuredMaterial.parseMaterial();
+            Material material = configuredMaterial.get();
             if (material != null) {
                 materials.add(material);
             }

@@ -3,11 +3,9 @@ package com.eternalcode.minions.minion;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -132,11 +130,6 @@ public final class MinionRegistry {
         }
     }
 
-    public Optional<MinionDetails> findById(MinionId minionId) {
-        Minion minion = this.minions.get(minionId.value());
-        return minion == null ? Optional.empty() : Optional.of(minion.details());
-    }
-
     public int countByOwner(UUID ownerId) {
         int count = 0;
         for (Minion minion : this.minions.values()) {
@@ -145,16 +138,6 @@ public final class MinionRegistry {
             }
         }
         return count;
-    }
-
-    public Collection<MinionDetails> findByOwner(UUID ownerId) {
-        List<MinionDetails> details = new ArrayList<>();
-        for (Minion minion : this.minions.values()) {
-            if (minion.ownerId().equals(ownerId)) {
-                details.add(minion.details());
-            }
-        }
-        return List.copyOf(details);
     }
 
     private void index(Minion minion) {
