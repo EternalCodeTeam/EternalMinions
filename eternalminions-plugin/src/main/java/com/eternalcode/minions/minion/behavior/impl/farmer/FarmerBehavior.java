@@ -5,7 +5,7 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
-import com.eternalcode.minions.minion.MinionBlockDrops;
+import com.eternalcode.minions.minion.behavior.BlockDrops;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.rotation.MinionRotation;
 import com.eternalcode.minions.minion.behavior.MinionContext;
@@ -282,7 +282,7 @@ public final class FarmerBehavior implements MinionBehavior {
         }
 
         ItemStack tool = minion.equipment().tool();
-        List<ItemStack> drops = MinionBlockDrops.collect(crop, tool);
+        List<ItemStack> drops = BlockDrops.collect(crop, tool);
 
         Material seed = this.seeds.get(crop.getType());
 
@@ -320,7 +320,7 @@ public final class FarmerBehavior implements MinionBehavior {
         }
 
         ItemStack tool = minion.equipment().tool();
-        List<ItemStack> drops = MinionBlockDrops.collect(harvested, tool);
+        List<ItemStack> drops = BlockDrops.collect(harvested, tool);
         if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
             return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
         }
@@ -342,7 +342,7 @@ public final class FarmerBehavior implements MinionBehavior {
             Block fruit
     ) {
         ItemStack tool = minion.equipment().tool();
-        List<ItemStack> drops = MinionBlockDrops.collect(fruit, tool);
+        List<ItemStack> drops = BlockDrops.collect(fruit, tool);
         if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
             return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
         }

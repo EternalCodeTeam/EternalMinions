@@ -5,7 +5,7 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
-import com.eternalcode.minions.minion.MinionBlockDrops;
+import com.eternalcode.minions.minion.behavior.BlockDrops;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.behavior.MinionContext;
 import com.eternalcode.minions.minion.behavior.MinionResult;
@@ -364,7 +364,7 @@ public final class LumberjackBehavior implements MinionBehavior {
                     blocks.z(index)
             );
 
-            MinionBlockDrops.collectInto(block, tool, destination);
+            BlockDrops.collectInto(block, tool, destination);
         }
     }
 

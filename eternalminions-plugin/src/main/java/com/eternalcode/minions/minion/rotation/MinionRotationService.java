@@ -5,9 +5,8 @@ import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.minion.storage.MinionSettings;
-import com.eternalcode.multification.notice.Notice;
+import com.eternalcode.minions.notice.NoticeService;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.bukkit.entity.Player;
 
@@ -15,24 +14,20 @@ public final class MinionRotationService {
 
     private final MinionAccessGuard access;
     private final Consumer<Minion> update;
-    private final BiConsumer<Player, Notice> notices;
-    private final Notice rotatedNotice;
+    private final NoticeService noticeService;
 
     public MinionRotationService(
             MinionAccessGuard access,
             Consumer<Minion> update,
-            BiConsumer<Player, Notice> notices,
-            Notice rotatedNotice
+            NoticeService noticeService
     ) {
         this.access = access;
         this.update = update;
-        this.notices = notices;
-        this.rotatedNotice = rotatedNotice;
+        this.noticeService = noticeService;
     }
 
     public Optional<Minion> rotate(Player player, MinionId minionId) {
-        return this.access
-                .findAccessible(player, minionId, MinionAccessAction.MANAGE)
+        return this.access.findAccessible(player, minionId, MinionAccessAction.MANAGE)
                 .map(minion -> this.rotate(player, minion));
     }
 
@@ -43,7 +38,10 @@ public final class MinionRotationService {
         Minion rotated = minion.withSettings(settings);
 
         this.update.accept(rotated);
-        this.notices.accept(player, this.rotatedNotice);
+        this.noticeService.create()
+                .viewer(player)
+                .notice(messages -> messages.minionRotated)
+                .send();
 
         return rotated;
     }

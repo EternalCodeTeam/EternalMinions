@@ -1,4 +1,4 @@
-package com.eternalcode.minions.minion;
+package com.eternalcode.minions.minion.behavior;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -6,11 +6,9 @@ import java.util.List;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
-// Shared drop resolution for minions that break blocks (Fortune/Silk Touch are respected because
-// the tool's ItemStack is passed straight into Block#getDrops).
-public final class MinionBlockDrops {
+public final class BlockDrops {
 
-    private MinionBlockDrops() {
+    private BlockDrops() {
     }
 
     public static List<ItemStack> collect(Block block, ItemStack tool) {

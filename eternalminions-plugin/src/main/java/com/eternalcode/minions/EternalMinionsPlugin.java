@@ -260,8 +260,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
         MinionRotationService rotations = new MinionRotationService(
                 access,
                 lifecycle::updateSettings,
-                (player, notice) -> notices.create().viewer(player).notice(notice).send(),
-                messages.minionRotated
+                notices
         );
         MinionPanel panel = new MinionPanel(
                 this,

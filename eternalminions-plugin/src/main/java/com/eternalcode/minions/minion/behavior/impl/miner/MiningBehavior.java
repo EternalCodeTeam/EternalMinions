@@ -5,7 +5,7 @@ import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.MinionDirection;
-import com.eternalcode.minions.minion.MaterialFilter;
+import com.eternalcode.minions.minion.behavior.MaterialFilter;
 import com.eternalcode.minions.minion.MinionPosition;
 import com.eternalcode.minions.minion.behavior.MinionContext;
 import com.eternalcode.minions.minion.behavior.MinionResult;
