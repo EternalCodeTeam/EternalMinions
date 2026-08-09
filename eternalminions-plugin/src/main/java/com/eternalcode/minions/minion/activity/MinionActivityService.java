@@ -32,7 +32,7 @@ public final class MinionActivityService {
         ActivityDecision decision = ActivityDecision.ACTIVE;
         for (MinionActivityRule rule : this.rules) {
             MinionActivityContext context = new MinionActivityContext(minion, world, owner, this.server, now, decision);
-            decision = ActivityDecision.moreSevere(decision, rule.evaluate(context));
+            decision = decision.merge(rule.evaluate(context));
 
             if (decision.frozen()) {
                 break;

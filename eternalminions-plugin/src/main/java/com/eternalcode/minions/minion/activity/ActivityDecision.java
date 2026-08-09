@@ -9,13 +9,11 @@ public record ActivityDecision(boolean frozen, double speedMultiplier, boolean s
     public static final ActivityDecision ACTIVE = new ActivityDecision(false, 1.0D, false, null);
 
     public ActivityDecision {
+        if (!frozen && (!Double.isFinite(speedMultiplier) || speedMultiplier <= 0.0D)) {
+            throw new IllegalArgumentException("Activity speed multiplier must be a positive, finite number");
+        }
         if (!frozen) {
-            if (Double.isNaN(speedMultiplier) || Double.isInfinite(speedMultiplier) || speedMultiplier <= 0.0D) {
-                throw new IllegalArgumentException("Activity speed multiplier must be a positive, finite number");
-            }
-            if (speedMultiplier > 1.0D) {
-                speedMultiplier = 1.0D;
-            }
+            speedMultiplier = Math.min(speedMultiplier, 1.0D);
         }
     }
 
@@ -31,23 +29,27 @@ public record ActivityDecision(boolean frozen, double speedMultiplier, boolean s
         };
     }
 
-    public static ActivityDecision moreSevere(ActivityDecision first, ActivityDecision second) {
-        if (first.frozen) {
-            return first;
+    public ActivityDecision merge(ActivityDecision other) {
+        if (this.frozen) {
+            return this;
         }
-        if (second.frozen) {
-            return second;
+        if (other.frozen) {
+            return other;
         }
-        if (first.active()) {
-            return second;
+        if (this.active()) {
+            return other;
         }
-        if (second.active()) {
-            return first;
+        if (other.active()) {
+            return this;
         }
 
-        ActivityDecision slower = first.speedMultiplier <= second.speedMultiplier ? first : second;
-        boolean suppressStorageGain = first.suppressStorageGain || second.suppressStorageGain;
+        ActivityDecision slower = this.speedMultiplier <= other.speedMultiplier ? this : other;
+        boolean suppressStorageGain = this.suppressStorageGain || other.suppressStorageGain;
         return new ActivityDecision(false, slower.speedMultiplier, suppressStorageGain, slower.statusOverride);
+    }
+
+    public MinionExecutionPolicy executionPolicy() {
+        return this.suppressStorageGain ? MinionExecutionPolicy.NO_STORAGE : MinionExecutionPolicy.FULL;
     }
 
     public boolean active() {

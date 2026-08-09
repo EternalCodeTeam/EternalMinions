@@ -1,6 +1,17 @@
 package com.eternalcode.minions.minion.activity;
 
-public record MinionExecutionPolicy(boolean storageAllowed) {
+public enum MinionExecutionPolicy {
 
-    public static final MinionExecutionPolicy FULL = new MinionExecutionPolicy(true);
+    FULL(true),
+    NO_STORAGE(false);
+
+    private final boolean storageAllowed;
+
+    MinionExecutionPolicy(boolean storageAllowed) {
+        this.storageAllowed = storageAllowed;
+    }
+
+    public boolean storageAllowed() {
+        return this.storageAllowed;
+    }
 }

@@ -1,14 +1,14 @@
 package com.eternalcode.minions.minion.upgrade;
 
 import com.eternalcode.minions.access.MinionAccessAction;
-import com.eternalcode.minions.event.MinionEventDispatcher;
+import com.eternalcode.minions.event.EventDispatcher;
 import com.eternalcode.minions.event.MinionUpgradePurchaseEvent;
 import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionBehavior;
-import com.eternalcode.minions.minion.MinionBehaviorRegistry;
-import com.eternalcode.minions.minion.MinionSnapshotMapper;
+import com.eternalcode.minions.minion.behavior.MinionBehavior;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.eternalcode.minions.notice.NoticeService;
 import com.eternalcode.minions.bridge.vault.EconomyService;
 import com.eternalcode.multification.notice.Notice;
@@ -24,8 +24,8 @@ public final class MinionUpgradeService {
     private final MessagesConfig messages;
     private final NoticeService notices;
     private final UpgradePayment payment;
-    private final MinionSnapshotMapper snapshots;
-    private final MinionEventDispatcher events;
+    private final MinionStatusTracker statuses;
+    private final EventDispatcher events;
 
     public MinionUpgradeService(
         MinionBehaviorRegistry behaviors,
@@ -34,8 +34,8 @@ public final class MinionUpgradeService {
         MessagesConfig messages,
         NoticeService notices,
         Optional<? extends EconomyService> economy,
-        MinionSnapshotMapper snapshots,
-        MinionEventDispatcher events
+        MinionStatusTracker statuses,
+        EventDispatcher events
     ) {
         this.behaviors = behaviors;
         this.access = access;
@@ -43,7 +43,7 @@ public final class MinionUpgradeService {
         this.messages = messages;
         this.notices = notices;
         this.payment = new UpgradePayment(economy);
-        this.snapshots = snapshots;
+        this.statuses = statuses;
         this.events = events;
     }
 
@@ -78,7 +78,7 @@ public final class MinionUpgradeService {
         }
 
         MinionUpgradePurchaseEvent purchaseEvent = this.events.fire(new MinionUpgradePurchaseEvent(
-            this.snapshots.map(minion),
+            minion.snapshot(this.statuses.status(minion.id())),
             player.getUniqueId(),
             kind.key(),
             currentTier,

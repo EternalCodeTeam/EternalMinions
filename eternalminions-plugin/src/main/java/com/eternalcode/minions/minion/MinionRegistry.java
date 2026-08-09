@@ -18,12 +18,22 @@ public final class MinionRegistry {
     private final Long2ObjectOpenHashMap<Minion> minions = new Long2ObjectOpenHashMap<>();
     private final Collection<Minion> minionView = Collections.unmodifiableCollection(this.minions.values());
     private final Map<String, Long2ObjectOpenHashMap<LongOpenHashSet>> minionsByWorldChunk = new HashMap<>();
+    private long lastIssuedId = System.currentTimeMillis();
+
+    public MinionId createId() {
+        if (this.lastIssuedId == Long.MAX_VALUE) {
+            throw new IllegalStateException("Minion id range is exhausted");
+        }
+
+        return new MinionId(++this.lastIssuedId);
+    }
 
     public void register(Minion minion) {
         long id = minion.id().value();
         if (this.minions.putIfAbsent(id, minion) != null) {
             throw new IllegalArgumentException("Minion " + id + " is already registered");
         }
+        this.lastIssuedId = Math.max(this.lastIssuedId, id);
         this.index(minion);
     }
 

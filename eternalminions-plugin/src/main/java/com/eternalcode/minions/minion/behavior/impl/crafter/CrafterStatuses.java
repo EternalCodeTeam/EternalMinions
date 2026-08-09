@@ -1,0 +1,13 @@
+package com.eternalcode.minions.minion.behavior.impl.crafter;
+
+import com.eternalcode.minions.minion.status.MinionStatus;
+
+public final class CrafterStatuses {
+
+    public static final MinionStatus CRAFTING = new MinionStatus("CRAFTING");
+    public static final MinionStatus NO_RECIPE_SELECTED = new MinionStatus("NO_RECIPE_SELECTED");
+    public static final MinionStatus NO_CHEST = new MinionStatus("NO_CHEST");
+    public static final MinionStatus NO_INGREDIENTS = new MinionStatus("NO_INGREDIENTS");
+    private CrafterStatuses() {
+    }
+}

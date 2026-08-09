@@ -1,6 +1,9 @@
 package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.event.MinionEventCause;
+import com.eternalcode.minions.minion.behavior.MinionBehavior;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.eternalcode.minions.minion.storage.MinionSettings;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.upgrade.DefaultUpgradeKinds;
@@ -16,21 +19,18 @@ public final class MinionManagement implements MinionManagementService {
     private final MinionRegistry minions;
     private final MinionLifecycleService lifecycle;
     private final MinionBehaviorRegistry behaviors;
-    private final MinionIdSequence ids;
-    private final MinionSnapshotMapper snapshots;
+    private final MinionStatusTracker statuses;
 
     public MinionManagement(
         MinionRegistry minions,
         MinionLifecycleService lifecycle,
         MinionBehaviorRegistry behaviors,
-        MinionIdSequence ids,
-        MinionSnapshotMapper snapshots
+        MinionStatusTracker statuses
     ) {
         this.minions = minions;
         this.lifecycle = lifecycle;
         this.behaviors = behaviors;
-        this.ids = ids;
-        this.snapshots = snapshots;
+        this.statuses = statuses;
     }
 
     @Override
@@ -41,7 +41,7 @@ public final class MinionManagement implements MinionManagementService {
 
         MinionBehavior behavior = this.behaviors.require(request.behaviorId());
         Minion minion = new Minion(
-            this.ids.next(),
+            this.minions.createId(),
             request.ownerId(),
             behavior.id(),
             request.position(),
@@ -55,7 +55,7 @@ public final class MinionManagement implements MinionManagementService {
         if (!this.lifecycle.add(minion, MinionEventCause.API, null)) {
             throw new MinionOperationCancelledException("Minion creation was cancelled by an event listener");
         }
-        return this.snapshots.map(minion);
+        return this.snapshot(minion);
     }
 
     @Override
@@ -74,7 +74,7 @@ public final class MinionManagement implements MinionManagementService {
         }
         Minion updated = minion.withSettings(new MinionSettings(direction));
         this.lifecycle.updateSettings(updated, MinionEventCause.API, null);
-        return Optional.of(this.snapshots.map(updated));
+        return Optional.of(this.snapshot(updated));
     }
 
     @Override
@@ -85,7 +85,7 @@ public final class MinionManagement implements MinionManagementService {
         }
         Minion updated = minion.withChestPosition(position);
         this.lifecycle.updateChestLink(updated, MinionEventCause.API, null);
-        return Optional.of(this.snapshots.map(updated));
+        return Optional.of(this.snapshot(updated));
     }
 
     @Override
@@ -96,7 +96,7 @@ public final class MinionManagement implements MinionManagementService {
         }
         Minion updated = minion.withStorage(minion.storage().withItem(slot, item));
         this.lifecycle.updateStorage(updated, MinionEventCause.API, null);
-        return Optional.of(this.snapshots.map(updated));
+        return Optional.of(this.snapshot(updated));
     }
 
     @Override
@@ -107,7 +107,7 @@ public final class MinionManagement implements MinionManagementService {
         }
         Minion updated = minion.withEquipment(minion.equipment().withTool(tool));
         this.lifecycle.updateEquipment(updated, MinionEventCause.API, null);
-        return Optional.of(this.snapshots.map(updated));
+        return Optional.of(this.snapshot(updated));
     }
 
     @Override
@@ -137,7 +137,7 @@ public final class MinionManagement implements MinionManagementService {
             }
         }
         this.lifecycle.updateUpgrade(updated, kind, MinionEventCause.API, null);
-        return Optional.of(this.snapshots.map(updated));
+        return Optional.of(this.snapshot(updated));
     }
 
     @Override
@@ -148,6 +148,10 @@ public final class MinionManagement implements MinionManagementService {
         }
         Minion updated = minion.withProgress(new MinionProgress(level, progress));
         this.lifecycle.updateState(updated, MinionEventCause.API, null);
-        return Optional.of(this.snapshots.map(updated));
+        return Optional.of(this.snapshot(updated));
+    }
+
+    private MinionSnapshot snapshot(Minion minion) {
+        return minion.snapshot(this.statuses.status(minion.id()));
     }
 }

@@ -2,8 +2,8 @@ package com.eternalcode.minions.command;
 
 import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.item.MinionItemFactory;
-import com.eternalcode.minions.minion.MinionBehavior;
-import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.behavior.MinionBehavior;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
 import com.eternalcode.multification.notice.Notice;
 import dev.rollczi.litecommands.annotations.argument.Arg;
 import dev.rollczi.litecommands.annotations.command.Command;

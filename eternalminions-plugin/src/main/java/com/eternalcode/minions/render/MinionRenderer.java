@@ -2,7 +2,7 @@ package com.eternalcode.minions.render;
 
 import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.item.MinionAppearanceItems;
-import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;

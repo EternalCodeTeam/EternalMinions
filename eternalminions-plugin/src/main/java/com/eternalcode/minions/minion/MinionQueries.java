@@ -1,5 +1,6 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -9,11 +10,11 @@ import java.util.UUID;
 public final class MinionQueries implements MinionService {
 
     private final MinionRegistry minions;
-    private final MinionSnapshotMapper snapshots;
+    private final MinionStatusTracker statuses;
 
-    public MinionQueries(MinionRegistry minions, MinionSnapshotMapper snapshots) {
+    public MinionQueries(MinionRegistry minions, MinionStatusTracker statuses) {
         this.minions = minions;
-        this.snapshots = snapshots;
+        this.statuses = statuses;
     }
 
     @Override
@@ -23,7 +24,7 @@ public final class MinionQueries implements MinionService {
 
     @Override
     public Optional<MinionSnapshot> findSnapshotById(MinionId minionId) {
-        return this.minions.findMinion(minionId).map(this.snapshots::map);
+        return this.minions.findMinion(minionId).map(this::snapshot);
     }
 
     @Override
@@ -39,7 +40,7 @@ public final class MinionQueries implements MinionService {
     public Collection<MinionSnapshot> findAllSnapshots() {
         List<MinionSnapshot> result = new ArrayList<>(this.minions.minions().size());
         for (Minion minion : this.minions.minions()) {
-            result.add(this.snapshots.map(minion));
+            result.add(this.snapshot(minion));
         }
         return List.copyOf(result);
     }
@@ -57,5 +58,9 @@ public final class MinionQueries implements MinionService {
     @Override
     public Optional<MinionDetails> findAt(MinionPosition position) {
         return this.minions.findAt(position).map(Minion::details);
+    }
+
+    private MinionSnapshot snapshot(Minion minion) {
+        return minion.snapshot(this.statuses.status(minion.id()));
     }
 }

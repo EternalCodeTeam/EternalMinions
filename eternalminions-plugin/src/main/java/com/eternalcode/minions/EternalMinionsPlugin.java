@@ -17,7 +17,7 @@ import com.eternalcode.minions.database.DatabaseConfig;
 import com.eternalcode.minions.database.MinionDatabase;
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.event.MinionEventCause;
-import com.eternalcode.minions.event.MinionEventDispatcher;
+import com.eternalcode.minions.event.EventDispatcher;
 import com.eternalcode.minions.gui.MinionPanel;
 import com.eternalcode.minions.gui.MinionUpgradePanel;
 import com.eternalcode.minions.item.MinionAppearanceItems;
@@ -25,17 +25,16 @@ import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.item.MinionItemServiceImpl;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionActionEngine;
-import com.eternalcode.minions.minion.MinionBehaviorRegistry;
-import com.eternalcode.minions.minion.MinionBehaviorServiceImpl;
-import com.eternalcode.minions.minion.MinionIdSequence;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorServiceImpl;
 import com.eternalcode.minions.minion.MinionLifecycleService;
 import com.eternalcode.minions.minion.MinionManagement;
-import com.eternalcode.minions.minion.MinionPistonProtectionListener;
-import com.eternalcode.minions.minion.MinionPlacementListener;
+import com.eternalcode.minions.minion.MinionPickupService;
+import com.eternalcode.minions.minion.controller.MinionPistonProtectionController;
+import com.eternalcode.minions.minion.controller.MinionPlacementController;
 import com.eternalcode.minions.minion.MinionQueries;
 import com.eternalcode.minions.minion.MinionRegistry;
-import com.eternalcode.minions.minion.MinionRotationService;
-import com.eternalcode.minions.minion.MinionSnapshotMapper;
+import com.eternalcode.minions.minion.rotation.MinionRotationService;
 import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.minion.access.MinionAccessServiceImpl;
 import com.eternalcode.minions.minion.activity.MinionActivityBypass;
@@ -43,15 +42,15 @@ import com.eternalcode.minions.minion.activity.MinionActivityService;
 import com.eternalcode.minions.minion.activity.rule.loadedchunk.LoadedChunkActivityRule;
 import com.eternalcode.minions.minion.activity.rule.offline.OfflineActivityRule;
 import com.eternalcode.minions.minion.activity.rule.proximity.ProximityActivityRule;
-import com.eternalcode.minions.minion.impl.killer.KillerLootingListener;
-import com.eternalcode.minions.minion.impl.collector.CollectorConfig;
-import com.eternalcode.minions.minion.impl.crafter.CrafterConfig;
-import com.eternalcode.minions.minion.impl.farmer.FarmerConfig;
-import com.eternalcode.minions.minion.impl.fisherman.FishermanConfig;
-import com.eternalcode.minions.minion.impl.killer.KillerConfig;
-import com.eternalcode.minions.minion.impl.lumberjack.LumberjackConfig;
-import com.eternalcode.minions.minion.impl.miner.MinerConfig;
-import com.eternalcode.minions.minion.impl.seller.SellerConfig;
+import com.eternalcode.minions.minion.behavior.impl.killer.KillerLootingListener;
+import com.eternalcode.minions.minion.behavior.impl.collector.CollectorConfig;
+import com.eternalcode.minions.minion.behavior.impl.crafter.CrafterConfig;
+import com.eternalcode.minions.minion.behavior.impl.farmer.FarmerConfig;
+import com.eternalcode.minions.minion.behavior.impl.fisherman.FishermanConfig;
+import com.eternalcode.minions.minion.behavior.impl.killer.KillerConfig;
+import com.eternalcode.minions.minion.behavior.impl.lumberjack.LumberjackConfig;
+import com.eternalcode.minions.minion.behavior.impl.miner.MinerConfig;
+import com.eternalcode.minions.minion.behavior.impl.seller.SellerConfig;
 import com.eternalcode.minions.minion.limit.PlayerMinionLimitService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatusServiceImpl;
@@ -65,10 +64,10 @@ import com.eternalcode.minions.minion.tool.ToolValidationService;
 import com.eternalcode.minions.minion.upgrade.MinionUpgradeService;
 import com.eternalcode.minions.notice.NoticeResultHandler;
 import com.eternalcode.minions.notice.NoticeService;
-import com.eternalcode.minions.render.MinionEntityIndex;
-import com.eternalcode.minions.render.MinionInteractionListener;
-import com.eternalcode.minions.render.MinionRenderService;
 import com.eternalcode.minions.render.MinionRenderer;
+import com.eternalcode.minions.render.MinionEntityIndex;
+import com.eternalcode.minions.minion.controller.MinionInteractionController;
+import com.eternalcode.minions.render.MinionRenderService;
 import com.eternalcode.minions.render.MinionViewerListener;
 import com.eternalcode.minions.shop.MinionShopProvider;
 import com.eternalcode.multification.notice.Notice;
@@ -82,24 +81,21 @@ import dev.rollczi.litecommands.suggestion.SuggestionResult;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class EternalMinionsPlugin extends JavaPlugin {
 
-    private final MinionPickupHandler minionPickupHandler = new MinionPickupHandler();
     private MinionRegistry minions;
     private MinionAccessServiceImpl minionAccess;
     private MinionShopServiceImpl shopService;
     private MinionRenderer renderer;
     private MinionDatabase database;
-    private MinionInteractionListener interactions;
+    private MinionInteractionController interactions;
     private LiteCommands<CommandSender> commands;
     private BukkitTask tickTask;
     private boolean apiInitialized;
@@ -204,8 +200,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 activityService
         );
         MinionItemFactory minionItems = new MinionItemFactory(this, behaviors, appearance, miniMessage);
-        MinionSnapshotMapper snapshots = new MinionSnapshotMapper(statusTracker);
-        MinionEventDispatcher events = new MinionEventDispatcher(this.getServer());
+        EventDispatcher events = new EventDispatcher(this.getServer());
         MinionLifecycleService lifecycle = new MinionLifecycleService(
                 this.minions,
                 actions,
@@ -216,18 +211,24 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 access,
                 itemTransfers,
                 statusTracker,
-                snapshots,
                 events
         );
-        MinionIdSequence minionIds = new MinionIdSequence();
-
-        MinionQueries queryApi = new MinionQueries(this.minions, snapshots);
-        MinionManagement managementApi = new MinionManagement(this.minions, lifecycle, behaviors, minionIds, snapshots);
+        MinionQueries queryApi = new MinionQueries(this.minions, statusTracker);
+        MinionManagement managementApi = new MinionManagement(
+                this.minions,
+                lifecycle,
+                behaviors,
+                statusTracker
+        );
         MinionBehaviorServiceImpl behaviorApi = new MinionBehaviorServiceImpl(behaviors);
         MinionItemServiceImpl itemApi = new MinionItemServiceImpl(minionItems, behaviors, this.minions);
-        MinionStatusServiceImpl statusApi = new MinionStatusServiceImpl(this.minions, statusTracker, snapshots, events);
+        MinionStatusServiceImpl statusApi = new MinionStatusServiceImpl(this.minions, statusTracker, events);
 
-        BiConsumer<Player, Minion> pickup = this.minionPickupHandler.createPickupHandler(lifecycle, playerLimits, notices, messages);
+        MinionPickupService pickups = new MinionPickupService(
+                lifecycle,
+                playerLimits,
+                notices
+        );
         MinionUpgradeService upgrades = new MinionUpgradeService(
                 behaviors,
                 access,
@@ -239,7 +240,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 messages,
                 notices,
                 economy,
-                snapshots,
+                statusTracker,
                 events
         );
         MinionUpgradePanel upgradePanel = new MinionUpgradePanel(
@@ -274,21 +275,21 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 rotations,
                 access,
                 itemTransfers,
-                pickup,
+                pickups,
                 upgradePanel::open,
                 chestLinks::toggle
         );
-        this.interactions = new MinionInteractionListener(this, entityIndex, access, panel, rotations, pickup);
+        this.interactions = new MinionInteractionController(this, entityIndex, access, panel, rotations, pickups);
         PacketEvents.getAPI().getEventManager().registerListener(this.interactions);
 
         Stream.of(
                 this.minionAccess,
                 new MinionViewerListener(renders),
-                new MinionPistonProtectionListener(this.minions),
+                new MinionPistonProtectionController(this.minions),
                 chestLinks,
-                new MinionPlacementListener(
+                new MinionPlacementController(
                         minionItems,
-                        minionIds,
+                        this.minions,
                         lifecycle,
                         behaviors,
                         messages,

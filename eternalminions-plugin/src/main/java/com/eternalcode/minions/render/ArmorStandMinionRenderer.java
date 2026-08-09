@@ -2,8 +2,8 @@ package com.eternalcode.minions.render;
 
 import com.eternalcode.minions.item.MinionAppearanceItems;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionBehavior;
-import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.behavior.MinionBehavior;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.manager.protocol.ProtocolManager;
 import com.github.retrooper.packetevents.netty.channel.ChannelHelper;

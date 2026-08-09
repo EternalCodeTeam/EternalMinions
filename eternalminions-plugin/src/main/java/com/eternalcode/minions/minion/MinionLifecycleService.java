@@ -3,7 +3,7 @@ package com.eternalcode.minions.minion;
 import com.eternalcode.minions.access.MinionAccessAction;
 import com.eternalcode.minions.event.MinionCreatedEvent;
 import com.eternalcode.minions.event.MinionEventCause;
-import com.eternalcode.minions.event.MinionEventDispatcher;
+import com.eternalcode.minions.event.EventDispatcher;
 import com.eternalcode.minions.event.MinionPreCreateEvent;
 import com.eternalcode.minions.event.MinionPreRemoveEvent;
 import com.eternalcode.minions.event.MinionRemovedEvent;
@@ -13,6 +13,8 @@ import com.eternalcode.minions.minion.access.MinionAccessGuard;
 import com.eternalcode.minions.database.MinionData;
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.item.MinionItemFactory;
+import com.eternalcode.minions.minion.behavior.MinionBehavior;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;
@@ -35,8 +37,7 @@ public final class MinionLifecycleService {
     private final MinionAccessGuard access;
     private final MinionItemTransferService transfers;
     private final MinionStatusTracker statuses;
-    private final MinionSnapshotMapper snapshots;
-    private final MinionEventDispatcher events;
+    private final EventDispatcher events;
 
     public MinionLifecycleService(
         MinionRegistry minions,
@@ -48,8 +49,7 @@ public final class MinionLifecycleService {
         MinionAccessGuard access,
         MinionItemTransferService transfers,
         MinionStatusTracker statuses,
-        MinionSnapshotMapper snapshots,
-        MinionEventDispatcher events
+        EventDispatcher events
     ) {
         this.minions = minions;
         this.actions = actions;
@@ -60,7 +60,6 @@ public final class MinionLifecycleService {
         this.access = access;
         this.transfers = transfers;
         this.statuses = statuses;
-        this.snapshots = snapshots;
         this.events = events;
     }
 
@@ -75,7 +74,7 @@ public final class MinionLifecycleService {
             this.actions.add(minion);
             this.renders.showToNearby(minion);
             this.events.fire(new MinionCreatedEvent(
-                this.snapshots.map(minion),
+                this.snapshot(minion),
                 MinionEventCause.RESTORE,
                 null
             ));
@@ -97,7 +96,7 @@ public final class MinionLifecycleService {
         this.actions.add(minion);
         this.renders.showToNearby(minion);
         this.persistence.create(minion);
-        this.events.fire(new MinionCreatedEvent(this.snapshots.map(minion), cause, actorId));
+        this.events.fire(new MinionCreatedEvent(this.snapshot(minion), cause, actorId));
         return true;
     }
 
@@ -107,11 +106,8 @@ public final class MinionLifecycleService {
             return false;
         }
 
-        MinionPreRemoveEvent event = this.events.fire(new MinionPreRemoveEvent(
-            this.snapshots.map(minion),
-            cause,
-            actorId
-        ));
+        MinionSnapshot snapshot = this.snapshot(minion);
+        MinionPreRemoveEvent event = this.events.fire(new MinionPreRemoveEvent(snapshot, cause, actorId));
         if (event.isCancelled() || this.minions.remove(minionId).isEmpty()) {
             return false;
         }
@@ -120,7 +116,7 @@ public final class MinionLifecycleService {
         this.renders.remove(minion);
         this.statuses.remove(minionId);
         this.persistence.delete(minionId);
-        this.events.fire(new MinionRemovedEvent(this.snapshots.map(minion), cause, actorId));
+        this.events.fire(new MinionRemovedEvent(snapshot, cause, actorId));
         return true;
     }
 
@@ -187,10 +183,10 @@ public final class MinionLifecycleService {
         this.fireUpdate(previous, minion, MinionUpdateType.CHEST_LINK, cause, actorId);
     }
 
-    public boolean pickup(Player player, Minion minion) {
+    public boolean pickup(Player player, MinionId minionId) {
         Minion accessibleMinion = this.access.findAccessible(
                 player,
-                minion.id(),
+                minionId,
                 MinionAccessAction.PICK_UP
         ).orElse(null);
 
@@ -198,8 +194,9 @@ public final class MinionLifecycleService {
             return false;
         }
 
+        MinionSnapshot snapshot = this.snapshot(accessibleMinion);
         MinionPreRemoveEvent event = this.events.fire(new MinionPreRemoveEvent(
-            this.snapshots.map(accessibleMinion),
+            snapshot,
             MinionEventCause.PICKUP,
             player.getUniqueId()
         ));
@@ -231,7 +228,7 @@ public final class MinionLifecycleService {
 
         this.persistence.delete(current.id());
         this.events.fire(new MinionRemovedEvent(
-            this.snapshots.map(current),
+            snapshot,
             MinionEventCause.PICKUP,
             player.getUniqueId()
         ));
@@ -255,12 +252,16 @@ public final class MinionLifecycleService {
         UUID actorId
     ) {
         this.events.fire(new MinionUpdatedEvent(
-            this.snapshots.map(previous),
-            this.snapshots.map(current),
+            this.snapshot(previous),
+            this.snapshot(current),
             updateType,
             cause,
             actorId
         ));
+    }
+
+    private MinionSnapshot snapshot(Minion minion) {
+        return minion.snapshot(this.statuses.status(minion.id()));
     }
 
 }

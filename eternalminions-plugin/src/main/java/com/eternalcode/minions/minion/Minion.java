@@ -1,8 +1,13 @@
 package com.eternalcode.minions.minion;
 
+import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.storage.MinionSettings;
 import com.eternalcode.minions.minion.storage.MinionStorage;
+import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import com.eternalcode.minions.minion.upgrade.MinionUpgrades;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public final class Minion {
@@ -98,5 +103,24 @@ public final class Minion {
 
     public MinionDetails details() {
         return new MinionDetails(this.id, this.ownerId, this.behaviorId, this.position, this.progress.level());
+    }
+
+    public MinionSnapshot snapshot(MinionStatus status) {
+        Map<String, Integer> upgradeTiers = new LinkedHashMap<>();
+        for (Map.Entry<UpgradeKind, Integer> entry : this.upgrades.entries().entrySet()) {
+            upgradeTiers.put(entry.getKey().key(), entry.getValue());
+        }
+
+        return new MinionSnapshot(
+                this.details(),
+                this.progress.progress(),
+                this.settings.direction(),
+                this.equipment.tool(),
+                Arrays.asList(this.storage.snapshot()),
+                this.storage.capacity(),
+                upgradeTiers,
+                this.chestPosition,
+                status.key()
+        );
     }
 }

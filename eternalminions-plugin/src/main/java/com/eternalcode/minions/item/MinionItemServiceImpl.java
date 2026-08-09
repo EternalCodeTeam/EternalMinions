@@ -1,7 +1,6 @@
 package com.eternalcode.minions.item;
 
-import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;

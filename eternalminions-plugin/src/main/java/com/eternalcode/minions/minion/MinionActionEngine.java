@@ -4,11 +4,13 @@ import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.minion.activity.ActivityDecision;
 import com.eternalcode.minions.minion.activity.MinionActivityService;
-import com.eternalcode.minions.minion.activity.MinionExecutionPolicy;
+import com.eternalcode.minions.minion.behavior.MinionBehavior;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.schedule.MinionSchedule;
+import com.eternalcode.minions.minion.schedule.ScheduledMinion;
 import com.eternalcode.minions.minion.status.MinionStatus;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.eternalcode.minions.render.MinionRenderer;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Server;
 import org.bukkit.World;
@@ -28,7 +30,6 @@ public final class MinionActionEngine implements Runnable {
     private final MinionRenderer renderer;
     private final MinionActivityService activity;
     private final MinionSchedule schedule = new MinionSchedule(128);
-    private final Long2ObjectOpenHashMap<ScheduledMinion> scheduled = new Long2ObjectOpenHashMap<>();
     private long currentTick;
 
     public MinionActionEngine(
@@ -53,12 +54,10 @@ public final class MinionActionEngine implements Runnable {
 
     public void add(Minion minion) {
         ScheduledMinion scheduledMinion = new ScheduledMinion(minion.id());
-        this.scheduled.put(minion.id().value(), scheduledMinion);
         this.schedule.schedule(scheduledMinion, this.currentTick + this.workInterval(minion));
     }
 
     public void remove(Minion minion) {
-        this.scheduled.remove(minion.id().value());
         this.schedule.cancel(minion.id());
     }
 
@@ -78,9 +77,8 @@ public final class MinionActionEngine implements Runnable {
                 return;
             }
 
-            Minion minion = this.minions.findMinion(scheduledMinion.id()).orElse(null);
+            Minion minion = this.minions.findMinion(scheduledMinion.minionId()).orElse(null);
             if (minion == null) {
-                this.scheduled.remove(scheduledMinion.id().value());
                 continue;
             }
 
@@ -107,8 +105,12 @@ public final class MinionActionEngine implements Runnable {
             return behavior.idleInterval();
         }
 
-        MinionExecutionPolicy policy = new MinionExecutionPolicy(!decision.suppressStorageGain());
-        MinionResult result = behavior.execute(new MinionContext(minion, world, scheduledMinion, policy));
+        MinionResult result = behavior.execute(new MinionContext(
+                minion,
+                world,
+                scheduledMinion,
+                decision.executionPolicy()
+        ));
         if (decision.statusOverride() != null && result.status() != decision.statusOverride()) {
             result = new MinionResult(result.minion(), decision.statusOverride(), result.worked(), result.delayTicks());
         }

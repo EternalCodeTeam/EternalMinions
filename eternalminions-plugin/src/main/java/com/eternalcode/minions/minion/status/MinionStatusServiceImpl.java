@@ -3,11 +3,10 @@ package com.eternalcode.minions.minion.status;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.event.MinionEventCause;
-import com.eternalcode.minions.event.MinionEventDispatcher;
+import com.eternalcode.minions.event.EventDispatcher;
 import com.eternalcode.minions.event.MinionUpdatedEvent;
 import com.eternalcode.minions.event.MinionUpdateType;
 import com.eternalcode.minions.minion.MinionSnapshot;
-import com.eternalcode.minions.minion.MinionSnapshotMapper;
 import com.eternalcode.minions.status.MinionStatusService;
 import java.util.Optional;
 
@@ -15,18 +14,15 @@ public final class MinionStatusServiceImpl implements MinionStatusService {
 
     private final MinionRegistry minions;
     private final MinionStatusTracker statuses;
-    private final MinionSnapshotMapper snapshots;
-    private final MinionEventDispatcher events;
+    private final EventDispatcher events;
 
     public MinionStatusServiceImpl(
         MinionRegistry minions,
         MinionStatusTracker statuses,
-        MinionSnapshotMapper snapshots,
-        MinionEventDispatcher events
+        EventDispatcher events
     ) {
         this.minions = minions;
         this.statuses = statuses;
-        this.snapshots = snapshots;
         this.events = events;
     }
 
@@ -44,10 +40,10 @@ public final class MinionStatusServiceImpl implements MinionStatusService {
         if (minion == null) {
             return false;
         }
-        MinionSnapshot previous = this.snapshots.map(minion);
+        MinionSnapshot previous = minion.snapshot(this.statuses.status(minionId));
         boolean changed = this.statuses.setStatus(minionId, new MinionStatus(statusKey));
         if (changed) {
-            this.fireUpdate(previous, this.snapshots.map(minion));
+            this.fireUpdate(previous, minion.snapshot(this.statuses.status(minionId)));
         }
         return changed;
     }
@@ -58,11 +54,11 @@ public final class MinionStatusServiceImpl implements MinionStatusService {
         if (minion == null) {
             return false;
         }
-        MinionSnapshot previous = this.snapshots.map(minion);
+        MinionSnapshot previous = minion.snapshot(this.statuses.status(minionId));
         boolean changed = !this.statuses.status(minionId).equals(CoreMinionStatuses.IDLE);
         this.statuses.remove(minionId);
         if (changed) {
-            this.fireUpdate(previous, this.snapshots.map(minion));
+            this.fireUpdate(previous, minion.snapshot(this.statuses.status(minionId)));
         }
         return changed;
     }

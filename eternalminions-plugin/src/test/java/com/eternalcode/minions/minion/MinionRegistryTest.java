@@ -47,13 +47,31 @@ class MinionRegistryTest {
         assertThat(registry.findAt(newPosition)).containsSame(moved);
     }
 
+    @Test
+    void createsIdAfterHighestRestoredId() {
+        MinionRegistry registry = new MinionRegistry();
+        long restoredId = 10_000_000_000_000L;
+        registry.register(createMinion(
+                new MinionId(restoredId),
+                new MinionPosition("world", 1, 2, 3)
+        ));
+
+        MinionId createdId = registry.createId();
+
+        assertThat(createdId.value()).isGreaterThan(restoredId);
+    }
+
     private static Minion createMinion() {
         return createMinion(new MinionPosition("world", 1, 2, 3));
     }
 
     private static Minion createMinion(MinionPosition position) {
+        return createMinion(new MinionId(1), position);
+    }
+
+    private static Minion createMinion(MinionId id, MinionPosition position) {
         return new Minion(
-            new MinionId(1),
+            id,
             UUID.fromString("00000000-0000-0000-0000-000000000001"),
             "MINER",
             position,

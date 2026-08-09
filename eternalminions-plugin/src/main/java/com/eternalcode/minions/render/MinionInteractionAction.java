@@ -1,12 +1,12 @@
 package com.eternalcode.minions.render;
 
-enum MinionInteractionAction {
+public enum MinionInteractionAction {
 
     PICK_UP,
     ROTATE,
     OPEN_PANEL;
 
-    static MinionInteractionAction resolve(
+    public static MinionInteractionAction resolve(
             boolean attack,
             boolean sneaking
     ) {

@@ -6,11 +6,12 @@ import com.eternalcode.minions.config.MessagesConfig;
 import com.eternalcode.minions.config.MinionPanelAction;
 import com.eternalcode.minions.config.MinionPanelElementConfig;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionBehavior;
-import com.eternalcode.minions.minion.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.behavior.MinionBehavior;
+import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.MinionEquipment;
 import com.eternalcode.minions.minion.MinionLifecycleService;
-import com.eternalcode.minions.minion.MinionRotationService;
+import com.eternalcode.minions.minion.MinionPickupService;
+import com.eternalcode.minions.minion.rotation.MinionRotationService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.notice.NoticeService;
@@ -47,7 +48,7 @@ public final class MinionPanel {
     private final MinionRotationService rotations;
     private final MinionAccessGuard access;
     private final MinionItemTransferService transfers;
-    private final BiConsumer<Player, Minion> pickup;
+    private final MinionPickupService pickups;
     private final BiConsumer<Player, Minion> openUpgrades;
     private final BiConsumer<Player, Minion> linkChest;
 
@@ -62,7 +63,7 @@ public final class MinionPanel {
         MinionRotationService rotations,
         MinionAccessGuard access,
         MinionItemTransferService transfers,
-        BiConsumer<Player, Minion> pickup,
+        MinionPickupService pickups,
         BiConsumer<Player, Minion> openUpgrades,
         BiConsumer<Player, Minion> linkChest
     ) {
@@ -77,7 +78,7 @@ public final class MinionPanel {
         this.rotations = rotations;
         this.access = access;
         this.transfers = transfers;
-        this.pickup = pickup;
+        this.pickups = pickups;
         this.openUpgrades = openUpgrades;
         this.linkChest = linkChest;
     }
@@ -165,9 +166,10 @@ public final class MinionPanel {
                     player, minion, MinionAccessAction.MANAGE, element, placeholders,
                     current -> this.collect(player, current)
             );
-            case PICKUP_MINION -> this.createAccessibleElement(
-                    player, minion, MinionAccessAction.PICK_UP, element, placeholders,
-                    current -> this.pickup.accept(player, current)
+            case PICKUP_MINION -> this.createConfiguredElement(
+                    element,
+                    placeholders,
+                    event -> this.pickups.pickup(player, minion.id())
             );
             case UPGRADES -> this.createAccessibleElement(
                     player, minion, MinionAccessAction.OPEN_PANEL, element, placeholders,

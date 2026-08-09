@@ -1,6 +1,7 @@
 package com.eternalcode.minions.minion;
 
 import com.eternalcode.minions.minion.activity.MinionExecutionPolicy;
+import com.eternalcode.minions.minion.schedule.ScheduledMinion;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
