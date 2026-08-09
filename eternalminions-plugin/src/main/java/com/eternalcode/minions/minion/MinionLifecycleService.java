@@ -15,6 +15,7 @@ import com.eternalcode.minions.database.MinionPersistenceService;
 import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.schedule.MinionScheduler;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;
@@ -29,7 +30,7 @@ import org.bukkit.inventory.ItemStack;
 public final class MinionLifecycleService {
 
     private final MinionRegistry minions;
-    private final MinionActionEngine actions;
+    private final MinionScheduler scheduler;
     private final MinionRenderService renders;
     private final MinionPersistenceService persistence;
     private final MinionItemFactory items;
@@ -41,7 +42,7 @@ public final class MinionLifecycleService {
 
     public MinionLifecycleService(
         MinionRegistry minions,
-        MinionActionEngine actions,
+        MinionScheduler scheduler,
         MinionRenderService renders,
         MinionPersistenceService persistence,
         MinionItemFactory items,
@@ -52,7 +53,7 @@ public final class MinionLifecycleService {
         EventDispatcher events
     ) {
         this.minions = minions;
-        this.actions = actions;
+        this.scheduler = scheduler;
         this.renders = renders;
         this.persistence = persistence;
         this.items = items;
@@ -71,7 +72,7 @@ public final class MinionLifecycleService {
                 minion = minion.withStorage(minion.storage().resized(behavior.storageCapacity(minion)));
             }
             this.minions.register(minion);
-            this.actions.add(minion);
+            this.scheduler.add(minion);
             this.renders.showToNearby(minion);
             this.events.fire(new MinionCreatedEvent(
                 this.snapshot(minion),
@@ -93,7 +94,7 @@ public final class MinionLifecycleService {
         }
 
         this.minions.register(minion);
-        this.actions.add(minion);
+        this.scheduler.add(minion);
         this.renders.showToNearby(minion);
         this.persistence.create(minion);
         this.events.fire(new MinionCreatedEvent(this.snapshot(minion), cause, actorId));
@@ -112,9 +113,9 @@ public final class MinionLifecycleService {
             return false;
         }
 
-        this.actions.remove(minion);
+        this.scheduler.remove(minion);
         this.renders.remove(minion);
-        this.statuses.remove(minionId);
+        this.statuses.clearStatus(minionId);
         this.persistence.delete(minionId);
         this.events.fire(new MinionRemovedEvent(snapshot, cause, actorId));
         return true;
@@ -209,9 +210,9 @@ public final class MinionLifecycleService {
             return false;
         }
         Minion current = removed.get();
-        this.actions.remove(current);
+        this.scheduler.remove(current);
         this.renders.remove(current);
-        this.statuses.remove(current.id());
+        this.statuses.clearStatus(current.id());
 
         MinionStorage storage = current.storage();
         for (int slot = 0; slot < storage.capacity(); slot++) {

@@ -6,10 +6,9 @@ import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBlockDrops;
-import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
-import com.eternalcode.minions.minion.MinionResult;
-import com.eternalcode.minions.minion.WorkLimit;
+import com.eternalcode.minions.minion.behavior.MinionContext;
+import com.eternalcode.minions.minion.behavior.MinionResult;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
@@ -88,7 +87,11 @@ public final class LumberjackBehavior implements MinionBehavior {
         this.defaultSapling = this.saplingMaterials.isEmpty()
                 ? requireMaterial(XMaterial.OAK_SAPLING, "sapling")
                 : this.saplingMaterials.iterator().next();
-        WorkLimit.validate("lumberjack.maxTreesPerCycle", config.maxTreesPerCycle);
+        if (config.maxTreesPerCycle < 0) {
+            throw new IllegalArgumentException(
+                    "lumberjack.maxTreesPerCycle cannot be negative: " + config.maxTreesPerCycle
+            );
+        }
     }
 
     @Override
@@ -131,7 +134,9 @@ public final class LumberjackBehavior implements MinionBehavior {
 
         boolean foundSapling = false;
         boolean foundInvalidStation = false;
-        int treeLimit = WorkLimit.resolve(this.config.maxTreesPerCycle, stationCount);
+        int treeLimit = this.config.maxTreesPerCycle == 0
+                ? stationCount
+                : Math.min(this.config.maxTreesPerCycle, stationCount);
         int felledTrees = 0;
         Minion updated = minion;
 

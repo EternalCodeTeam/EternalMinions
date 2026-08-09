@@ -1,5 +1,6 @@
 package com.eternalcode.minions.minion.status;
 
+import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.MinionId;
 import com.eternalcode.minions.minion.MinionRegistry;
 import com.eternalcode.minions.event.MinionEventCause;
@@ -12,59 +13,60 @@ import java.util.Optional;
 
 public final class MinionStatusServiceImpl implements MinionStatusService {
 
-    private final MinionRegistry minions;
-    private final MinionStatusTracker statuses;
-    private final EventDispatcher events;
+    private final MinionRegistry minionRegistry;
+    private final MinionStatusTracker statusTracker;
+    private final EventDispatcher eventDispatcher;
 
     public MinionStatusServiceImpl(
-        MinionRegistry minions,
-        MinionStatusTracker statuses,
-        EventDispatcher events
+        MinionRegistry minionRegistry,
+        MinionStatusTracker statusTracker,
+        EventDispatcher eventDispatcher
     ) {
-        this.minions = minions;
-        this.statuses = statuses;
-        this.events = events;
+        this.minionRegistry = minionRegistry;
+        this.statusTracker = statusTracker;
+        this.eventDispatcher = eventDispatcher;
     }
 
     @Override
     public Optional<String> findStatus(MinionId minionId) {
-        if (this.minions.findMinion(minionId).isEmpty()) {
+        if (this.minionRegistry.findMinion(minionId).isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(this.statuses.status(minionId).key());
+        return Optional.of(this.statusTracker.status(minionId).key());
     }
 
     @Override
     public boolean setStatus(MinionId minionId, String statusKey) {
-        com.eternalcode.minions.minion.Minion minion = this.minions.findMinion(minionId).orElse(null);
+        Minion minion = this.minionRegistry.findMinion(minionId).orElse(null);
         if (minion == null) {
             return false;
         }
-        MinionSnapshot previous = minion.snapshot(this.statuses.status(minionId));
-        boolean changed = this.statuses.setStatus(minionId, new MinionStatus(statusKey));
+
+        MinionSnapshot previous = minion.snapshot(this.statusTracker.status(minionId));
+        boolean changed = this.statusTracker.setStatus(minionId, MinionStatus.of(statusKey));
         if (changed) {
-            this.fireUpdate(previous, minion.snapshot(this.statuses.status(minionId)));
+            this.fireUpdate(previous, minion.snapshot(this.statusTracker.status(minionId)));
         }
         return changed;
     }
 
     @Override
     public boolean clearStatus(MinionId minionId) {
-        com.eternalcode.minions.minion.Minion minion = this.minions.findMinion(minionId).orElse(null);
+        Minion minion = this.minionRegistry.findMinion(minionId).orElse(null);
         if (minion == null) {
             return false;
         }
-        MinionSnapshot previous = minion.snapshot(this.statuses.status(minionId));
-        boolean changed = !this.statuses.status(minionId).equals(CoreMinionStatuses.IDLE);
-        this.statuses.remove(minionId);
+
+        MinionSnapshot previous = minion.snapshot(this.statusTracker.status(minionId));
+        boolean changed = this.statusTracker.clearStatus(minionId);
         if (changed) {
-            this.fireUpdate(previous, minion.snapshot(this.statuses.status(minionId)));
+            this.fireUpdate(previous, minion.snapshot(this.statusTracker.status(minionId)));
         }
         return changed;
     }
 
     private void fireUpdate(MinionSnapshot previous, MinionSnapshot current) {
-        this.events.fire(new MinionUpdatedEvent(
+        this.eventDispatcher.fire(new MinionUpdatedEvent(
             previous,
             current,
             MinionUpdateType.STATUS,

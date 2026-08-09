@@ -4,10 +4,9 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
-import com.eternalcode.minions.minion.MinionContext;
-import com.eternalcode.minions.minion.MinionResult;
 import com.eternalcode.minions.minion.MaterialFilter;
-import com.eternalcode.minions.minion.WorkLimit;
+import com.eternalcode.minions.minion.behavior.MinionContext;
+import com.eternalcode.minions.minion.behavior.MinionResult;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionStorageUpdate;
@@ -62,10 +61,12 @@ public final class CollectorBehavior implements MinionBehavior {
                             + config.maxScannedEntitiesPerCycle
             );
         }
-        WorkLimit.validate(
-                "collector.maxCollectedStacksPerCycle",
-                config.maxCollectedStacksPerCycle
-        );
+        if (config.maxCollectedStacksPerCycle < 0) {
+            throw new IllegalArgumentException(
+                    "collector.maxCollectedStacksPerCycle cannot be negative: "
+                            + config.maxCollectedStacksPerCycle
+            );
+        }
     }
 
     @Override
@@ -98,10 +99,9 @@ public final class CollectorBehavior implements MinionBehavior {
         int scannedEntities = 0;
         int collectedStacks = 0;
         int movedStacks = 0;
-        int collectionLimit = WorkLimit.resolve(
-                this.config.maxCollectedStacksPerCycle,
-                this.config.maxScannedEntitiesPerCycle
-        );
+        int collectionLimit = this.config.maxCollectedStacksPerCycle == 0
+                ? this.config.maxScannedEntitiesPerCycle
+                : Math.min(this.config.maxCollectedStacksPerCycle, this.config.maxScannedEntitiesPerCycle);
         int radius = this.config.radius(minion.upgrades());
 
         Collection<Entity> nearbyEntities = context.world().getNearbyEntities(

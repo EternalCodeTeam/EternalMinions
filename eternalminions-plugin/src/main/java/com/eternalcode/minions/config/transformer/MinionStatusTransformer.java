@@ -14,7 +14,7 @@ public final class MinionStatusTransformer extends BidirectionalTransformer<Stri
 
     @Override
     public MinionStatus leftToRight(String data, SerdesContext context) {
-        return new MinionStatus(data);
+        return MinionStatus.of(data);
     }
 
     @Override

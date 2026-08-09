@@ -34,7 +34,6 @@ public final class MinionsConfig extends ConfigurationFile {
     private static Map<MinionStatus, String> defaultStatuses() {
         Map<MinionStatus, String> statuses = new LinkedHashMap<>();
         statuses.put(CoreMinionStatuses.IDLE, "<gray>Idle");
-        statuses.put(CoreMinionStatuses.WORKING, "<green>Working");
         statuses.put(CoreMinionStatuses.NO_TOOL, "<red>Tool required");
         statuses.put(CoreMinionStatuses.STORAGE_FULL, "<red>Storage full");
         statuses.put(CoreMinionStatuses.OFFLINE, "<dark_gray>Owner offline");

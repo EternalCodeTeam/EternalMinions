@@ -1,8 +1,14 @@
-package com.eternalcode.minions.minion;
+package com.eternalcode.minions.minion.behavior;
 
+import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.status.MinionStatus;
 
-public record MinionResult(Minion minion, MinionStatus status, boolean worked, Long delayTicks) {
+public record MinionResult(
+        Minion minion,
+        MinionStatus status,
+        boolean worked,
+        Long delayTicks
+) {
 
     public MinionResult {
         if (minion == null || status == null) {

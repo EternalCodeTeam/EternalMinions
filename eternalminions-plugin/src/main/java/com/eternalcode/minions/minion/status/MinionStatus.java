@@ -14,4 +14,8 @@ public record MinionStatus(String key) {
             throw new IllegalArgumentException("Minion status key must use uppercase letters, numbers and underscores");
         }
     }
+
+    public static MinionStatus of(String key) {
+        return new MinionStatus(key);
+    }
 }

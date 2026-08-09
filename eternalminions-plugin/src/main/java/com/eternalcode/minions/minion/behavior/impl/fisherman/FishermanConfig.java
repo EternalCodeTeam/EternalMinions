@@ -149,11 +149,6 @@ public final class FishermanConfig extends AbstractMinionConfig {
                 new LinkedHashMap<>();
 
         statuses.put(
-                FishermanStatuses.FISHING,
-                "<aqua>Fishing..."
-        );
-
-        statuses.put(
                 FishermanStatuses.CATCHING,
                 "<green>Reeling in the catch..."
         );

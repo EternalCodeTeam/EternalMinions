@@ -24,7 +24,7 @@ import com.eternalcode.minions.item.MinionAppearanceItems;
 import com.eternalcode.minions.item.MinionItemFactory;
 import com.eternalcode.minions.item.MinionItemServiceImpl;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionActionEngine;
+import com.eternalcode.minions.minion.schedule.MinionScheduler;
 import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
 import com.eternalcode.minions.minion.behavior.MinionBehaviorServiceImpl;
 import com.eternalcode.minions.minion.MinionLifecycleService;
@@ -52,7 +52,6 @@ import com.eternalcode.minions.minion.behavior.impl.lumberjack.LumberjackConfig;
 import com.eternalcode.minions.minion.behavior.impl.miner.MinerConfig;
 import com.eternalcode.minions.minion.behavior.impl.seller.SellerConfig;
 import com.eternalcode.minions.minion.limit.PlayerMinionLimitService;
-import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatusServiceImpl;
 import com.eternalcode.minions.minion.status.MinionStatusTracker;
 import com.eternalcode.minions.minion.storage.ChestLinkService;
@@ -165,7 +164,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
         MinionAccessGuard access = new MinionAccessGuard(this.minions, this.minionAccess, messages, notices);
 
         MinionEntityIndex entityIndex = new MinionEntityIndex();
-        MinionStatusTracker statusTracker = new MinionStatusTracker(CoreMinionStatuses.IDLE);
+        MinionStatusTracker statusTracker = new MinionStatusTracker();
         this.renderer = MinionRenderer.create(
                 this,
                 minionsConfig,
@@ -189,7 +188,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                         new ProximityActivityRule(minionsConfig.activity.proximity)
                 )
         );
-        MinionActionEngine actions = new MinionActionEngine(
+        MinionScheduler scheduler = new MinionScheduler(
                 this.getServer(),
                 this.minions,
                 minionsConfig,
@@ -203,7 +202,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
         EventDispatcher events = new EventDispatcher(this.getServer());
         MinionLifecycleService lifecycle = new MinionLifecycleService(
                 this.minions,
-                actions,
+                scheduler,
                 renders,
                 persistence,
                 minionItems,
@@ -324,7 +323,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
         this.tickTask = this.getServer().getScheduler().runTaskTimer(
                 this,
                 () -> {
-                    actions.run();
+                    scheduler.run();
                     this.renderer.tick(this.getServer().getCurrentTick());
                 },
                 1L,

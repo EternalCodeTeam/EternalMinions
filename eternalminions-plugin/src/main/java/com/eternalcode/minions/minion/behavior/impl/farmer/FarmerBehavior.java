@@ -6,11 +6,10 @@ import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.MinionBlockDrops;
-import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.rotation.MinionRotation;
-import com.eternalcode.minions.minion.MinionResult;
-import com.eternalcode.minions.minion.WorkLimit;
+import com.eternalcode.minions.minion.behavior.MinionContext;
+import com.eternalcode.minions.minion.behavior.MinionResult;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.status.MinionStatus;
@@ -53,7 +52,11 @@ public final class FarmerBehavior implements MinionBehavior {
 
         this.crops = parseCrops(config.crops);
         this.seeds = parseMaterials(config.seeds);
-        WorkLimit.validate("farmer.maxCropsPerCycle", config.maxCropsPerCycle);
+        if (config.maxCropsPerCycle < 0) {
+            throw new IllegalArgumentException(
+                    "farmer.maxCropsPerCycle cannot be negative: " + config.maxCropsPerCycle
+            );
+        }
     }
 
     public static FarmerBehavior create(
@@ -173,7 +176,9 @@ public final class FarmerBehavior implements MinionBehavior {
 
         int range = this.config.range(minion.upgrades());
         int targetCount = this.targetCount(range);
-        int workLimit = WorkLimit.resolve(this.config.maxCropsPerCycle, targetCount);
+        int workLimit = this.config.maxCropsPerCycle == 0
+                ? targetCount
+                : Math.min(this.config.maxCropsPerCycle, targetCount);
         int harvestedCrops = 0;
         Minion updated = minion;
 

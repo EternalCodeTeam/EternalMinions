@@ -4,9 +4,8 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
-import com.eternalcode.minions.minion.MinionContext;
-import com.eternalcode.minions.minion.MinionResult;
-import com.eternalcode.minions.minion.WorkLimit;
+import com.eternalcode.minions.minion.behavior.MinionContext;
+import com.eternalcode.minions.minion.behavior.MinionResult;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionStorageUpdate;
@@ -34,7 +33,11 @@ public final class CrafterBehavior implements MinionBehavior {
         }
         this.config = config;
         this.transfers = transfers;
-        WorkLimit.validate("crafter.maxCraftsPerCycle", config.maxCraftsPerCycle);
+        if (config.maxCraftsPerCycle < 0) {
+            throw new IllegalArgumentException(
+                    "crafter.maxCraftsPerCycle cannot be negative: " + config.maxCraftsPerCycle
+            );
+        }
         if (config.maximumCraftsSafetyCap < 1) {
             throw new IllegalArgumentException(
                     "crafter.maximumCraftsSafetyCap must be positive: "

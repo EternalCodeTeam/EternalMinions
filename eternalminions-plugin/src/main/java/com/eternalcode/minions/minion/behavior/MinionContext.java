@@ -1,5 +1,7 @@
-package com.eternalcode.minions.minion;
+package com.eternalcode.minions.minion.behavior;
 
+import com.eternalcode.minions.minion.Minion;
+import com.eternalcode.minions.minion.MinionPosition;
 import com.eternalcode.minions.minion.activity.MinionExecutionPolicy;
 import com.eternalcode.minions.minion.schedule.ScheduledMinion;
 import org.bukkit.Location;
@@ -7,7 +9,12 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 
-public record MinionContext(Minion minion, World world, ScheduledMinion scheduledMinion, MinionExecutionPolicy policy) {
+public record MinionContext(
+        Minion minion,
+        World world,
+        ScheduledMinion scheduledMinion,
+        MinionExecutionPolicy policy
+) {
 
     public MinionContext {
         if (minion == null || world == null || scheduledMinion == null || policy == null) {

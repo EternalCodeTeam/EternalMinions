@@ -2,8 +2,6 @@ package com.eternalcode.minions.minion.behavior;
 
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionContext;
-import com.eternalcode.minions.minion.MinionResult;
 
 public interface MinionBehavior {
 

@@ -1,7 +1,7 @@
 package com.eternalcode.minions.minion.tool;
 
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionContext;
+import com.eternalcode.minions.minion.behavior.MinionContext;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionStorageUpdate;

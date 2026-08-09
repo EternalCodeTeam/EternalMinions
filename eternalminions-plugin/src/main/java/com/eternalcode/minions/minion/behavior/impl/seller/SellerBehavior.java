@@ -4,9 +4,8 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
-import com.eternalcode.minions.minion.MinionContext;
-import com.eternalcode.minions.minion.MinionResult;
-import com.eternalcode.minions.minion.WorkLimit;
+import com.eternalcode.minions.minion.behavior.MinionContext;
+import com.eternalcode.minions.minion.behavior.MinionResult;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.shop.MinionShopProvider;
 import org.bukkit.block.Container;
@@ -26,7 +25,9 @@ public final class SellerBehavior implements MinionBehavior {
     public SellerBehavior(SellerConfig config, MinionShopProvider shop) {
         this.config = config;
         this.shop = shop;
-        WorkLimit.validate("seller.sellBatch", config.sellBatch);
+        if (config.sellBatch < 0) {
+            throw new IllegalArgumentException("seller.sellBatch cannot be negative: " + config.sellBatch);
+        }
     }
 
     @Override

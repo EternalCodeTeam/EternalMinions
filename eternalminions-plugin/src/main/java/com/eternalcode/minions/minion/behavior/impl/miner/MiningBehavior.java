@@ -4,12 +4,11 @@ import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
-import com.eternalcode.minions.minion.MinionContext;
 import com.eternalcode.minions.minion.MinionDirection;
 import com.eternalcode.minions.minion.MaterialFilter;
 import com.eternalcode.minions.minion.MinionPosition;
-import com.eternalcode.minions.minion.MinionResult;
-import com.eternalcode.minions.minion.WorkLimit;
+import com.eternalcode.minions.minion.behavior.MinionContext;
+import com.eternalcode.minions.minion.behavior.MinionResult;
 import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
 import com.eternalcode.minions.minion.tool.ToolCheck;
@@ -51,7 +50,11 @@ public final class MiningBehavior implements MinionBehavior {
                 config.materials(config.allowedMaterials),
                 config.materials(config.blockedMaterials)
         );
-        WorkLimit.validate("miner.maxBlocksPerCycle", config.maxBlocksPerCycle);
+        if (config.maxBlocksPerCycle < 0) {
+            throw new IllegalArgumentException(
+                    "miner.maxBlocksPerCycle cannot be negative: " + config.maxBlocksPerCycle
+            );
+        }
     }
 
     @Override
@@ -88,7 +91,9 @@ public final class MiningBehavior implements MinionBehavior {
     private MinionResult executeSquare(MinionContext context, Minion minion) {
         int radius = this.config.radius(minion.upgrades());
         int targetCount = MinionMiningTargets.count(radius);
-        int workLimit = WorkLimit.resolve(this.config.maxBlocksPerCycle, targetCount);
+        int workLimit = this.config.maxBlocksPerCycle == 0
+                ? targetCount
+                : Math.min(this.config.maxBlocksPerCycle, targetCount);
         int minedBlocks = 0;
         Minion updated = minion;
 
@@ -124,7 +129,9 @@ public final class MiningBehavior implements MinionBehavior {
     private MinionResult executeLinear(MinionContext context, Minion minion) {
         MinionDirection direction = minion.settings().direction();
         int targetCount = 2 * this.config.radius(minion.upgrades()) + 1;
-        int workLimit = WorkLimit.resolve(this.config.maxBlocksPerCycle, targetCount);
+        int workLimit = this.config.maxBlocksPerCycle == 0
+                ? targetCount
+                : Math.min(this.config.maxBlocksPerCycle, targetCount);
         int minedBlocks = 0;
         Minion updated = minion;
 

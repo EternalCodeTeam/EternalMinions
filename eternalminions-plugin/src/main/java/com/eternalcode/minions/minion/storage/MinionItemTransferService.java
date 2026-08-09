@@ -2,7 +2,7 @@ package com.eternalcode.minions.minion.storage;
 
 import com.eternalcode.minions.config.MinionsConfig;
 import com.eternalcode.minions.minion.Minion;
-import com.eternalcode.minions.minion.MinionContext;
+import com.eternalcode.minions.minion.behavior.MinionContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
