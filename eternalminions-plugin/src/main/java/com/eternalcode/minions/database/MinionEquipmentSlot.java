@@ -1,5 +1,6 @@
 package com.eternalcode.minions.database;
 
 public enum MinionEquipmentSlot {
-    TOOL
+    TOOL,
+    TOOL_DAMAGE
 }

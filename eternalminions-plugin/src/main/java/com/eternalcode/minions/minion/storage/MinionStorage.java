@@ -1,5 +1,6 @@
 package com.eternalcode.minions.minion.storage;
 
+import java.util.Objects;
 import org.bukkit.inventory.ItemStack;
 
 public final class MinionStorage {
@@ -94,6 +95,19 @@ public final class MinionStorage {
 
     public int capacity() {
         return this.items.length;
+    }
+
+    public boolean hasSameItem(MinionStorage other, int slot) {
+        if (other == null) {
+            throw new IllegalArgumentException("Other storage is required");
+        }
+        if (slot < 0) {
+            throw new IndexOutOfBoundsException("Storage slot cannot be negative");
+        }
+
+        ItemStack item = slot < this.items.length ? this.items[slot] : null;
+        ItemStack otherItem = slot < other.items.length ? other.items[slot] : null;
+        return Objects.equals(item, otherItem);
     }
 
     private void validateSlot(int slot) {

@@ -1,6 +1,7 @@
 package com.eternalcode.minions.database;
 
 import com.eternalcode.minions.database.repository.MinionEquipmentRepository;
+import com.eternalcode.minions.database.repository.MinionActionRepository;
 import com.eternalcode.minions.database.repository.MinionRepository;
 import com.eternalcode.minions.database.repository.MinionStateRepository;
 import com.eternalcode.minions.minion.Minion;
@@ -12,7 +13,6 @@ import com.eternalcode.minions.minion.storage.MinionStorageRepository;
 import com.eternalcode.minions.minion.upgrade.MinionUpgradeRepository;
 import com.eternalcode.minions.minion.upgrade.UpgradeKind;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
@@ -29,6 +29,7 @@ public final class MinionPersistenceService {
     private final MinionStorageRepository storage;
     private final MinionUpgradeRepository upgrades;
     private final MinionChestLinkRepository chests;
+    private final MinionActionRepository actions;
 
     public MinionPersistenceService(
             Logger logger,
@@ -38,7 +39,8 @@ public final class MinionPersistenceService {
             MinionEquipmentRepository equipment,
             MinionStorageRepository storage,
             MinionUpgradeRepository upgrades,
-            MinionChestLinkRepository chests
+            MinionChestLinkRepository chests,
+            MinionActionRepository actions
     ) {
         this.logger = logger;
         this.minions = minions;
@@ -48,6 +50,7 @@ public final class MinionPersistenceService {
         this.storage = storage;
         this.upgrades = upgrades;
         this.chests = chests;
+        this.actions = actions;
     }
 
     private static byte[] serializeStorageSlot(Minion minion, int slot) {
@@ -80,6 +83,42 @@ public final class MinionPersistenceService {
         );
     }
 
+    public void saveAction(Minion previous, Minion updated) {
+        if (!this.minions.ready()) {
+            return;
+        }
+        if (previous == null || updated == null || !previous.id().equals(updated.id())) {
+            throw new IllegalArgumentException("Matching previous and updated minions are required");
+        }
+
+        MinionActionUpdate.StateChange stateChange = previous.progress().equals(updated.progress())
+                ? null
+                : new MinionActionUpdate.StateChange(
+                        updated.progress().level(),
+                        updated.progress().progress(),
+                        System.currentTimeMillis()
+                );
+
+        List<MinionActionUpdate.EquipmentChange> equipmentChanges =
+                this.equipmentChanges(previous, updated);
+        List<MinionActionUpdate.StorageChange> storageChanges =
+                this.storageChanges(previous, updated);
+        MinionActionUpdate actionUpdate = new MinionActionUpdate(
+                updated.id().value(),
+                stateChange,
+                equipmentChanges,
+                storageChanges
+        );
+        if (actionUpdate.isEmpty()) {
+            return;
+        }
+
+        this.report(
+                this.actions.save(actionUpdate),
+                "save action for minion " + updated.id().value()
+        );
+    }
+
     public void saveSettings(Minion minion) {
         if (!this.minions.ready()) {
             return;
@@ -96,10 +135,35 @@ public final class MinionPersistenceService {
         }
 
         byte[] serializedTool = ItemDataCodec.encode(minion.equipment().tool());
-        CompletableFuture<Void> operation = serializedTool.length == 0
+        CompletableFuture<Void> toolOperation = serializedTool.length == 0
                 ? this.equipment.deleteSlot(minion.id(), MinionEquipmentSlot.TOOL)
                 : this.equipment.saveSlot(minion.id(), MinionEquipmentSlot.TOOL, serializedTool);
-        this.report(operation, "save equipment for minion " + minion.id().value());
+        CompletableFuture<Void> damageOperation =
+                this.equipment.deleteSlot(minion.id(), MinionEquipmentSlot.TOOL_DAMAGE);
+        this.report(
+                CompletableFuture.allOf(toolOperation, damageOperation),
+                "save equipment for minion " + minion.id().value()
+        );
+    }
+
+    public void saveEquipmentDamage(Minion minion) {
+        if (!this.minions.ready()) {
+            return;
+        }
+
+        int damage = minion.equipment().toolDamage();
+        if (damage < 0) {
+            return;
+        }
+
+        this.report(
+                this.equipment.saveSlot(
+                        minion.id(),
+                        MinionEquipmentSlot.TOOL_DAMAGE,
+                        ItemDataCodec.encodeInteger(damage)
+                ),
+                "save equipment damage for minion " + minion.id().value()
+        );
     }
 
     public void saveStorage(Minion previous, Minion updated) {
@@ -107,26 +171,20 @@ public final class MinionPersistenceService {
             return;
         }
 
-        List<CompletableFuture<Void>> operations = new ArrayList<>();
         int capacity = Math.max(previous.storage().capacity(), updated.storage().capacity());
+        long changedSlots = 0L;
         for (int slot = 0; slot < capacity; slot++) {
-            byte[] previousItem = serializeStorageSlot(previous, slot);
-            byte[] updatedItem = serializeStorageSlot(updated, slot);
-            if (Arrays.equals(previousItem, updatedItem)) {
+            if (previous.storage().hasSameItem(updated.storage(), slot)) {
                 continue;
             }
-            CompletableFuture<Void> operation = updatedItem.length == 0
-                    ? this.storage.deleteSlot(updated.id(), slot)
-                    : this.storage.saveSlot(updated.id(), slot, updatedItem);
-            operations.add(operation);
+
+            changedSlots |= 1L << slot;
         }
-        if (operations.isEmpty()) {
+        if (changedSlots == 0L) {
             return;
         }
-        this.report(
-                CompletableFuture.allOf(operations.toArray(CompletableFuture[]::new)),
-                "save storage for minion " + updated.id().value()
-        );
+
+        this.flushStorage(updated, changedSlots);
     }
 
     public void saveUpgrade(Minion minion, UpgradeKind upgrade) {
@@ -166,4 +224,70 @@ public final class MinionPersistenceService {
             return null;
         });
     }
+
+    private List<MinionActionUpdate.EquipmentChange> equipmentChanges(Minion previous, Minion updated) {
+        if (previous.equipment() == updated.equipment()) {
+            return List.of();
+        }
+        if (updated.equipment().hasVisualChangeSince(previous.equipment())) {
+            return List.of(
+                    new MinionActionUpdate.EquipmentChange(
+                            MinionEquipmentSlot.TOOL,
+                            ItemDataCodec.encode(updated.equipment().tool())
+                    ),
+                    new MinionActionUpdate.EquipmentChange(
+                            MinionEquipmentSlot.TOOL_DAMAGE,
+                            new byte[0]
+                    )
+            );
+        }
+
+        int damage = updated.equipment().toolDamage();
+        if (damage < 0) {
+            return List.of();
+        }
+        return List.of(new MinionActionUpdate.EquipmentChange(
+                MinionEquipmentSlot.TOOL_DAMAGE,
+                ItemDataCodec.encodeInteger(damage)
+        ));
+    }
+
+    private List<MinionActionUpdate.StorageChange> storageChanges(Minion previous, Minion updated) {
+        if (previous.storage() == updated.storage()) {
+            return List.of();
+        }
+
+        int capacity = Math.max(previous.storage().capacity(), updated.storage().capacity());
+        List<MinionActionUpdate.StorageChange> changes = new ArrayList<>();
+        for (int slot = 0; slot < capacity; slot++) {
+            if (previous.storage().hasSameItem(updated.storage(), slot)) {
+                continue;
+            }
+            changes.add(new MinionActionUpdate.StorageChange(
+                    slot,
+                    serializeStorageSlot(updated, slot)
+            ));
+        }
+        return List.copyOf(changes);
+    }
+
+    private void flushStorage(Minion minion, long changedSlots) {
+        List<CompletableFuture<Void>> operations = new ArrayList<>(Long.bitCount(changedSlots));
+        while (changedSlots != 0L) {
+            int slot = Long.numberOfTrailingZeros(changedSlots);
+            changedSlots &= changedSlots - 1L;
+
+            byte[] serializedItem = serializeStorageSlot(minion, slot);
+            CompletableFuture<Void> operation = serializedItem.length == 0
+                    ? this.storage.deleteSlot(minion.id(), slot)
+                    : this.storage.saveSlot(minion.id(), slot, serializedItem);
+            operations.add(operation);
+        }
+
+        this.report(
+                CompletableFuture.allOf(operations.toArray(CompletableFuture[]::new)),
+                "save storage for minion " + minion.id().value()
+        );
+    }
+
 }

@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public record MinionData(
         long id,
@@ -27,6 +29,7 @@ public record MinionData(
         int level,
         long progress,
         byte[] serializedTool,
+        int toolDamage,
         List<StoredItemData> storageItems,
         Map<String, Integer> upgrades,
         ChestPositionData chestPosition,
@@ -49,6 +52,9 @@ public record MinionData(
         }
         if (progress < 0L) {
             throw new IllegalArgumentException("Minion progress cannot be negative");
+        }
+        if (toolDamage < -1) {
+            throw new IllegalArgumentException("Tool damage cannot be lower than -1");
         }
         if (createdAt < 0L) {
             throw new IllegalArgumentException("Minion creation time cannot be negative");
@@ -77,7 +83,7 @@ public record MinionData(
     ) {
         this(
                 id, ownerId, behaviorId, worldKey, blockX, blockY, blockZ, level, progress,
-                serializedTool, storageItems, upgrades, chestPosition, settings, System.currentTimeMillis()
+                serializedTool, -1, storageItems, upgrades, chestPosition, settings, System.currentTimeMillis()
         );
     }
 
@@ -104,7 +110,7 @@ public record MinionData(
         return new MinionData(
                 minion.id().value(), minion.ownerId(), minion.behaviorId(), position.worldKey(),
                 position.blockX(), position.blockY(), position.blockZ(), minion.progress().level(),
-                minion.progress().progress(), ItemDataCodec.encode(minion.equipment().tool()), storageItems,
+                minion.progress().progress(), ItemDataCodec.encode(minion.equipment().tool()), -1, storageItems,
                 upgrades, chestPosition, minion.settings(), System.currentTimeMillis()
         );
     }
@@ -134,11 +140,20 @@ public record MinionData(
             }
         }
 
+        ItemStack tool = ItemDataCodec.decode(this.serializedTool);
+        if (tool != null && this.toolDamage >= 0) {
+            ItemMeta itemMeta = tool.getItemMeta();
+            if (itemMeta instanceof Damageable damageable) {
+                damageable.setDamage(this.toolDamage);
+                tool.setItemMeta(itemMeta);
+            }
+        }
+
         return new Minion(
                 new MinionId(this.id), this.ownerId, this.behaviorId,
                 new MinionPosition(this.worldKey, this.blockX, this.blockY, this.blockZ),
                 new MinionProgress(this.level, this.progress),
-                new MinionEquipment(ItemDataCodec.decode(this.serializedTool)), storage, minionUpgrades,
+                new MinionEquipment(tool), storage, minionUpgrades,
                 this.chestPosition == null ? null : new MinionPosition(
                         this.chestPosition.worldKey(),
                         this.chestPosition.blockX(),

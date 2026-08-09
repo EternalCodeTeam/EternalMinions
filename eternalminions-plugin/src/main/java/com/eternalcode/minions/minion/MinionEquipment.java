@@ -1,6 +1,9 @@
 package com.eternalcode.minions.minion;
 
+import java.util.Objects;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public final class MinionEquipment {
 
@@ -29,7 +32,20 @@ public final class MinionEquipment {
     }
 
     public MinionEquipment withDurability(ItemStack tool) {
+        if (Objects.equals(this.tool, tool)) {
+            return this;
+        }
+
         return new MinionEquipment(tool, this.visualRevision);
+    }
+
+    public int toolDamage() {
+        if (this.tool == null) {
+            return -1;
+        }
+
+        ItemMeta itemMeta = this.tool.getItemMeta();
+        return itemMeta instanceof Damageable damageable ? damageable.getDamage() : -1;
     }
 
     public boolean hasVisualChangeSince(MinionEquipment previous) {

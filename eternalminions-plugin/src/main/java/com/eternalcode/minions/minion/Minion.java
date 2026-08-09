@@ -68,6 +68,10 @@ public final class Minion {
     }
 
     public Minion withEquipment(MinionEquipment equipment) {
+        if (this.equipment == equipment) {
+            return this;
+        }
+
         return new Minion(this.id, this.ownerId, this.behaviorId, this.position,
             this.progress, equipment, this.storage, this.upgrades, this.chestPosition, this.settings);
     }

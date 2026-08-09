@@ -55,18 +55,24 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
         return settings;
     }
 
-    private static Map<Long, byte[]> indexEquipment(List<MinionEquipmentTable> rows) {
+    private static EquipmentIndex indexEquipment(List<MinionEquipmentTable> rows) {
         Map<Long, byte[]> tools = new HashMap<>();
+        Map<Long, Integer> toolDamage = new HashMap<>();
         for (MinionEquipmentTable row : rows) {
-            if (!row.slot().equals(MinionEquipmentSlot.TOOL.name())) {
+            byte[] serializedItem = row.serializedItem();
+            if (serializedItem.length == 0) {
                 continue;
             }
-            if (row.serializedItem().length == 0) {
+
+            if (row.slot().equals(MinionEquipmentSlot.TOOL.name())) {
+                tools.put(row.minionId(), serializedItem);
                 continue;
             }
-            tools.put(row.minionId(), row.serializedItem());
+            if (row.slot().equals(MinionEquipmentSlot.TOOL_DAMAGE.name())) {
+                toolDamage.put(row.minionId(), ItemDataCodec.decodeInteger(serializedItem));
+            }
         }
-        return tools;
+        return new EquipmentIndex(tools, toolDamage);
     }
 
     private static Map<Long, List<StoredItemData>> indexStorage(List<MinionStorageTable> rows) {
@@ -201,7 +207,7 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
         Map<Long, MinionStateTable> states = indexStates(this.queryByMinionIds(MinionStateTable.class, minionIds));
         Map<Long, MinionSettings> settings =
                 indexSettings(this.queryByMinionIds(MinionSettingsTable.class, minionIds));
-        Map<Long, byte[]> tools =
+        EquipmentIndex equipment =
                 indexEquipment(this.queryByMinionIds(MinionEquipmentTable.class, minionIds));
         Map<Long, List<StoredItemData>> storage =
                 indexStorage(this.queryByMinionIds(MinionStorageTable.class, minionIds));
@@ -216,7 +222,7 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
                     minion,
                     states,
                     settings,
-                    tools,
+                    equipment,
                     storage,
                     upgrades,
                     chests
@@ -229,7 +235,7 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
             MinionTable minion,
             Map<Long, MinionStateTable> states,
             Map<Long, MinionSettings> settings,
-            Map<Long, byte[]> tools,
+            EquipmentIndex equipment,
             Map<Long, List<StoredItemData>> storage,
             Map<Long, Map<String, Integer>> upgrades,
             Map<Long, MinionData.ChestPositionData> chests
@@ -248,7 +254,8 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
                 minion.blockZ(),
                 state.level(),
                 state.progress(),
-                tools.getOrDefault(minion.id(), new byte[0]),
+                equipment.tools().getOrDefault(minion.id(), new byte[0]),
+                equipment.toolDamage().getOrDefault(minion.id(), -1),
                 storage.getOrDefault(minion.id(), List.of()),
                 upgrades.getOrDefault(minion.id(), Map.of()),
                 chests.get(minion.id()),
@@ -267,5 +274,8 @@ final class MinionQueryRepository extends AbstractRepositoryOrmLite {
             loaded.addAll(query.query());
         }
         return loaded;
+    }
+
+    private record EquipmentIndex(Map<Long, byte[]> tools, Map<Long, Integer> toolDamage) {
     }
 }

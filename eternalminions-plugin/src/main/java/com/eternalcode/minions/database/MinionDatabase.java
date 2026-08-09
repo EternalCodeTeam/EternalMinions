@@ -1,6 +1,7 @@
 package com.eternalcode.minions.database;
 
 import com.eternalcode.minions.database.repository.MinionEquipmentRepository;
+import com.eternalcode.minions.database.repository.MinionActionRepository;
 import com.eternalcode.minions.database.repository.MinionRepository;
 import com.eternalcode.minions.database.repository.MinionStateRepository;
 import com.eternalcode.minions.minion.storage.MinionChestLinkRepository;
@@ -63,6 +64,7 @@ public final class MinionDatabase {
         MinionStorageRepository storage = new MinionStorageRepository(manager, scheduler);
         MinionUpgradeRepository upgrades = new MinionUpgradeRepository(manager, scheduler);
         MinionChestLinkRepository chestLinks = new MinionChestLinkRepository(manager, scheduler);
+        MinionActionRepository actions = new MinionActionRepository(manager, scheduler);
         MinionPersistenceService persistence = new MinionPersistenceService(
                 logger,
                 minions,
@@ -71,7 +73,8 @@ public final class MinionDatabase {
                 equipment,
                 storage,
                 upgrades,
-                chestLinks
+                chestLinks,
+                actions
         );
         return new MinionDatabase(
                 logger,
