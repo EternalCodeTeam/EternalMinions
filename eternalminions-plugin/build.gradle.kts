@@ -45,9 +45,10 @@ dependencies {
 
     implementation("com.zaxxer:HikariCP:${Versions.HIKARI_CP}")
     implementation("com.j256.ormlite:ormlite-jdbc:${Versions.ORMLITE}")
-    implementation("com.h2database:h2:${Versions.H2}")
-    implementation("org.mariadb.jdbc:mariadb-java-client:${Versions.MARIA_DB}")
-    implementation("org.postgresql:postgresql:${Versions.POSTGRESQL}")
+
+    paperLibrary("com.h2database:h2:${Versions.H2}")
+    paperLibrary("org.mariadb.jdbc:mariadb-java-client:${Versions.MARIA_DB}")
+    paperLibrary("org.postgresql:postgresql:${Versions.POSTGRESQL}")
 
     // compileOnly, never shaded/relocated: our code must see the exact same Economy class the
     // Vault plugin registers at runtime, not a shaded copy of it.
@@ -56,6 +57,8 @@ dependencies {
 
 paper {
     main = "com.eternalcode.minions.EternalMinionsPlugin"
+    loader = "com.eternalcode.minions.database.MinionsLibraryLoader"
+    generateLibrariesJson = true
     apiVersion = "1.21"
     prefix = "EternalMinions"
     authors = listOf("EternalCodeTeam")
@@ -93,13 +96,38 @@ tasks.runServer {
         modrinth("VaultUnlocked", "2.20.2")
     }
 }
+tasks.generatePaperPluginDescription {
+    useDefaultCentralProxy()
+
+    // mavenLocal() would otherwise be exported as "file:/C:/Users/<dev>/.m2/repository/", baking a
+    // path from whoever built the jar into every copy we ship. It resolves to nothing anywhere
+    // else, so no file-backed repository belongs in the published descriptor.
+    repos.set(repos.get().filterValues { url -> !url.startsWith("file:") })
+}
 
 tasks.shadowJar {
     archiveFileName.set("EternalMinions-v${project.version}.jar")
 
+    minimize {
+        exclude(dependency("com.zaxxer:HikariCP:.*"))
+        exclude(dependency("com.j256.ormlite:.*:.*"))
+        exclude(dependency("com.github.ben-manes.caffeine:caffeine:.*"))
+        exclude(dependency("eu.okaeri:.*:.*"))
+        exclude(dependency("org.yaml:snakeyaml:.*"))
+        exclude(dependency("dev.rollczi:.*:.*"))
+        exclude(dependency("com.eternalcode:.*:.*"))
+        exclude(dependency("io.github.tofaa2:.*:.*"))
+        exclude(dependency("com.github.cryptomorin:XSeries:.*"))
+        exclude(dependency("com.github.stefvanschie.inventoryframework:IF:.*"))
+    }
+
     exclude(
         "org/intellij/lang/annotations/**",
         "org/jetbrains/annotations/**",
+        "com/google/errorprone/**",
+        "org/jspecify/**",
+        "org/checkerframework/**",
+        "org/slf4j/**",
         "META-INF/**",
     )
 
@@ -110,16 +138,13 @@ tasks.shadowJar {
         "com.eternalcode.multification",
         "com.eternalcode.commons",
         "dev.rollczi.litecommands",
-        "io.github.tofaa2",
+        "me.tofaa",
         "com.cryptomorin.xseries",
         "com.github.stefvanschie.inventoryframework",
         "it.unimi.dsi.fastutil",
         "com.github.benmanes.caffeine",
         "com.zaxxer.hikari",
         "com.j256.ormlite",
-        "com.h2database",
-        "org.mariadb.jdbc",
-        "org.postgresql",
     ).forEach { dependencyPackage ->
         relocate(dependencyPackage, "$relocationPrefix.$dependencyPackage")
     }
