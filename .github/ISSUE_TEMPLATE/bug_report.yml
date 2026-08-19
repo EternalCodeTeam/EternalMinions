@@ -1,0 +1,35 @@
+name: 🐛 Bug Report
+description: Report something that isn't working as expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Server & plugin version
+      description: Paper/Minecraft version and the EternalMinions version you're running.
+      placeholder: Paper 1.21.11, EternalMinions 0.1.0-SNAPSHOT
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant errors or stack traces, if any.
+      render: shell

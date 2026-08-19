@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Upload dev build
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: EternalMinions-dev-${{ github.sha }}
+          path: eternalminions-plugin/build/libs/EternalMinions-v*.jar
+          retention-days: 14
