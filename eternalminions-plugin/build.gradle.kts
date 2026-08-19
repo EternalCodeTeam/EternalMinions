@@ -89,6 +89,11 @@ paper {
 
 tasks.runServer {
     minecraftVersion("26.2")
+    javaLauncher.set(
+        javaToolchains.launcherFor {
+            languageVersion.set(JavaLanguageVersion.of(25))
+        }
+    )
     downloadPlugins {
         modrinth("FastAsyncWorldEdit", "2.15.3")
         modrinth("EternalCore", "2.0.1-SNAPSHOT+92")

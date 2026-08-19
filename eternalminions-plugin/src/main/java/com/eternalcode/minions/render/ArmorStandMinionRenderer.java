@@ -189,6 +189,10 @@ public final class ArmorStandMinionRenderer extends AbstractEntityLibMinionRende
             return;
         }
 
+        if ((currentTick & 1L) != 0L) {
+            return;
+        }
+
         ObjectIterator<Long2LongMap.Entry> iterator =
                 this.swingStates.long2LongEntrySet().fastIterator();
 

@@ -10,6 +10,8 @@ import com.eternalcode.minions.minion.storage.MinionItemTransferService;
 import com.eternalcode.minions.minion.storage.MinionStorage;
 import com.eternalcode.minions.minion.storage.MinionStorageUpdate;
 import com.eternalcode.minions.minion.status.CoreMinionStatuses;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.ArrayList;
 import java.util.List;
 import org.bukkit.Bukkit;
@@ -25,7 +27,11 @@ public final class CrafterBehavior implements MinionBehavior {
 
     private final CrafterConfig config;
     private final MinionItemTransferService transfers;
+
     private final RecipeMatcher matcher = new RecipeMatcher();
+    private final Cache<ItemStack, List<MinionRecipe>> recipeCache = Caffeine.newBuilder()
+            .maximumSize(2048)
+            .build();
 
     public CrafterBehavior(CrafterConfig config, MinionItemTransferService transfers) {
         if (config == null || transfers == null) {
@@ -192,12 +198,16 @@ public final class CrafterBehavior implements MinionBehavior {
         ItemStack lookup = selectedResult.clone();
         lookup.setAmount(1);
 
+        return this.recipeCache.get(lookup, this::computeRecipes);
+    }
+
+    private List<MinionRecipe> computeRecipes(ItemStack lookup) {
         List<MinionRecipe> recipes = new ArrayList<>();
 
         for (Recipe recipe : Bukkit.getRecipesFor(lookup)) {
             MinionRecipe mapped = this.mapRecipe(
                     recipe,
-                    selectedResult
+                    lookup
             );
 
             if (mapped != null) {
