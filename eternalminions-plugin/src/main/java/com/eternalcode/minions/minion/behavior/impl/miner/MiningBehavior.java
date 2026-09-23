@@ -2,6 +2,7 @@ package com.eternalcode.minions.minion.behavior.impl.miner;
 
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
+import com.eternalcode.minions.event.MinionBlockChangeReason;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.MinionDirection;
@@ -199,6 +200,9 @@ public final class MiningBehavior implements MinionBehavior {
         Collection<ItemStack> drops = tool == null ? block.getDrops() : block.getDrops(tool);
         if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
             return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
+        }
+        if (!context.blockChanges().allows(minion, block, Material.AIR, MinionBlockChangeReason.MINING)) {
+            return null;
         }
         block.setType(Material.AIR, true);
         Minion updated = this.tools.consume(minion, 1);

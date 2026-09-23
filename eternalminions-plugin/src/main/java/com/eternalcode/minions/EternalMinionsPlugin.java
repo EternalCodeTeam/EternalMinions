@@ -26,6 +26,7 @@ import com.eternalcode.minions.item.MinionItemServiceImpl;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.schedule.MinionScheduler;
 import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.behavior.MinionBlockChanges;
 import com.eternalcode.minions.minion.behavior.MinionBehaviorServiceImpl;
 import com.eternalcode.minions.minion.MinionLifecycleService;
 import com.eternalcode.minions.minion.MinionManagement;
@@ -189,6 +190,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                         new ProximityActivityRule(minionsConfig.activity.proximity)
                 )
         );
+        EventDispatcher events = new EventDispatcher(this.getServer());
         MinionScheduler scheduler = new MinionScheduler(
                 this.getServer(),
                 this.minions,
@@ -197,10 +199,10 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 persistence,
                 statusTracker,
                 this.renderer,
-                activityService
+                activityService,
+                new MinionBlockChanges(events, statusTracker)
         );
         MinionItemFactory minionItems = new MinionItemFactory(this, behaviors, appearance, miniMessage);
-        EventDispatcher events = new EventDispatcher(this.getServer());
         MinionLifecycleService lifecycle = new MinionLifecycleService(
                 this.minions,
                 scheduler,

@@ -8,6 +8,7 @@ import com.eternalcode.minions.minion.activity.ActivityDecision;
 import com.eternalcode.minions.minion.activity.MinionActivityService;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.behavior.MinionBehaviorRegistry;
+import com.eternalcode.minions.minion.behavior.MinionBlockChanges;
 import com.eternalcode.minions.minion.behavior.MinionContext;
 import com.eternalcode.minions.minion.behavior.MinionResult;
 import com.eternalcode.minions.minion.status.MinionStatus;
@@ -31,6 +32,7 @@ public final class MinionScheduler implements Runnable {
     private final MinionStatusTracker statusTracker;
     private final MinionRenderer renderer;
     private final MinionActivityService activityService;
+    private final MinionBlockChanges blockChanges;
     private final MinionSchedule minionSchedule = new MinionSchedule(128);
     private long currentTick;
 
@@ -42,7 +44,8 @@ public final class MinionScheduler implements Runnable {
             MinionPersistenceService persistenceService,
             MinionStatusTracker statusTracker,
             MinionRenderer renderer,
-            MinionActivityService activityService
+            MinionActivityService activityService,
+            MinionBlockChanges blockChanges
     ) {
         this.server = server;
         this.minionRegistry = minionRegistry;
@@ -52,6 +55,7 @@ public final class MinionScheduler implements Runnable {
         this.statusTracker = statusTracker;
         this.renderer = renderer;
         this.activityService = activityService;
+        this.blockChanges = blockChanges;
     }
 
     public void add(Minion minion) {
@@ -111,7 +115,8 @@ public final class MinionScheduler implements Runnable {
                 minion,
                 world,
                 scheduledMinion,
-                decision.executionPolicy()
+                decision.executionPolicy(),
+                this.blockChanges
         ));
         if (decision.statusOverride() != null && result.status() != decision.statusOverride()) {
             result = new MinionResult(result.minion(), decision.statusOverride(), result.worked(), result.delayTicks());

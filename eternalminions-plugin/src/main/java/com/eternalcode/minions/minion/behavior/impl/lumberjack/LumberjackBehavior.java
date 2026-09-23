@@ -3,6 +3,7 @@ package com.eternalcode.minions.minion.behavior.impl.lumberjack;
 import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
+import com.eternalcode.minions.event.MinionBlockChangeReason;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.behavior.BlockDrops;
@@ -184,6 +185,10 @@ public final class LumberjackBehavior implements MinionBehavior {
                         updated,
                         station
                 );
+                if (treeResult == null) {
+                    foundInvalidStation = true;
+                    continue;
+                }
                 if (!treeResult.worked()) {
                     if (felledTrees == 0) {
                         return treeResult;
@@ -309,6 +314,9 @@ public final class LumberjackBehavior implements MinionBehavior {
         if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
             return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
         }
+        if (!this.allowsFelling(context, minion, tree, trunkBase.getY(), sapling)) {
+            return null;
+        }
 
         this.breakBlocks(
                 context,
@@ -349,6 +357,77 @@ public final class LumberjackBehavior implements MinionBehavior {
                 updated,
                 LumberjackStatuses.CUTTING
         );
+    }
+
+    private boolean allowsFelling(
+            MinionContext context,
+            Minion minion,
+            TreeScanner.ScanResult tree,
+            int baseY,
+            Material sapling
+    ) {
+        if (!context.blockChanges().observed()) {
+            return true;
+        }
+
+        TreeScanner.PositionBuffer logs = tree.logs();
+        for (int index = 0; index < logs.size(); index++) {
+            Material newMaterial = this.replantsAt(logs, index, baseY)
+                    ? sapling
+                    : Material.AIR;
+
+            if (!this.allowsChop(context, minion, logs, index, newMaterial)) {
+                return false;
+            }
+        }
+
+        return this.allowsClearing(context, minion, tree.leaves())
+                && this.allowsClearing(context, minion, tree.hives());
+    }
+
+    private boolean allowsClearing(
+            MinionContext context,
+            Minion minion,
+            TreeScanner.PositionBuffer blocks
+    ) {
+        for (int index = 0; index < blocks.size(); index++) {
+            if (!this.allowsChop(context, minion, blocks, index, Material.AIR)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean allowsChop(
+            MinionContext context,
+            Minion minion,
+            TreeScanner.PositionBuffer blocks,
+            int index,
+            Material newMaterial
+    ) {
+        Block block = context.world().getBlockAt(
+                blocks.x(index),
+                blocks.y(index),
+                blocks.z(index)
+        );
+
+        return context.blockChanges().allows(
+                minion,
+                block,
+                newMaterial,
+                MinionBlockChangeReason.CHOPPING
+        );
+    }
+
+    // Mirrors replant(): index 0 is the trunk base the scanner started from.
+    private boolean replantsAt(
+            TreeScanner.PositionBuffer logs,
+            int index,
+            int baseY
+    ) {
+        return logs.y(index) == baseY
+                && (this.config.replantFullTrunkFootprint || index == 0);
     }
 
     private void collectDrops(

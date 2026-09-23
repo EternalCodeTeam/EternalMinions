@@ -1,5 +1,6 @@
 package com.eternalcode.minions.examples;
 
+import com.eternalcode.minions.event.MinionBlockChangeEvent;
 import com.eternalcode.minions.event.MinionCreatedEvent;
 import com.eternalcode.minions.event.MinionPreCreateEvent;
 import com.eternalcode.minions.event.MinionPreRemoveEvent;
@@ -8,6 +9,7 @@ import com.eternalcode.minions.event.MinionUpdatedEvent;
 import com.eternalcode.minions.event.MinionUpgradePurchaseEvent;
 import java.util.UUID;
 import java.util.logging.Logger;
+import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -66,6 +68,14 @@ public final class MinionEventExamples implements Listener {
 
         event.setCancelled(true);
         ExampleMessages.error(player, "The examples plugin blocked this upgrade purchase.");
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockChange(MinionBlockChangeEvent event) {
+        // Fired per block: keep it cheap and touch event.minion() only when needed, it builds a snapshot.
+        if (event.material() == Material.DIAMOND_ORE) {
+            event.setCancelled(true);
+        }
     }
 
     private Player findPlayer(UUID playerId) {

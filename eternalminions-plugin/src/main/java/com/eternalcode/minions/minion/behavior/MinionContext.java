@@ -13,12 +13,15 @@ public record MinionContext(
         Minion minion,
         World world,
         ScheduledMinion scheduledMinion,
-        MinionExecutionPolicy policy
+        MinionExecutionPolicy policy,
+        MinionBlockChanges blockChanges
 ) {
 
     public MinionContext {
-        if (minion == null || world == null || scheduledMinion == null || policy == null) {
-            throw new IllegalArgumentException("Minion execution context requires minion, world, schedule and policy");
+        if (minion == null || world == null || scheduledMinion == null || policy == null || blockChanges == null) {
+            throw new IllegalArgumentException(
+                "Minion execution context requires minion, world, schedule, policy and block changes"
+            );
         }
     }
 

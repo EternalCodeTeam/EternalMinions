@@ -3,6 +3,7 @@ package com.eternalcode.minions.minion.behavior.impl.farmer;
 import com.cryptomorin.xseries.XMaterial;
 import com.eternalcode.minions.config.AbstractMinionConfig;
 import com.eternalcode.minions.config.ConfigService;
+import com.eternalcode.minions.event.MinionBlockChangeReason;
 import com.eternalcode.minions.minion.Minion;
 import com.eternalcode.minions.minion.behavior.MinionBehavior;
 import com.eternalcode.minions.minion.behavior.BlockDrops;
@@ -295,6 +296,9 @@ public final class FarmerBehavior implements MinionBehavior {
         if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
             return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
         }
+        if (!this.allowsHarvest(context, minion, crop, crop.getType())) {
+            return null;
+        }
 
         ageable.setAge(0);
         crop.setBlockData(ageable, false);
@@ -324,6 +328,9 @@ public final class FarmerBehavior implements MinionBehavior {
         if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
             return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
         }
+        if (!this.allowsHarvest(context, minion, harvested, Material.AIR)) {
+            return null;
+        }
 
         harvested.setType(Material.AIR, false);
 
@@ -346,6 +353,9 @@ public final class FarmerBehavior implements MinionBehavior {
         if (!this.transfers.canStoreAll(context, minion.storage(), drops)) {
             return MinionResult.idle(minion, CoreMinionStatuses.STORAGE_FULL);
         }
+        if (!this.allowsHarvest(context, minion, fruit, Material.AIR)) {
+            return null;
+        }
 
         fruit.setType(Material.AIR, false);
 
@@ -355,6 +365,20 @@ public final class FarmerBehavior implements MinionBehavior {
                 fruit,
                 drops,
                 FarmerStatuses.HARVESTING
+        );
+    }
+
+    private boolean allowsHarvest(
+            MinionContext context,
+            Minion minion,
+            Block block,
+            Material newMaterial
+    ) {
+        return context.blockChanges().allows(
+                minion,
+                block,
+                newMaterial,
+                MinionBlockChangeReason.HARVESTING
         );
     }
 
