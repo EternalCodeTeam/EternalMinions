@@ -29,6 +29,8 @@ import org.bukkit.plugin.Plugin;
 
 public final class MinionItemFactory {
 
+    private static final int MAX_AMOUNT = 576;
+
     private final MinionBehaviorRegistry behaviors;
     private final MinionAppearanceItems appearance;
     private final MiniMessage miniMessage;
@@ -56,6 +58,12 @@ public final class MinionItemFactory {
         this.toolKey = new NamespacedKey(plugin, "minion_tool");
         this.storageKey = new NamespacedKey(plugin, "minion_storage");
         this.upgradesKey = new NamespacedKey(plugin, "minion_upgrades");
+    }
+
+    public ItemStack create(MinionBehavior behavior, int amount) {
+        ItemStack item = this.create(behavior);
+        item.setAmount(Math.max(1, Math.min(amount, MAX_AMOUNT)));
+        return item;
     }
 
     public ItemStack create(MinionBehavior behavior) {

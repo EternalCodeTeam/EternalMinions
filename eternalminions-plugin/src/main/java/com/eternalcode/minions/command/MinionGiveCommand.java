@@ -32,21 +32,27 @@ public final class MinionGiveCommand {
     @Execute(name = "give")
     @Permission("eternalminions.command.give")
     public Notice give(@Context Player player) {
-        return this.give(player, this.behaviors.defaultBehavior());
+        return this.give(player, this.behaviors.defaultBehavior(), 1);
     }
 
     @Execute(name = "give")
     @Permission("eternalminions.command.give")
     public Notice give(@Context Player player, @Arg("type") String type) {
+        return this.give(player, type, 1);
+    }
+
+    @Execute(name = "give")
+    @Permission("eternalminions.command.give")
+    public Notice give(@Context Player player, @Arg("type") String type, @Arg("amount") int amount) {
         MinionBehavior behavior = this.behaviors.find(type).orElse(null);
         if (behavior == null) {
             return this.messages.minionTypeUnknown;
         }
-        return this.give(player, behavior);
+        return this.give(player, behavior, amount);
     }
 
-    private Notice give(Player player, MinionBehavior behavior) {
-        player.getInventory().addItem(this.items.create(behavior));
+    private Notice give(Player player, MinionBehavior behavior, int amount) {
+        player.getInventory().addItem(this.items.create(behavior, amount));
         return this.messages.minionItemReceived;
     }
 }
