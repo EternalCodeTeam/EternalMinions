@@ -19,6 +19,10 @@ final class PanelItemFactory {
     }
 
     ItemStack create(MinionPanelElementConfig config, Map<String, String> placeholders) {
+        return this.create(config, config.lore, placeholders);
+    }
+
+    ItemStack create(MinionPanelElementConfig config, List<String> lore, Map<String, String> placeholders) {
         ItemStack item = config.material.parseItem();
         if (item == null) {
             throw new IllegalStateException("XMaterial " + config.material + " is unavailable on this server version");
@@ -27,7 +31,7 @@ final class PanelItemFactory {
         item.setAmount(config.amount);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(this.render(config.displayName, placeholders));
-        meta.lore(this.createLore(config.lore, placeholders));
+        meta.lore(this.createLore(lore, placeholders));
         meta.setEnchantmentGlintOverride(config.glowing);
         meta.setHideTooltip(config.hideTooltip);
         if (config.customModelData > 0) {

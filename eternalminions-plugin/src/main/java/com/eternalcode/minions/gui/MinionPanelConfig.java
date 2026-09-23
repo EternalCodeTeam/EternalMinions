@@ -22,9 +22,6 @@ public final class MinionPanelConfig extends ConfigurationFile {
     @Comment("Text displayed instead of a value when a minion reached its maximum level.")
     public String maximumValue = "MAX";
 
-    @Comment("Text displayed when an upgrade has no next level.")
-    public String unavailableValue = "-";
-
     @Comment("Title supports MiniMessage and minion placeholders.")
     public String title = "<dark_gray>Minion <green>#{MINION_ID}";
 
@@ -55,10 +52,25 @@ public final class MinionPanelConfig extends ConfigurationFile {
 
     @Comment({
         "Icons of the upgrades panel, one per upgrade kind.",
-        "Placeholders: {UPGRADE_TIER}, {UPGRADE_MAX_TIER}, {UPGRADE_VALUE}, {UPGRADE_NEXT_VALUE},",
-        "{UPGRADE_REQUIRED_LEVEL}, {UPGRADE_COST} (MAX when fully upgraded)."
+        "Placeholders: {UPGRADE_TIER}, {UPGRADE_MAX_TIER}, {UPGRADE_VALUE},",
+        "{UPGRADE_NEXT_VALUE} (MAX when fully upgraded)."
     })
     public Map<UpgradeKind, MinionPanelElementConfig> upgradeElements = defaultUpgradeElements();
+
+    @Comment({
+        "Lore appended to an upgrade icon that can still be purchased.",
+        "Placeholders: {UPGRADE_REQUIRED_LEVEL}, {UPGRADE_COST}."
+    })
+    public List<String> upgradeAvailableLore = List.of(
+        "<gray>Required minion level: <white>{UPGRADE_REQUIRED_LEVEL}",
+        "<gray>Cost: <green>{UPGRADE_COST}",
+        "<green>Click to upgrade."
+    );
+
+    @Comment("Lore appended to an upgrade icon that reached its maximum tier.")
+    public List<String> upgradeMaximumLore = List.of(
+        "<red>This upgrade is already at its maximum."
+    );
 
     private static Map<UpgradeKind, MinionPanelElementConfig> defaultUpgradeElements() {
         Map<UpgradeKind, MinionPanelElementConfig> elements = new LinkedHashMap<>();
@@ -69,10 +81,7 @@ public final class MinionPanelConfig extends ConfigurationFile {
             "<yellow>Speed <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
             "<gray>Work interval:",
             "<white>{UPGRADE_VALUE} ticks <dark_gray>→ <green>{UPGRADE_NEXT_VALUE} ticks",
-            "",
-            "<gray>Required minion level: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Cost: <green>{UPGRADE_COST}",
-            "<green>Click to upgrade."
+            ""
         ));
         elements.put(
                 DefaultUpgradeKinds.RANGE, element(
@@ -81,10 +90,7 @@ public final class MinionPanelConfig extends ConfigurationFile {
             "<yellow>Range <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
             "<gray>Work radius:",
             "<white>{UPGRADE_VALUE} <dark_gray>→ <green>{UPGRADE_NEXT_VALUE}",
-            "",
-            "<gray>Required minion level: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Cost: <green>{UPGRADE_COST}",
-            "<green>Click to upgrade."
+            ""
         ));
         elements.put(
                 DefaultUpgradeKinds.CAPACITY, element(
@@ -93,10 +99,7 @@ public final class MinionPanelConfig extends ConfigurationFile {
             "<yellow>Capacity <white>{UPGRADE_TIER}/{UPGRADE_MAX_TIER}",
             "<gray>Storage slots:",
             "<white>{UPGRADE_VALUE} <dark_gray>→ <green>{UPGRADE_NEXT_VALUE}",
-            "",
-            "<gray>Required minion level: <white>{UPGRADE_REQUIRED_LEVEL}",
-            "<gray>Cost: <green>{UPGRADE_COST}",
-            "<green>Click to upgrade."
+            ""
         ));
         return elements;
     }

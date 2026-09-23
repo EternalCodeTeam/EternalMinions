@@ -11,6 +11,7 @@ import com.eternalcode.minions.notice.NoticeService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.bukkit.block.Block;
@@ -49,7 +50,7 @@ public final class ChestLinkService implements Listener {
                 .build();
     }
 
-    public void toggle(Player player, Minion minion) {
+    public Optional<Minion> toggle(Player player, Minion minion) {
         Minion current = this.access.findAccessible(
                 player,
                 minion.id(),
@@ -57,7 +58,7 @@ public final class ChestLinkService implements Listener {
         ).orElse(null);
 
         if (current == null) {
-            return;
+            return Optional.empty();
         }
 
         minion = current;
@@ -65,14 +66,15 @@ public final class ChestLinkService implements Listener {
 
         if (minion.chestPosition() != null) {
             this.pendingLinks.invalidate(playerId);
-            this.update.accept(minion.withChestPosition(null));
+            Minion unlinked = minion.withChestPosition(null);
+            this.update.accept(unlinked);
 
             this.notices.create()
                     .viewer(player)
                     .notice(this.messages.chestUnlinked)
                     .send();
 
-            return;
+            return Optional.of(unlinked);
         }
 
         this.pendingLinks.put(playerId, minion.id());
@@ -83,6 +85,7 @@ public final class ChestLinkService implements Listener {
                 .send();
 
         player.closeInventory();
+        return Optional.empty();
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

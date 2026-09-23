@@ -16,7 +16,9 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem;
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
 import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -80,6 +82,28 @@ public final class MinionUpgradePanel {
         gui.setOnGlobalDrag(event -> event.setCancelled(true));
 
         StaticPane pane = new StaticPane(9, 3);
+        gui.addPane(Slot.fromIndex(0), pane);
+        this.populate(gui, pane, player, behavior, minion);
+        gui.show(player);
+    }
+
+    private void populate(
+        ChestGui gui,
+        StaticPane pane,
+        Player player,
+        MinionBehavior behavior,
+        Minion minion
+    ) {
+        pane.clear();
+        Runnable refresh = () -> this.access.findAccessible(
+                player,
+                minion.id(),
+                MinionAccessAction.OPEN_PANEL
+        ).ifPresent(current -> {
+            this.populate(gui, pane, player, behavior, current);
+            gui.update();
+        });
+
         for (Map.Entry<UpgradeKind, MinionPanelElementConfig> entry : this.config.upgradeElements.entrySet()) {
             UpgradeKind kind = entry.getKey();
             Integer column = COLUMNS.get(kind);
@@ -87,16 +111,34 @@ public final class MinionUpgradePanel {
                 continue;
             }
 
+            MinionPanelElementConfig element = entry.getValue();
             Map<String, String> placeholders = this.createPlaceholders(behavior, minion.upgrades(), kind);
-            GuiItem item = new GuiItem(this.items.create(entry.getValue(), placeholders), event -> {
-                this.upgrades.purchase(player, minion, kind)
-                    .ifPresent(updated -> this.open(player, updated));
-            }, this.plugin);
+            GuiItem item = new GuiItem(
+                this.items.create(element, this.createLore(element, behavior, minion.upgrades(), kind), placeholders),
+                event -> {
+                    this.upgrades.purchase(player, minion, kind);
+                    refresh.run();
+                },
+                this.plugin
+            );
             pane.addItem(item, column, 1);
         }
+    }
 
-        gui.addPane(Slot.fromIndex(0), pane);
-        gui.show(player);
+    private List<String> createLore(
+        MinionPanelElementConfig element,
+        MinionBehavior behavior,
+        MinionUpgrades minionUpgrades,
+        UpgradeKind kind
+    ) {
+        List<String> tail = minionUpgrades.tier(kind) >= behavior.config().maxUpgradeTier(kind)
+            ? this.config.upgradeMaximumLore
+            : this.config.upgradeAvailableLore;
+
+        List<String> lore = new ArrayList<>(element.lore.size() + tail.size());
+        lore.addAll(element.lore);
+        lore.addAll(tail);
+        return lore;
     }
 
     private Map<String, String> createPlaceholders(
@@ -113,11 +155,10 @@ public final class MinionUpgradePanel {
         placeholders.put("{UPGRADE_MAX_TIER}", Integer.toString(maxTier));
         placeholders.put("{UPGRADE_VALUE}", Long.toString(this.effectiveValue(behavior, minionUpgrades, kind)));
         placeholders.put("{UPGRADE_NEXT_VALUE}", nextTier == null ? this.config.maximumValue : Integer.toString(nextTier.value()));
-        placeholders.put("{UPGRADE_REQUIRED_LEVEL}", nextTier == null ? this.config.unavailableValue : Integer.toString(nextTier.requiredLevel()));
-        placeholders.put(
-            "{UPGRADE_COST}",
-            nextTier == null ? this.config.unavailableValue : this.upgrades.formatCost(nextTier.costAmount())
-        );
+        if (nextTier != null) {
+            placeholders.put("{UPGRADE_REQUIRED_LEVEL}", Integer.toString(nextTier.requiredLevel()));
+            placeholders.put("{UPGRADE_COST}", this.upgrades.formatCost(nextTier.costAmount()));
+        }
         return placeholders;
     }
 

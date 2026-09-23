@@ -23,7 +23,9 @@ import com.github.stefvanschie.inventoryframework.pane.StaticPane;
 import com.github.stefvanschie.inventoryframework.pane.util.Slot;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -50,7 +52,7 @@ public final class MinionPanel {
     private final MinionItemTransferService transfers;
     private final MinionPickupService pickups;
     private final BiConsumer<Player, Minion> openUpgrades;
-    private final BiConsumer<Player, Minion> linkChest;
+    private final BiFunction<Player, Minion, Optional<Minion>> linkChest;
 
     public MinionPanel(
         Plugin plugin,
@@ -65,7 +67,7 @@ public final class MinionPanel {
         MinionItemTransferService transfers,
         MinionPickupService pickups,
         BiConsumer<Player, Minion> openUpgrades,
-        BiConsumer<Player, Minion> linkChest
+        BiFunction<Player, Minion, Optional<Minion>> linkChest
     ) {
         this.plugin = plugin;
         this.config = config;
@@ -108,18 +110,35 @@ public final class MinionPanel {
         gui.setOnGlobalDrag(event -> event.setCancelled(true));
 
         StaticPane pane = new StaticPane(9, layout.rows());
+        gui.addPane(Slot.fromIndex(0), pane);
+        this.populate(gui, pane, layout, player, minion);
+        gui.show(player);
+    }
+
+    private void populate(
+        ChestGui gui,
+        StaticPane pane,
+        MinionPanelLayout layout,
+        Player player,
+        Minion minion
+    ) {
+        pane.clear();
+        Map<String, String> placeholders = this.createPlaceholders(minion);
+        Consumer<Minion> refresh = updated -> {
+            this.populate(gui, pane, layout, player, updated);
+            gui.update();
+        };
+
         int storageIndex = 0;
         for (int row = 0; row < layout.rows(); row++) {
             String patternRow = this.config.pattern.get(row);
             for (int column = 0; column < 9; column++) {
                 MinionPanelElementConfig element = this.config.elements.get(patternRow.charAt(column));
-                storageIndex = this.addElement(pane, column, row, player, minion, element, placeholders, storageIndex);
+                storageIndex = this.addElement(
+                        pane, column, row, player, minion, element, placeholders, storageIndex, refresh);
             }
         }
         this.addUsageInstructions(pane, layout, minion, placeholders);
-
-        gui.addPane(Slot.fromIndex(0), pane);
-        gui.show(player);
     }
 
     private void addUsageInstructions(
@@ -151,7 +170,8 @@ public final class MinionPanel {
         Minion minion,
         MinionPanelElementConfig element,
         Map<String, String> placeholders,
-        int storageIndex
+        int storageIndex,
+        Consumer<Minion> refresh
     ) {
         if (element.action == MinionPanelAction.STORAGE_SLOT) {
             ItemStack stored = storageIndex < minion.storage().capacity() ? minion.storage().item(storageIndex) : null;
@@ -161,10 +181,10 @@ public final class MinionPanel {
         }
 
         GuiItem item = switch (element.action) {
-            case TOOL_SLOT -> this.createToolElement(player, minion, element, placeholders);
+            case TOOL_SLOT -> this.createToolElement(player, minion, element, placeholders, refresh);
             case COLLECT_ITEMS -> this.createAccessibleElement(
                     player, minion, MinionAccessAction.MANAGE, element, placeholders,
-                    current -> this.collect(player, current)
+                    current -> this.collect(player, current, refresh)
             );
             case PICKUP_MINION -> this.createConfiguredElement(
                     element,
@@ -177,7 +197,7 @@ public final class MinionPanel {
             );
             case LINK_CHEST -> this.createAccessibleElement(
                     player, minion, MinionAccessAction.MANAGE, element, placeholders,
-                    current -> this.linkChest.accept(player, current)
+                    current -> this.linkChest.apply(player, current).ifPresent(refresh)
             );
             case ROTATE -> this.createConfiguredElement(
                     element,
@@ -185,7 +205,7 @@ public final class MinionPanel {
                     event -> this.rotations.rotate(
                             player,
                             minion.id()
-                    ).ifPresent(rotated -> this.refresh(player, rotated))
+                    ).ifPresent(refresh)
             );
             case NONE, MINION_INFORMATION -> this.createConfiguredElement(element, placeholders, null);
             case STORAGE_SLOT -> throw new IllegalStateException("Storage action was not handled");
@@ -198,7 +218,8 @@ public final class MinionPanel {
         Player player,
         Minion minion,
         MinionPanelElementConfig element,
-        Map<String, String> placeholders
+        Map<String, String> placeholders,
+        Consumer<Minion> refresh
     ) {
         ItemStack tool = minion.equipment().tool();
         ItemStack icon = tool == null ? this.items.create(element, placeholders) : tool;
@@ -206,11 +227,11 @@ public final class MinionPanel {
                 player,
                 minion,
                 MinionAccessAction.MANAGE,
-                current -> this.updateTool(player, current, event.getCursor())
+                current -> this.updateTool(player, current, event.getCursor(), refresh)
         ), this.plugin);
     }
 
-    private void updateTool(Player player, Minion minion, ItemStack cursor) {
+    private void updateTool(Player player, Minion minion, ItemStack cursor, Consumer<Minion> refresh) {
         ItemStack currentTool = minion.equipment().tool();
         Minion updated = minion.withEquipment(
                 new MinionEquipment(cursor.getType().isAir() ? null : cursor)
@@ -218,7 +239,7 @@ public final class MinionPanel {
         this.lifecycle.updateEquipment(updated);
         player.setItemOnCursor(currentTool);
         this.send(player, this.messages.minionToolUpdated);
-        this.refresh(player, updated);
+        refresh.accept(updated);
     }
 
     private GuiItem createConfiguredElement(
@@ -245,7 +266,7 @@ public final class MinionPanel {
         );
     }
 
-    private void collect(Player player, Minion minion) {
+    private void collect(Player player, Minion minion, Consumer<Minion> refresh) {
         MinionStorage storage = minion.storage();
         for (int slot = 0; slot < storage.capacity(); slot++) {
             ItemStack item = storage.item(slot);
@@ -258,7 +279,7 @@ public final class MinionPanel {
         Minion updated = minion.withStorage(storage);
         this.lifecycle.updateStorage(updated);
         this.send(player, this.messages.minionStorageCollected);
-        this.refresh(player, updated);
+        refresh.accept(updated);
     }
 
     private Map<String, String> createPlaceholders(Minion minion) {
@@ -330,11 +351,6 @@ public final class MinionPanel {
             formatted = formatted.replace(placeholder.getKey(), placeholder.getValue());
         }
         return formatted;
-    }
-
-    private void refresh(Player player, Minion minion) {
-        player.closeInventory();
-        this.open(player, minion);
     }
 
     private void withAccess(
