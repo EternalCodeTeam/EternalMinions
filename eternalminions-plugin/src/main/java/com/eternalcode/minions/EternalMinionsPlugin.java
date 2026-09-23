@@ -31,6 +31,7 @@ import com.eternalcode.minions.minion.MinionLifecycleService;
 import com.eternalcode.minions.minion.MinionManagement;
 import com.eternalcode.minions.minion.MinionPickupService;
 import com.eternalcode.minions.minion.controller.MinionBlockProtectionController;
+import com.eternalcode.minions.minion.controller.MinionChestLinkController;
 import com.eternalcode.minions.minion.controller.MinionPistonProtectionController;
 import com.eternalcode.minions.minion.controller.MinionPlacementController;
 import com.eternalcode.minions.minion.MinionServiceImpl;
@@ -286,6 +287,7 @@ public final class EternalMinionsPlugin extends JavaPlugin {
                 new MinionViewerListener(renders),
                 new MinionPistonProtectionController(this.minions),
                 new MinionBlockProtectionController(this.minions, messages, notices),
+                new MinionChestLinkController(this.minions, lifecycle, messages, notices),
                 chestLinks,
                 new MinionPlacementController(
                         minionItems,
