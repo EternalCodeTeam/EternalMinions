@@ -31,7 +31,7 @@ jobs:
         run: ./gradlew build
 
       - name: Upload dev build
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: EternalMinions-dev-${{ github.sha }}
           path: eternalminions-plugin/build/libs/EternalMinions-v*.jar
