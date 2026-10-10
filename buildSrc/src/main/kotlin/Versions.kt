@@ -3,7 +3,7 @@ object Versions {
     const val PAPER_API = "1.21.11-R0.1-SNAPSHOT"
     const val JETBRAINS_ANNOTATIONS = "26.1.0"
 
-    const val JUNIT_BOM = "6.1.2"
+    const val JUNIT_BOM = "6.1.3"
     const val ASSERTJ = "3.27.7"
     const val MOCKITO = "5.20.0"
 
