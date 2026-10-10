@@ -18,7 +18,7 @@ object Versions {
     const val ENTITY_LIB = "3.3.7-SNAPSHOT"
     const val X_SERIES = "13.7.1"
     const val INVENTORY_FRAMEWORK = "0.12.0"
-    const val FASTUTIL = "8.5.16"
+    const val FASTUTIL = "8.5.19"
     const val CAFFEINE = "3.1.8"
 
     const val HIKARI_CP = "7.1.0"
