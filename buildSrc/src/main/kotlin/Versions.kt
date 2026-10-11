@@ -25,5 +25,5 @@ object Versions {
     const val ORMLITE = "6.1"
     const val H2 = "2.4.240"
     const val MARIA_DB = "3.5.9"
-    const val POSTGRESQL = "42.7.13"
+    const val POSTGRESQL = "42.7.14"
 }
