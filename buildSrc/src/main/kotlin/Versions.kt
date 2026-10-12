@@ -11,7 +11,7 @@ object Versions {
     const val MULTIFICATION = "1.2.5-SNAPSHOT"
     const val LITE_COMMANDS = "3.11.0"
     const val ETERNALCODE_COMMONS = "1.4.1"
-    const val LOMBOK = "1.18.46"
+    const val LOMBOK = "1.18.48"
 
     const val PACKET_EVENTS = "2.13.0"
     const val SHOPGUI_API = "3.2.0"
