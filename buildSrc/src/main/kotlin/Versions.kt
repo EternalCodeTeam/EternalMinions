@@ -13,7 +13,7 @@ object Versions {
     const val ETERNALCODE_COMMONS = "1.4.1"
     const val LOMBOK = "1.18.46"
 
-    const val PACKET_EVENTS = "2.13.0"
+    const val PACKET_EVENTS = "2.14.0"
     const val SHOPGUI_API = "3.2.0"
     const val ENTITY_LIB = "3.3.7-SNAPSHOT"
     const val X_SERIES = "13.7.1"
