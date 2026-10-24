@@ -17,7 +17,7 @@ object Versions {
     const val SHOPGUI_API = "3.2.0"
     const val ENTITY_LIB = "3.3.7-SNAPSHOT"
     const val X_SERIES = "13.7.1"
-    const val INVENTORY_FRAMEWORK = "0.12.0"
+    const val INVENTORY_FRAMEWORK = "0.12.2"
     const val FASTUTIL = "8.5.16"
     const val CAFFEINE = "3.1.8"
 
